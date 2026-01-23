@@ -1,18 +1,14 @@
-import express from "express"
-import cors from "cors"
-import cookieParser from "cookie-parser"
+class ApiError extends Error {
+  readonly success = false;
+  readonly data = null;
 
-const app = express()
+  constructor(
+    readonly statusCode: number,
+    override message = "Something went wrong",
+    readonly errors: unknown[] = []
+  ) {
+    super(message);
+  }
+}
 
-app.use(cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true
-}))
-
-app.use(express.json({ limit: "16kb" }))
-app.use(express.urlencoded({ extended: true, limit: "16kb" }))
-app.use(express.static("public"))
-app.use(cookieParser())
-
-
-export { app }
+export { ApiError };
