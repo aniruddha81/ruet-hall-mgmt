@@ -7,13 +7,19 @@ import {
   register,
 } from "../controllers/auth.controller.ts";
 import { authenticateToken } from "../middlewares/auth.middleware.ts";
+import { validateRequest } from "../middlewares/validateRequest.middleware.ts";
+import { loginSchema, refreshTokenCookieSchema, registerSchema } from "../validators/authValidators.ts";
 
 const authRouter = Router();
 
 // public routes
-authRouter.post("/register", register);
-authRouter.post("/login", login);
-authRouter.post("/refresh-access-token", refreshAccessToken);
+authRouter.post("/register", validateRequest(registerSchema), register);
+authRouter.post("/login", validateRequest(loginSchema), login);
+authRouter.post(
+  "/refresh-access-token",
+  validateRequest(refreshTokenCookieSchema),
+  refreshAccessToken
+);
 authRouter.post("/logout", logout);
 
 // Protected routes

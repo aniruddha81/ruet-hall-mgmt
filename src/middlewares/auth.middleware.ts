@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
 import { db } from "../db/index.ts";
 import { users } from "../db/schema/auth.schema.ts";
+import type { Role } from "../types/roles";
 import { ApiError } from "../utils/ApiError.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { verifyAccessToken } from "../utils/auth.ts";
@@ -43,7 +44,7 @@ export const authenticateToken = asyncHandler(
 );
 
 // Role-based middleware
-export const authorizeRoles = (...allowedRoles: string[]) => {
+export const authorizeRoles = (...allowedRoles: Role[]) => {
   return asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       if (!req.user) {
