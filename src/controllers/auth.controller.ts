@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { and, eq } from "drizzle-orm";
-import type { Request, Response } from "express";
+import type { CookieOptions, Request, Response } from "express";
 import { NODE_ENV } from "../Constants.ts";
 import { db } from "../db/index.ts";
 import { refreshTokens, users } from "../db/schema/index.ts";
@@ -8,40 +8,16 @@ import { ApiError } from "../utils/ApiError.ts";
 import { ApiResponse } from "../utils/ApiResponse.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import {
-  generateAccessToken,
-  generateRefreshToken,
+  generateAccessAndRefreshTokens,
   getRefreshTokenExpiry,
   verifyRefreshToken,
 } from "../utils/auth.ts";
+import type { TokenPayload } from "../types/auth";
 
-// Extend Express Request with authenticated user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: { userId: string; email: string; role: string };
-    }
-  }
-}
-
-// Helper: Set token cookies
-const setTokenCookies = (
-  res: Response,
-  accessToken: string,
-  refreshToken: string
-) => {
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
-  });
-
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 10 * 24 * 60 * 60 * 1000, // 10 days
-  });
+const options: CookieOptions = {
+  httpOnly: true,
+  secure: NODE_ENV === "production",
+  sameSite: "strict",
 };
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -83,8 +59,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     role: newUser.role,
   };
 
-  const accessToken = generateAccessToken(tokenPayload);
-  const refreshToken = generateRefreshToken(tokenPayload);
+  const { accessToken, refreshToken } =
+    generateAccessAndRefreshTokens(tokenPayload);
 
   await db.insert(refreshTokens).values({
     userId: newUser.id,
@@ -92,22 +68,24 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     expiresAt: getRefreshTokenExpiry(),
   });
 
-  setTokenCookies(res, accessToken, refreshToken);
-
-  return res.status(201).json(
-    new ApiResponse(
-      201,
-      {
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          name: newUser.name,
-          role: newUser.role,
+  return res
+    .status(201)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        201,
+        {
+          user: {
+            id: newUser.id,
+            email: newUser.email,
+            name: newUser.name,
+            role: newUser.role,
+          },
         },
-      },
-      "User registered successfully"
-    )
-  );
+        "User registered successfully"
+      )
+    );
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -123,12 +101,12 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     .limit(1);
 
   if (!user) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError(401, "No user found with this email");
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError(401, "Invalid password");
   }
 
   const tokenPayload = {
@@ -137,8 +115,8 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     role: user.role,
   };
 
-  const accessToken = generateAccessToken(tokenPayload);
-  const refreshToken = generateRefreshToken(tokenPayload);
+  const { accessToken, refreshToken } =
+    generateAccessAndRefreshTokens(tokenPayload);
 
   await db.insert(refreshTokens).values({
     userId: user.id,
@@ -146,34 +124,38 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     expiresAt: getRefreshTokenExpiry(),
   });
 
-  setTokenCookies(res, accessToken, refreshToken);
-
-  return res.status(200).json(
-    new ApiResponse(
-      200,
-      {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          },
+          accessToken,
+          refreshToken,
         },
-      },
-      "User logged in successfully"
-    )
-  );
+        "User logged in successfully"
+      )
+    );
 });
 
 export const refreshAccessToken = asyncHandler(
   async (req: Request, res: Response) => {
-    const refreshToken = req.cookies?.refreshToken;
-    if (!refreshToken) {
+    const incomingRefreshToken = req.cookies?.refreshToken;
+    if (!incomingRefreshToken) {
       throw new ApiError(400, "Refresh token is required");
     }
 
-    let decoded;
+    let decoded: TokenPayload;
     try {
-      decoded = verifyRefreshToken(refreshToken);
+      decoded = verifyRefreshToken(incomingRefreshToken);
     } catch {
       throw new ApiError(401, "Invalid or expired refresh token");
     }
@@ -183,8 +165,8 @@ export const refreshAccessToken = asyncHandler(
       .from(refreshTokens)
       .where(
         and(
-          eq(refreshTokens.token, refreshToken),
-          eq(refreshTokens.userId, decoded.userId)
+          eq(refreshTokens.userId, decoded.userId),
+          eq(refreshTokens.token, incomingRefreshToken)
         )
       )
       .limit(1);
@@ -198,24 +180,26 @@ export const refreshAccessToken = asyncHandler(
       throw new ApiError(401, "Refresh token has expired");
     }
 
-    // Generate new access token
-    const newAccessToken = generateAccessToken({
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role,
-    });
-
-    // Set new access token in cookie
-    res.cookie("accessToken", newAccessToken, {
-      httpOnly: true,
-      secure: NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    });
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+      generateAccessAndRefreshTokens({
+        userId: decoded.userId,
+        email: decoded.email,
+        role: decoded.role,
+      });
 
     return res
       .status(200)
-      .json(new ApiResponse(200, null, "Access token refreshed"));
+      .cookie("accessToken", newAccessToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+          },
+          "Access token refreshed"
+        )
+      );
   }
 );
 
@@ -232,17 +216,15 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
     .where(eq(refreshTokens.token, refreshToken))
     .returning();
 
-  // Clear cookies
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
-
   if (result.length === 0) {
     throw new ApiError(404, "Refresh token not found");
   }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, null, "User logged out successfully"));
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
 // LOGOUT FROM ALL DEVICES
@@ -256,12 +238,10 @@ export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
   // Delete all refresh tokens for this user
   await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
 
-  // Clear cookies
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
-
   return res
     .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
     .json(
       new ApiResponse(200, null, "Logged out from all devices successfully")
     );

@@ -1,4 +1,7 @@
+import { eq } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
+import { db } from "../db/index.ts";
+import { users } from "../db/schema/auth.schema.ts";
 import { ApiError } from "../utils/ApiError.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { verifyAccessToken } from "../utils/auth.ts";
@@ -19,7 +22,19 @@ export const authenticateToken = asyncHandler(
 
     try {
       const decoded = verifyAccessToken(token);
-      req.user = decoded; // Now type-safe via Express.Request extension
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, decoded.userId))
+        .limit(1);
+
+      if (!user) {
+        throw new ApiError(401, "User not found or has been deleted");
+      }
+
+      req.user = { userId: user.id, email: user.email, role: user.role };
+
       next();
     } catch {
       throw new ApiError(401, "Invalid or expired access token");
@@ -31,9 +46,11 @@ export const authenticateToken = asyncHandler(
 export const authorizeRoles = (...allowedRoles: string[]) => {
   return asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const userRole = req.user?.role;
+      if (!req.user) {
+        throw new ApiError(401, "Authentication required");
+      }
 
-      if (!userRole || !allowedRoles.includes(userRole)) {
+      if (!allowedRoles.includes(req.user.role)) {
         throw new ApiError(
           403,
           "Forbidden: You do not have access to this resource"

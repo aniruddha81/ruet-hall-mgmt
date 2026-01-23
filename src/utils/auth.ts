@@ -1,41 +1,40 @@
 import jwt, { type SignOptions } from "jsonwebtoken";
+import type { TokenPayload } from "../types/auth";
+import {
+  ACCESS_TOKEN_SECRET,
+  ACCESS_TOKEN_EXPIRY,
+  REFRESH_TOKEN_EXPIRY,
+  REFRESH_TOKEN_SECRET,
+} from "../Constants";
 
-const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET!;
-const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET!;
-
-const ACCESS_EXPIRY = (process.env.ACCESS_TOKEN_EXPIRY ||
-  "15m") as SignOptions["expiresIn"];
-const REFRESH_EXPIRY = (process.env.REFRESH_TOKEN_EXPIRY ||
-  "7d") as SignOptions["expiresIn"];
-
-interface TokenPayload {
-  userId: string;
-  email: string;
-  role: string;
-}
-
-export const generateAccessToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRY });
-};
-
-export const generateRefreshToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRY });
+export const generateAccessAndRefreshTokens = (
+  payload: TokenPayload
+): { accessToken: string; refreshToken: string } => {
+  const accessToken = jwt.sign(payload, ACCESS_TOKEN_SECRET!, {
+    expiresIn: (ACCESS_TOKEN_EXPIRY || "1d") as SignOptions["expiresIn"],
+  });
+  const refreshToken = jwt.sign(payload, REFRESH_TOKEN_SECRET!, {
+    expiresIn: (REFRESH_TOKEN_EXPIRY || "10d") as SignOptions["expiresIn"],
+  });
+  return { accessToken, refreshToken };
 };
 
 export const verifyAccessToken = (token: string): TokenPayload => {
-  return jwt.verify(token, ACCESS_SECRET) as TokenPayload;
+  return jwt.verify(token, ACCESS_TOKEN_SECRET!) as TokenPayload;
 };
 
 export const verifyRefreshToken = (token: string): TokenPayload => {
-  return jwt.verify(token, REFRESH_SECRET) as TokenPayload;
+  return jwt.verify(token, REFRESH_TOKEN_SECRET!) as TokenPayload;
 };
 
 /**
  * Calculate expiry date for refresh token storage (e.g., for Cookies or DB)
- * Note: This assumes REFRESH_EXPIRY is in a 'days' format if it's a string like "7d"
+ * Note: This assumes REFRESH_TOKEN_EXPIRY is in a 'days' format if it's a string like "7d"
  */
 export const getRefreshTokenExpiry = (): Date => {
-  const expiryStr = REFRESH_EXPIRY?.toString() || "7";
+  const expiryStr =
+    ((REFRESH_TOKEN_EXPIRY || "10d") as SignOptions["expiresIn"])?.toString() ||
+    "10";
   // Extracts the number from strings like "7d" or "30d"
   const days = parseInt(expiryStr.replace(/\D/g, "")) || 7;
 
