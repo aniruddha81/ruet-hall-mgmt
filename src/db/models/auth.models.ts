@@ -39,7 +39,6 @@ export const refreshTokens = pgTable(
     jti: varchar("jti", { length: 255 }).notNull(),
     ip: varchar("ip", { length: 45 }),
     userAgent: varchar("user_agent", { length: 512 }),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

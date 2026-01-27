@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { CookieOptions, Request, Response } from "express";
 import { NODE_ENV } from "../Constants.ts";
 import { db } from "../db/index.ts";
@@ -78,11 +78,11 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     .cookie("accessToken", signAccessToken(tokenPayload), {
       ...options,
       maxAge: 15 * 60 * 1000,
-    }) // 15 minutes
+    })
     .cookie("refreshToken", refreshToken, {
       ...options,
       maxAge: 10 * 24 * 60 * 60 * 1000,
-    }) // 10 days
+    })
     .json(
       new ApiResponse(
         201,
@@ -126,20 +126,13 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     role: user.role,
   };
 
-  const jti = createJti();
-  const refreshToken = signRefreshToken({ ...tokenPayload, jti });
-
-  // Check active token count for this user
   const activeTokens = await db
     .select()
     .from(refreshTokens)
-    .where(
-      and(eq(refreshTokens.userId, user.id), isNull(refreshTokens.revokedAt))
-    );
+    .where(eq(refreshTokens.userId, user.id))
+    .orderBy(desc(refreshTokens.createdAt));
 
-  // If user has 2 or more active tokens, remove the oldest one
   if (activeTokens.length >= 2) {
-    // Sort by createdAt and get the oldest
     const oldestToken = activeTokens.sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
     )[0]!;
@@ -147,7 +140,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     await db.delete(refreshTokens).where(eq(refreshTokens.id, oldestToken.id));
   }
 
-  // Insert new refresh token
+  const jti = createJti();
+  const refreshToken = signRefreshToken({ ...tokenPayload, jti });
+
   await db.insert(refreshTokens).values({
     jti,
     userId: user.id,
@@ -162,11 +157,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     .cookie("accessToken", signAccessToken(tokenPayload), {
       ...options,
       maxAge: 15 * 60 * 1000,
-    }) // 15 minutes
+    })
     .cookie("refreshToken", refreshToken, {
       ...options,
       maxAge: 10 * 24 * 60 * 60 * 1000,
-    }) // 10 days
+    })
     .json(
       new ApiResponse(
         200,
@@ -214,10 +209,6 @@ export const renewAccessToken = asyncHandler(
       throw new ApiError(401, "Refresh token not found");
     }
 
-    if (tokenRecord.revokedAt) {
-      throw new ApiError(401, "Refresh token has been revoked");
-    }
-
     if (tokenRecord.expiresAt < new Date()) {
       throw new ApiError(401, "Refresh token has expired");
     }
@@ -253,28 +244,11 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, "Refresh token is required");
   }
 
-  if (refreshToken) {
-    const hashedToken = hashToken(refreshToken);
+  const hashedToken = hashToken(refreshToken);
 
-    const [doc] = await db
-      .select()
-      .from(refreshTokens)
-      .where(eq(refreshTokens.tokenHash, hashedToken))
-      .limit(1);
-
-    if (doc && !doc.revokedAt) {
-      await db
-        .update(refreshTokens)
-        .set({ revokedAt: new Date() })
-        .where(eq(refreshTokens.tokenHash, hashedToken));
-    }
-  }
-
-  // // Delete refresh token from database
-  // const [result] = await db
-  //   .delete(refreshTokens)
-  //   .where(eq(refreshTokens.tokenHash, hashToken(refreshToken)))
-  //   .returning();
+  await db
+    .delete(refreshTokens)
+    .where(eq(refreshTokens.tokenHash, hashedToken));
 
   return res
     .status(200)
@@ -283,7 +257,6 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
-// LOGOUT FROM ALL DEVICES
 export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
 
@@ -291,11 +264,7 @@ export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(401, "User not authenticated");
   }
 
-  // Revoke all refresh tokens for this user (preserve audit trail)
-  await db
-    .update(refreshTokens)
-    .set({ revokedAt: new Date() })
-    .where(eq(refreshTokens.userId, userId));
+  await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
 
   return res
     .status(200)
@@ -306,7 +275,6 @@ export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
-// Get active sessions
 export const getActiveSessions = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -324,9 +292,7 @@ export const getActiveSessions = asyncHandler(
         expiresAt: refreshTokens.expiresAt,
       })
       .from(refreshTokens)
-      .where(
-        and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt))
-      )
+      .where(eq(refreshTokens.userId, userId))
       .orderBy(desc(refreshTokens.createdAt));
 
     return res
@@ -335,7 +301,6 @@ export const getActiveSessions = asyncHandler(
   }
 );
 
-// Revoke specific session
 export const revokeSession = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -345,7 +310,6 @@ export const revokeSession = asyncHandler(
       throw new ApiError(401, "User not authenticated");
     }
 
-    // Verify session belongs to user
     const [session] = await db
       .select()
       .from(refreshTokens)
@@ -358,10 +322,7 @@ export const revokeSession = asyncHandler(
       throw new ApiError(404, "Session not found");
     }
 
-    await db
-      .update(refreshTokens)
-      .set({ revokedAt: new Date() })
-      .where(eq(refreshTokens.id, sessionId));
+    await db.delete(refreshTokens).where(eq(refreshTokens.id, sessionId));
 
     return res
       .status(200)
