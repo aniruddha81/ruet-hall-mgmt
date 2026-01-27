@@ -3,12 +3,16 @@ import {
   login,
   logout,
   logoutAll,
-  refreshAccessToken,
   register,
+  renewAccessToken,
 } from "../controllers/auth.controller.ts";
 import { authenticateToken } from "../middlewares/auth.middleware.ts";
 import { validateRequest } from "../middlewares/validateRequest.middleware.ts";
-import { loginSchema, refreshTokenCookieSchema, registerSchema } from "../validators/authValidators.ts";
+import {
+  loginSchema,
+  refreshTokenCookieSchema,
+  registerSchema,
+} from "../schemas/auth.schema.ts";
 
 const authRouter = Router();
 
@@ -16,9 +20,9 @@ const authRouter = Router();
 authRouter.post("/register", validateRequest(registerSchema), register);
 authRouter.post("/login", validateRequest(loginSchema), login);
 authRouter.post(
-  "/refresh-access-token",
+  "/renew-access-token",
   validateRequest(refreshTokenCookieSchema),
-  refreshAccessToken
+  renewAccessToken
 );
 authRouter.post("/logout", logout);
 

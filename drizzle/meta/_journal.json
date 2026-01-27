@@ -15,6 +15,20 @@
       "when": 1769198489170,
       "tag": "0001_bitter_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769383289744,
+      "tag": "0002_open_blonde_phantom",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1769386903888,
+      "tag": "0003_gigantic_overlord",
+      "breakpoints": true
     }
   ]
 }

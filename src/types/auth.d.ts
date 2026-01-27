@@ -1,9 +1,13 @@
 import type { Role } from "./roles";
 
-interface TokenPayload {
+interface AccessTokenPayload {
   userId: string;
   email: string;
   role: Role;
 }
 
-export { TokenPayload };
+interface RefreshTokenPayload extends AccessTokenPayload {
+  jti: string;
+}
+
+export { AccessTokenPayload, RefreshTokenPayload };

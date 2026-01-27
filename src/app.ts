@@ -1,8 +1,9 @@
-import express from "express";
-import cors from "cors";
 import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
 import morgan from "morgan";
 import { CORS_ORIGIN } from "./Constants.js";
+import { handleError } from "./middlewares/errorHandling.middleware.js";
 
 const app = express();
 
@@ -24,5 +25,8 @@ import authRouter from "./routes/auth.routes.js";
 
 //routes declaration
 app.use("/api/v1/auth", authRouter);
+
+// Error handling middleware
+app.use(handleError);
 
 export { app };

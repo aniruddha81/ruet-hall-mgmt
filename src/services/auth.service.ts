@@ -1,5 +1,8 @@
 import jwt, { type SignOptions } from "jsonwebtoken";
-import type { TokenPayload } from "../types/auth";
+import type {
+  AccessTokenPayload,
+  RefreshTokenPayload,
+} from "../types/auth";
 import {
   ACCESS_TOKEN_SECRET,
   ACCESS_TOKEN_EXPIRY,
@@ -7,24 +10,24 @@ import {
   REFRESH_TOKEN_SECRET,
 } from "../Constants";
 
-export const generateAccessAndRefreshTokens = (
-  payload: TokenPayload
-): { accessToken: string; refreshToken: string } => {
-  const accessToken = jwt.sign(payload, ACCESS_TOKEN_SECRET!, {
-    expiresIn: (ACCESS_TOKEN_EXPIRY || "1d") as SignOptions["expiresIn"],
+export const signAccessToken = (payload: AccessTokenPayload): string => {
+  return jwt.sign(payload, ACCESS_TOKEN_SECRET!, {
+    expiresIn: (ACCESS_TOKEN_EXPIRY || "15m") as SignOptions["expiresIn"],
   });
-  const refreshToken = jwt.sign(payload, REFRESH_TOKEN_SECRET!, {
+};
+
+export const signRefreshToken = (payload: RefreshTokenPayload): string => {
+  return jwt.sign(payload, REFRESH_TOKEN_SECRET!, {
     expiresIn: (REFRESH_TOKEN_EXPIRY || "10d") as SignOptions["expiresIn"],
   });
-  return { accessToken, refreshToken };
 };
 
-export const verifyAccessToken = (token: string): TokenPayload => {
-  return jwt.verify(token, ACCESS_TOKEN_SECRET!) as TokenPayload;
+export const verifyAccessToken = (token: string) : AccessTokenPayload => {
+  return jwt.verify(token, ACCESS_TOKEN_SECRET!) as AccessTokenPayload;
 };
 
-export const verifyRefreshToken = (token: string): TokenPayload => {
-  return jwt.verify(token, REFRESH_TOKEN_SECRET!) as TokenPayload;
+export const verifyRefreshToken = (token: string) : RefreshTokenPayload => {
+  return jwt.verify(token, REFRESH_TOKEN_SECRET!) as RefreshTokenPayload;
 };
 
 /**
