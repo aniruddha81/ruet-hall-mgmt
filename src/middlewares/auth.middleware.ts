@@ -34,7 +34,7 @@ export const authenticateToken = asyncHandler(
         throw new ApiError(401, "User not found or has been deleted");
       }
 
-      req.user = { userId: user.id, email: user.email, role: user.role };
+      req.user = { userId: user.id, email: user.email, name: user.name, role: user.role };
 
       next();
     } catch {

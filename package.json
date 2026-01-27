@@ -1,6 +1,5 @@
 {
   "name": "backend-template",
-  "module": "index.js",
   "type": "module",
   "private": true,
   "scripts": {

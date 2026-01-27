@@ -4,7 +4,7 @@ import type { Role } from "./roles";
 declare global {
   namespace Express {
     interface Request {
-      user?: { userId: string; email: string; role: Role };
+      user?: { userId: string; email: string; name: string; role: Role };
     }
   }
 }

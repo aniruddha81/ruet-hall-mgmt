@@ -10,7 +10,7 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "../services/auth.service.ts";
-import type { RefreshTokenPayload } from "../types/auth";
+import type { AccessTokenPayload, RefreshTokenPayload } from "../types/auth";
 import { ApiError } from "../utils/ApiError.ts";
 import { ApiResponse } from "../utils/ApiResponse.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
@@ -71,9 +71,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(500, "Failed to create user");
   }
 
-  const tokenPayload = {
+  const tokenPayload: AccessTokenPayload = {
     userId: newUser.id,
     email: newUser.email,
+    name: newUser.name,
     role: newUser.role,
   };
 
@@ -136,9 +137,10 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(401, "Invalid password");
   }
 
-  const tokenPayload = {
+  const tokenPayload: AccessTokenPayload = {
     userId: user.id,
     email: user.email,
+    name: user.name,
     role: user.role,
   };
 
@@ -229,9 +231,10 @@ export const renewAccessToken = asyncHandler(
       throw new ApiError(401, "Refresh token has expired");
     }
 
-    const tokenPayload = {
+    const tokenPayload: AccessTokenPayload = {
       userId: decoded.userId,
       email: decoded.email,
+      name: decoded.name,
       role: decoded.role,
     };
 
