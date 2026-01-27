@@ -25,6 +25,7 @@ const registerSchema = z.object({
   email: z.email("Invalid email address"),
   password: passwordStrengthSchema,
   role: RoleEnum.optional().default("STUDENT"),
+  avatarUrl: z.string().optional(),
 });
 
 /**

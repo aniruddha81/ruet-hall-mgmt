@@ -2,8 +2,8 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
-import { CORS_ORIGIN } from "./Constants.js";
-import { handleError } from "./middlewares/errorHandling.middleware.js";
+import { CORS_ORIGIN } from "./Constants.ts";
+import { handleError } from "./middlewares/errorHandling.middleware.ts";
 
 const app = express();
 
@@ -21,7 +21,7 @@ app.use(cookieParser());
 app.use(morgan("dev"));
 
 //routes import
-import authRouter from "./routes/auth.routes.js";
+import authRouter from "./routes/auth.routes.ts";
 
 //routes declaration
 app.use("/api/v1/auth", authRouter);

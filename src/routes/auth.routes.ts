@@ -7,6 +7,7 @@ import {
   renewAccessToken,
 } from "../controllers/auth.controller.ts";
 import { authenticateToken } from "../middlewares/auth.middleware.ts";
+import { upload } from "../middlewares/multer.middleware.ts";
 import { validateRequest } from "../middlewares/validateRequest.middleware.ts";
 import {
   loginSchema,
@@ -17,7 +18,12 @@ import {
 const authRouter = Router();
 
 // public routes
-authRouter.post("/register", validateRequest(registerSchema), register);
+authRouter.post(
+  "/register",
+  upload.single("avatar"),
+  validateRequest(registerSchema),
+  register
+);
 authRouter.post("/login", validateRequest(loginSchema), login);
 authRouter.post(
   "/renew-access-token",
