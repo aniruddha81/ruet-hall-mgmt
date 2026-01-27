@@ -37,9 +37,8 @@ export const refreshTokens = pgTable(
       .notNull(),
     tokenHash: varchar("token_hash", { length: 255 }).notNull().unique(),
     jti: varchar("jti", { length: 255 }).notNull(),
-    ip: varchar("ip", { length: 45 }), // IPv6-safe
+    ip: varchar("ip", { length: 45 }),
     userAgent: varchar("user_agent", { length: 512 }),
-    replacedBy: varchar("replaced_by", { length: 255 }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

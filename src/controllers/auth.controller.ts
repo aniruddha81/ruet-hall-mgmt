@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import type { CookieOptions, Request, Response } from "express";
 import { NODE_ENV } from "../Constants.ts";
 import { db } from "../db/index.ts";
@@ -47,7 +47,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       email,
       passwordHash,
       name,
-      role: "STUDENT", // Force STUDENT role for registration
+      role: "STUDENT",
     })
     .returning();
 
@@ -63,6 +63,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const jti = createJti();
   const refreshToken = signRefreshToken({ ...tokenPayload, jti });
+
   await db.insert(refreshTokens).values({
     jti,
     userId: newUser.id,
@@ -127,6 +128,26 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   const jti = createJti();
   const refreshToken = signRefreshToken({ ...tokenPayload, jti });
+
+  // Check active token count for this user
+  const activeTokens = await db
+    .select()
+    .from(refreshTokens)
+    .where(
+      and(eq(refreshTokens.userId, user.id), isNull(refreshTokens.revokedAt))
+    );
+
+  // If user has 2 or more active tokens, remove the oldest one
+  if (activeTokens.length >= 2) {
+    // Sort by createdAt and get the oldest
+    const oldestToken = activeTokens.sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+    )[0]!;
+
+    await db.delete(refreshTokens).where(eq(refreshTokens.id, oldestToken.id));
+  }
+
+  // Insert new refresh token
   await db.insert(refreshTokens).values({
     jti,
     userId: user.id,
@@ -197,21 +218,10 @@ export const renewAccessToken = asyncHandler(
       throw new ApiError(401, "Refresh token has been revoked");
     }
 
-    if (tokenRecord.replacedBy) {
-      // Token reuse detected - revoke all tokens for this user
-      await db
-        .update(refreshTokens)
-        .set({ revokedAt: new Date() })
-        .where(eq(refreshTokens.userId, decoded.userId));
-
-      throw new ApiError(401, "Token reuse detected. All sessions revoked.");
-    }
-
     if (tokenRecord.expiresAt < new Date()) {
       throw new ApiError(401, "Refresh token has expired");
     }
 
-    const newJti = createJti();
     const tokenPayload = {
       userId: decoded.userId,
       email: decoded.email,
@@ -219,39 +229,12 @@ export const renewAccessToken = asyncHandler(
     };
 
     const newAccessToken = signAccessToken(tokenPayload);
-    const newRefreshToken = signRefreshToken({
-      ...tokenPayload,
-      jti: newJti,
-    });
-
-    // Insert new token first
-    await db.insert(refreshTokens).values({
-      userId: decoded.userId,
-      tokenHash: hashToken(newRefreshToken),
-      jti: newJti,
-      ip: String(req.ip),
-      userAgent: req.headers["user-agent"] || "",
-      expiresAt: getRefreshTokenExpiry(),
-    });
-
-    // Then revoke old token
-    await db
-      .update(refreshTokens)
-      .set({
-        revokedAt: new Date(),
-        replacedBy: newJti,
-      })
-      .where(eq(refreshTokens.jti, decoded.jti));
 
     return res
       .status(200)
       .cookie("accessToken", newAccessToken, {
         ...options,
         maxAge: 15 * 60 * 1000,
-      })
-      .cookie("refreshToken", newRefreshToken, {
-        ...options,
-        maxAge: 10 * 24 * 60 * 60 * 1000,
       })
       .json(
         new ApiResponse(
@@ -322,3 +305,66 @@ export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
       new ApiResponse(200, null, "Logged out from all devices successfully")
     );
 });
+
+// Get active sessions
+export const getActiveSessions = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      throw new ApiError(401, "User not authenticated");
+    }
+
+    const sessions = await db
+      .select({
+        id: refreshTokens.id,
+        ip: refreshTokens.ip,
+        userAgent: refreshTokens.userAgent,
+        createdAt: refreshTokens.createdAt,
+        expiresAt: refreshTokens.expiresAt,
+      })
+      .from(refreshTokens)
+      .where(
+        and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt))
+      )
+      .orderBy(desc(refreshTokens.createdAt));
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { sessions }, "Active sessions retrieved"));
+  }
+);
+
+// Revoke specific session
+export const revokeSession = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+    const sessionId = req.params.sessionId as string;
+
+    if (!userId) {
+      throw new ApiError(401, "User not authenticated");
+    }
+
+    // Verify session belongs to user
+    const [session] = await db
+      .select()
+      .from(refreshTokens)
+      .where(
+        and(eq(refreshTokens.id, sessionId), eq(refreshTokens.userId, userId))
+      )
+      .limit(1);
+
+    if (!session) {
+      throw new ApiError(404, "Session not found");
+    }
+
+    await db
+      .update(refreshTokens)
+      .set({ revokedAt: new Date() })
+      .where(eq(refreshTokens.id, sessionId));
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, null, "Session revoked successfully"));
+  }
+);
