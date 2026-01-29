@@ -22,9 +22,11 @@ app.use(morgan("dev"));
 
 //routes import
 import authRouter from "./routes/auth.routes.ts";
+import profileRouter from "./routes/profile.route.ts";
 
 //routes declaration
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/profile", profileRouter);
 
 // Error handling middleware
 app.use(handleError);

@@ -50,6 +50,13 @@
       "when": 1769508766772,
       "tag": "0006_premium_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1769680767743,
+      "tag": "0007_silky_mastermind",
+      "breakpoints": true
     }
   ]
 }

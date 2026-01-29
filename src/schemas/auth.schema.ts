@@ -20,13 +20,19 @@ const RoleEnum = z.enum(ROLES);
  * - Enforces strong password
  * - Optional role (defaults to "STUDENT") with max length aligned to DB
  */
-const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(255),
-  email: z.email("Invalid email address"),
-  password: passwordStrengthSchema,
-  role: RoleEnum.optional().default("STUDENT"),
-  avatarUrl: z.string().optional(),
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters").max(255),
+    email: z.email("Invalid email address"),
+    password: passwordStrengthSchema,
+    confirmPassword: passwordStrengthSchema,
+    role: RoleEnum.optional().default("STUDENT"),
+    avatarUrl: z.string().optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 /**
  * Validation schema for user login

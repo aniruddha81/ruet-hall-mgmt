@@ -15,7 +15,6 @@ import { ApiError } from "../utils/ApiError.ts";
 import { ApiResponse } from "../utils/ApiResponse.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 import { createJti, hashToken } from "../utils/helpers.ts";
-import { uploadOnCloudinary } from "../services/cloudinary.service.ts";
 
 const options: CookieOptions = {
   httpOnly: true,
@@ -24,10 +23,14 @@ const options: CookieOptions = {
 };
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, confirmPassword } = req.body;
 
-  if (!name || !email || !password) {
+  if (!name || !email || !password || !confirmPassword) {
     throw new ApiError(400, "Name, email, and password are required");
+  }
+
+  if (password !== confirmPassword) {
+    throw new ApiError(400, "Password and confirm password do not match");
   }
 
   const [existingUser] = await db
@@ -42,20 +45,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const avatarLocalPath = req.file?.path;
-
-  if (!avatarLocalPath) {
-    throw new ApiError(400, "Avatar is required");
-  }
-
-  const avatarCloudinaryUrl = await uploadOnCloudinary(avatarLocalPath);
-
-  console.log("avatarCloudinaryUrl:", avatarCloudinaryUrl);
-
-  if (!avatarCloudinaryUrl?.url) {
-    throw new ApiError(500, "Failed to upload avatar");
-  }
-
   const [newUser] = await db
     .insert(users)
     .values({
@@ -63,7 +52,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       passwordHash,
       name,
       role: "STUDENT",
-      avatarUrl: avatarCloudinaryUrl?.url,
     })
     .returning();
 
