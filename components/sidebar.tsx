@@ -1,0 +1,244 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useLayout } from "@/contexts/LayoutContext";
+import {
+  AlertTriangle,
+  Building,
+  CreditCard,
+  FileText,
+  Home,
+  LogOut,
+  Megaphone,
+  Pin,
+  PinOff,
+  Settings,
+  Users,
+  Wrench,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+export default function Sidebar() {
+  const {
+    isSidebarPinned,
+    isSidebarHovered,
+    isMobileOpen,
+    togglePin,
+    setHovered,
+    closeMobile,
+  } = useLayout();
+  const pathname = usePathname();
+
+  // Sidebar is expanded if pinned OR hovered (on desktop)
+  const isExpanded = isSidebarPinned || isSidebarHovered;
+
+  const navLinks = [
+    {
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: Home,
+    },
+    {
+      label: "Students",
+      href: "/dashboard/students",
+      icon: Users,
+    },
+    {
+      label: "Rooms",
+      href: "/dashboard/rooms",
+      icon: Building,
+    },
+    {
+      label: "Payments",
+      href: "/dashboard/payments",
+      icon: CreditCard,
+    },
+    {
+      label: "Notices",
+      href: "/dashboard/notices",
+      icon: Megaphone,
+    },
+    {
+      label: "Maintenance",
+      href: "/dashboard/maintenance",
+      icon: Wrench,
+    },
+    {
+      label: "Complaints",
+      href: "/dashboard/complaints",
+      icon: AlertTriangle,
+    },
+    {
+      label: "Reports",
+      href: "/dashboard/reports",
+      icon: FileText,
+    },
+    {
+      label: "Settings",
+      href: "/dashboard/settings",
+      icon: Settings,
+    },
+  ];
+
+  const handleLinkClick = () => {
+    // Only close sidebar on mobile when a link is clicked
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      closeMobile();
+    }
+  };
+
+  return (
+    <TooltipProvider>
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden animate-in fade-in"
+          onClick={closeMobile}
+        />
+      )}
+
+      {/* Mobile Sidebar (Drawer) */}
+      <aside
+        className={`fixed top-16 left-0 h-[calc(100vh-4rem)] w-72 bg-sidebar border-r border-sidebar-border transition-transform duration-300 z-50 md:hidden ${
+          isMobileOpen
+            ? "translate-x-0 animate-in slide-in-from-left"
+            : "-translate-x-full"
+        }`}
+      >
+        <div className="flex flex-col h-full py-4">
+          <div className="px-4 mb-6 flex items-center justify-between">
+            <span className="font-semibold text-sidebar-foreground">Menu</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={closeMobile}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <nav className="flex-1 space-y-1 px-3">
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={handleLinkClick}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  }`}
+                >
+                  <link.icon className="w-5 h-5" />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="px-3 mt-auto">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <LogOut className="w-5 h-5" />
+              Logout
+            </Button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Desktop Sidebar */}
+      <aside
+        className={`hidden md:flex fixed top-16 left-0 h-[calc(100vh-4rem)] flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 z-30 ${
+          isExpanded ? "w-64" : "w-16"
+        }`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {/* Pin Button */}
+        <div
+          className={`px-3 py-4 flex ${isExpanded ? "justify-end" : "justify-center"}`}
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={togglePin}
+                className="h-8 w-8"
+              >
+                {isSidebarPinned ? (
+                  <PinOff className="h-4 w-4" />
+                ) : (
+                  <Pin className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {isSidebarPinned ? "Unpin sidebar" : "Pin sidebar"}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="flex-1 space-y-1 px-3 overflow-y-auto">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Tooltip key={link.href}>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={link.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    } ${!isExpanded ? "justify-center" : ""}`}
+                  >
+                    <link.icon className="w-5 h-5 shrink-0" />
+                    {isExpanded && <span>{link.label}</span>}
+                  </Link>
+                </TooltipTrigger>
+                {!isExpanded && (
+                  <TooltipContent side="right">{link.label}</TooltipContent>
+                )}
+              </Tooltip>
+            );
+          })}
+        </nav>
+
+        {/* Logout Button */}
+        <div className="px-3 py-4 mt-auto">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className={`w-full gap-3 text-destructive hover:text-destructive hover:bg-destructive/10 ${
+                  isExpanded ? "justify-start" : "justify-center"
+                }`}
+              >
+                <LogOut className="w-5 h-5 shrink-0" />
+                {isExpanded && <span>Logout</span>}
+              </Button>
+            </TooltipTrigger>
+            {!isExpanded && (
+              <TooltipContent side="right">Logout</TooltipContent>
+            )}
+          </Tooltip>
+        </div>
+      </aside>
+    </TooltipProvider>
+  );
+}
