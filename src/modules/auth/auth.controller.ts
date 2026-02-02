@@ -1,20 +1,20 @@
 import bcrypt from "bcrypt";
 import { and, desc, eq } from "drizzle-orm";
 import type { CookieOptions, Request, Response } from "express";
-import { NODE_ENV } from "../Constants.ts";
-import { db } from "../db/index.ts";
-import { refreshTokens, users } from "../db/models/index.ts";
+import { NODE_ENV } from "../../Constants.ts";
+import { db } from "../../db/index.ts";
+import { refreshTokens, users } from "../../db/models/index.ts";
+import { ApiError } from "../../utils/ApiError.ts";
+import { ApiResponse } from "../../utils/ApiResponse.ts";
+import { asyncHandler } from "../../utils/asyncHandler.ts";
+import { createJti, hashToken } from "../../utils/helpers.ts";
+import type { AccessTokenPayload, RefreshTokenPayload } from "./auth";
 import {
   getRefreshTokenExpiry,
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
-} from "../services/auth.service.ts";
-import type { AccessTokenPayload, RefreshTokenPayload } from "../types/auth";
-import { ApiError } from "../utils/ApiError.ts";
-import { ApiResponse } from "../utils/ApiResponse.ts";
-import { asyncHandler } from "../utils/asyncHandler.ts";
-import { createJti, hashToken } from "../utils/helpers.ts";
+} from "./auth.service.ts";
 
 const options: CookieOptions = {
   httpOnly: true,

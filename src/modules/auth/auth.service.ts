@@ -1,14 +1,11 @@
 import jwt, { type SignOptions } from "jsonwebtoken";
-import type {
-  AccessTokenPayload,
-  RefreshTokenPayload,
-} from "../types/auth";
 import {
-  ACCESS_TOKEN_SECRET,
   ACCESS_TOKEN_EXPIRY,
+  ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_EXPIRY,
   REFRESH_TOKEN_SECRET,
-} from "../Constants";
+} from "../../Constants";
+import type { AccessTokenPayload, RefreshTokenPayload } from "./auth";
 
 export const signAccessToken = (payload: AccessTokenPayload): string => {
   return jwt.sign(payload, ACCESS_TOKEN_SECRET!, {
@@ -22,11 +19,11 @@ export const signRefreshToken = (payload: RefreshTokenPayload): string => {
   });
 };
 
-export const verifyAccessToken = (token: string) : AccessTokenPayload => {
+export const verifyAccessToken = (token: string): AccessTokenPayload => {
   return jwt.verify(token, ACCESS_TOKEN_SECRET!) as AccessTokenPayload;
 };
 
-export const verifyRefreshToken = (token: string) : RefreshTokenPayload => {
+export const verifyRefreshToken = (token: string): RefreshTokenPayload => {
   return jwt.verify(token, REFRESH_TOKEN_SECRET!) as RefreshTokenPayload;
 };
 

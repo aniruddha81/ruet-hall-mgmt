@@ -1,4 +1,4 @@
-import type { Role } from "./roles";
+import type { Role } from "../../types/roles";
 
 interface AccessTokenPayload {
   userId: string;

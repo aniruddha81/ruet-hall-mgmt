@@ -1,18 +1,18 @@
 import { Router } from "express";
+import { authenticateToken } from "../../middlewares/auth.middleware.ts";
+import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
   login,
   logout,
   logoutAll,
   register,
   renewAccessToken,
-} from "../controllers/auth.controller.ts";
-import { authenticateToken } from "../middlewares/auth.middleware.ts";
-import { validateRequest } from "../middlewares/validateRequest.middleware.ts";
+} from "./auth.controller.ts";
 import {
   loginSchema,
   refreshTokenCookieSchema,
   registerSchema,
-} from "../schemas/auth.schema.ts";
+} from "./auth.schema.ts";
 
 const authRouter = Router();
 

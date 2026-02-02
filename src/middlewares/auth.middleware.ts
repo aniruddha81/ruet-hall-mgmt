@@ -2,8 +2,8 @@ import { eq } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
 import { db } from "../db/index.ts";
 import { users } from "../db/models/auth.models.ts";
-import { verifyAccessToken } from "../services/auth.service.ts";
-import type { Role } from "../types/roles";
+import { verifyAccessToken } from "../modules/auth/auth.service.ts";
+import type { Role } from "../types/roles.ts";
 import { ApiError } from "../utils/ApiError.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 
@@ -34,7 +34,12 @@ export const authenticateToken = asyncHandler(
         throw new ApiError(401, "User not found or has been deleted");
       }
 
-      req.user = { userId: user.id, email: user.email, name: user.name, role: user.role };
+      req.user = {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      };
 
       next();
     } catch {

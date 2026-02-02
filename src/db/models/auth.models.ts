@@ -1,11 +1,11 @@
 // schema/auth.schema.ts
 import {
+  index,
+  pgEnum,
   pgTable,
+  timestamp,
   uuid,
   varchar,
-  timestamp,
-  pgEnum,
-  index,
 } from "drizzle-orm/pg-core";
 import { ROLES } from "../../types/roles";
 

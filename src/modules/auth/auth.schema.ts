@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ROLES } from "../types/roles";
+import { ROLES } from "../../types/roles";
 
 // Common password strength rules used during registration
 const passwordStrengthSchema = z

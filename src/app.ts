@@ -21,8 +21,8 @@ app.use(cookieParser());
 app.use(morgan("dev"));
 
 //routes import
-import authRouter from "./routes/auth.routes.ts";
-import profileRouter from "./routes/profile.route.ts";
+import authRouter from "./modules/auth/auth.routes.ts";
+import profileRouter from "./modules/profile/profile.route.ts";
 
 //routes declaration
 app.use("/api/v1/auth", authRouter);

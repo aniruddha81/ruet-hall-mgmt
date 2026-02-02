@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { uploadImage } from "../controllers/profile.controller";
-import { upload } from "../middlewares/multer.middleware";
-import { authenticateToken } from "../middlewares/auth.middleware";
+import { authenticateToken } from "../../middlewares/auth.middleware";
+import { upload } from "../../middlewares/multer.middleware";
+import { uploadImage } from "./profile.controller";
 const profileRouter = Router();
 
 // Protected routes
