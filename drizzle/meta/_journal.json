@@ -1,61 +1,19 @@
 {
   "version": "7",
-  "dialect": "postgresql",
+  "dialect": "mysql",
   "entries": [
     {
       "idx": 0,
-      "version": "7",
-      "when": 1769114667885,
-      "tag": "0000_sturdy_nicolaos",
+      "version": "5",
+      "when": 1770465214449,
+      "tag": "0000_small_clint_barton",
       "breakpoints": true
     },
     {
       "idx": 1,
-      "version": "7",
-      "when": 1769198489170,
-      "tag": "0001_bitter_magma",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1769383289744,
-      "tag": "0002_open_blonde_phantom",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1769386903888,
-      "tag": "0003_gigantic_overlord",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1769474818662,
-      "tag": "0004_small_sir_ram",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1769507771391,
-      "tag": "0005_stiff_red_ghost",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1769508766772,
-      "tag": "0006_premium_karma",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1769680767743,
-      "tag": "0007_silky_mastermind",
+      "version": "5",
+      "when": 1770466744407,
+      "tag": "0001_married_wildside",
       "breakpoints": true
     }
   ]

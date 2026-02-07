@@ -8,6 +8,7 @@ import { ApiError } from "../../utils/ApiError.ts";
 import { ApiResponse } from "../../utils/ApiResponse.ts";
 import { asyncHandler } from "../../utils/asyncHandler.ts";
 import { createJti, hashToken } from "../../utils/helpers.ts";
+import { randomUUID } from "crypto";
 import type { AccessTokenPayload, RefreshTokenPayload } from "./auth";
 import {
   getRefreshTokenExpiry,
@@ -45,15 +46,19 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
+  await db.insert(users).values({
+    id: randomUUID(),
+    email,
+    passwordHash,
+    name,
+    role: "STUDENT",
+  });
+
   const [newUser] = await db
-    .insert(users)
-    .values({
-      email,
-      passwordHash,
-      name,
-      role: "STUDENT",
-    })
-    .returning();
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
 
   if (!newUser) {
     throw new ApiError(500, "Failed to create user");
@@ -70,6 +75,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = signRefreshToken({ ...tokenPayload, jti });
 
   await db.insert(refreshTokens).values({
+    id: randomUUID(), 
     jti,
     userId: newUser.id,
     tokenHash: hashToken(refreshToken),
@@ -150,6 +156,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = signRefreshToken({ ...tokenPayload, jti });
 
   await db.insert(refreshTokens).values({
+    id: randomUUID(), // Generate UUID for MySQL
     jti,
     userId: user.id,
     tokenHash: hashToken(refreshToken),

@@ -1,0 +1,1 @@
+ALTER TABLE `users` MODIFY COLUMN `avatar_url` varchar(512) DEFAULT NULL;
