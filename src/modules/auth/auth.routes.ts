@@ -2,23 +2,43 @@ import { Router } from "express";
 import { authenticateToken } from "../../middlewares/auth.middleware.ts";
 import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
-  login,
+  adminLogin,
+  adminRegister,
   logout,
   logoutAll,
-  register,
   renewAccessToken,
+  studentLogin,
+  studentRegister,
 } from "./auth.controller.ts";
 import {
-  loginSchema,
+  adminLoginSchema,
+  adminRegisterSchema,
   refreshTokenCookieSchema,
-  registerSchema,
-} from "./auth.schema.ts";
+  studentLoginSchema,
+  studentRegisterSchema,
+} from "./auth.validators.ts";
 
 const authRouter = Router();
 
 // public routes
-authRouter.post("/register", validateRequest(registerSchema), register);
-authRouter.post("/login", validateRequest(loginSchema), login);
+// student routes
+authRouter.post(
+  "/register",
+  validateRequest(studentRegisterSchema),
+  studentRegister
+);
+authRouter.post("/login", validateRequest(studentLoginSchema), studentLogin);
+
+// admin routes
+authRouter.post(
+  "/admin/register",
+  validateRequest(adminRegisterSchema),
+  adminRegister
+);
+authRouter.post("/admin/login", validateRequest(adminLoginSchema), adminLogin);
+
+
+// common routes
 authRouter.post(
   "/renew-access-token",
   validateRequest(refreshTokenCookieSchema),

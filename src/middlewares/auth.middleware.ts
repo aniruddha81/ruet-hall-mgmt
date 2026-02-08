@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { db } from "../db/index.ts";
 import { users } from "../db/models/auth.models.ts";
 import { verifyAccessToken } from "../modules/auth/auth.service.ts";
-import type { Role } from "../types/roles.ts";
+import type { Role } from "../types/enums.ts";
 import { ApiError } from "../utils/ApiError.ts";
 import { asyncHandler } from "../utils/asyncHandler.ts";
 

@@ -1,1 +1,0 @@
-ALTER TABLE "refresh_tokens" DROP COLUMN "replaced_by";

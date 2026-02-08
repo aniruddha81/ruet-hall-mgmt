@@ -1,4 +1,4 @@
-import type { Role } from "./roles";
+import type { Role } from "./enums";
 
 // Extend Express Request with authenticated user
 declare global {

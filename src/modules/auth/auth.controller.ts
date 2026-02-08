@@ -1,14 +1,19 @@
 import bcrypt from "bcrypt";
+import { randomUUID } from "crypto";
 import { and, desc, eq } from "drizzle-orm";
 import type { CookieOptions, Request, Response } from "express";
 import { NODE_ENV } from "../../Constants.ts";
 import { db } from "../../db/index.ts";
-import { refreshTokens, users } from "../../db/models/index.ts";
+import {
+  admins,
+  refreshTokens,
+  students,
+  users,
+} from "../../db/models/index.ts";
 import { ApiError } from "../../utils/ApiError.ts";
 import { ApiResponse } from "../../utils/ApiResponse.ts";
 import { asyncHandler } from "../../utils/asyncHandler.ts";
 import { createJti, hashToken } from "../../utils/helpers.ts";
-import { randomUUID } from "crypto";
 import type { AccessTokenPayload, RefreshTokenPayload } from "./auth";
 import {
   getRefreshTokenExpiry,
@@ -23,98 +28,313 @@ const options: CookieOptions = {
   sameSite: "strict",
 };
 
-export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password, confirmPassword } = req.body;
+export const studentRegister = asyncHandler(
+  async (req: Request, res: Response) => {
+    const {
+      name,
+      email,
+      password,
+      rollNumber,
+      academicDepartment,
+      session,
+      phone,
+    } = req.body;
 
-  if (!name || !email || !password || !confirmPassword) {
-    throw new ApiError(400, "Name, email, and password are required");
-  }
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  if (password !== confirmPassword) {
-    throw new ApiError(400, "Password and confirm password do not match");
-  }
+    if (existingUser) {
+      throw new ApiError(409, "User with this email already exists");
+    }
 
-  const [existingUser] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+    const passwordHash = await bcrypt.hash(password, 10);
+    const userId = randomUUID();
 
-  if (existingUser) {
-    throw new ApiError(409, "User with this email already exists");
-  }
+    await db.insert(users).values({
+      id: userId,
+      email,
+      passwordHash,
+      name,
+      phone,
+      academicDepartment,
+      role: "STUDENT",
+    });
 
-  const passwordHash = await bcrypt.hash(password, 10);
+    await db.insert(students).values({
+      id: randomUUID(),
+      userId,
+      rollNumber,
+      session,
+      status: "ACTIVE",
+    });
 
-  await db.insert(users).values({
-    id: randomUUID(),
-    email,
-    passwordHash,
-    name,
-    role: "STUDENT",
-  });
+    const [newUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  const [newUser] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+    if (!newUser) {
+      throw new ApiError(500, "Failed to create user");
+    }
 
-  if (!newUser) {
-    throw new ApiError(500, "Failed to create user");
-  }
+    const tokenPayload: AccessTokenPayload = {
+      userId: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role,
+    };
 
-  const tokenPayload: AccessTokenPayload = {
-    userId: newUser.id,
-    email: newUser.email,
-    name: newUser.name,
-    role: newUser.role,
-  };
+    const jti = createJti();
+    const refreshToken = signRefreshToken({ ...tokenPayload, jti });
 
-  const jti = createJti();
-  const refreshToken = signRefreshToken({ ...tokenPayload, jti });
+    await db.insert(refreshTokens).values({
+      id: randomUUID(),
+      jti,
+      userId: newUser.id,
+      tokenHash: hashToken(refreshToken),
+      ip: req.ip as string,
+      userAgent: req.headers["user-agent"] || "",
+      expiresAt: getRefreshTokenExpiry(),
+    });
 
-  await db.insert(refreshTokens).values({
-    id: randomUUID(), 
-    jti,
-    userId: newUser.id,
-    tokenHash: hashToken(refreshToken),
-    ip: req.ip as string,
-    userAgent: req.headers["user-agent"] || "",
-    expiresAt: getRefreshTokenExpiry(),
-  });
-
-  return res
-    .status(201)
-    .cookie("accessToken", signAccessToken(tokenPayload), {
-      ...options,
-      maxAge: 15 * 60 * 1000,
-    })
-    .cookie("refreshToken", refreshToken, {
-      ...options,
-      maxAge: 10 * 24 * 60 * 60 * 1000,
-    })
-    .json(
-      new ApiResponse(
-        201,
-        {
-          user: {
-            id: newUser.id,
-            email: newUser.email,
-            name: newUser.name,
-            role: newUser.role,
+    return res
+      .status(201)
+      .cookie("accessToken", signAccessToken(tokenPayload), {
+        ...options,
+        maxAge: 15 * 60 * 1000,
+      })
+      .cookie("refreshToken", refreshToken, {
+        ...options,
+        maxAge: 10 * 24 * 60 * 60 * 1000,
+      })
+      .json(
+        new ApiResponse(
+          201,
+          {
+            user: {
+              id: newUser.id,
+              email: newUser.email,
+              name: newUser.name,
+              role: newUser.role,
+            },
           },
-        },
-        "User registered successfully"
-      )
-    );
-});
-
-export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    throw new ApiError(400, "Email and password are required");
+          "User registered successfully"
+        )
+      );
   }
+);
+
+export const studentLogin = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (!user) {
+      throw new ApiError(401, "No user found with this email");
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new ApiError(401, "Invalid password");
+    }
+
+    // Fetch student record from students table
+    const [studentRecord] = await db
+      .select()
+      .from(students)
+      .where(eq(students.userId, user.id))
+      .limit(1);
+
+    if (!studentRecord) {
+      throw new ApiError(401, "Student record not found for this user");
+    }
+
+    const tokenPayload: AccessTokenPayload = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    };
+
+    const activeTokens = await db
+      .select()
+      .from(refreshTokens)
+      .where(eq(refreshTokens.userId, user.id))
+      .orderBy(desc(refreshTokens.createdAt));
+
+    if (activeTokens.length >= 2) {
+      const oldestToken = activeTokens.sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+      )[0]!;
+
+      await db
+        .delete(refreshTokens)
+        .where(eq(refreshTokens.id, oldestToken.id));
+    }
+
+    const jti = createJti();
+    const refreshToken = signRefreshToken({ ...tokenPayload, jti });
+
+    await db.insert(refreshTokens).values({
+      id: randomUUID(),
+      jti,
+      userId: user.id,
+      tokenHash: hashToken(refreshToken),
+      ip: String(req.ip),
+      userAgent: req.headers["user-agent"] || "",
+      expiresAt: getRefreshTokenExpiry(),
+    });
+
+    return res
+      .status(200)
+      .cookie("accessToken", signAccessToken(tokenPayload), {
+        ...options,
+        maxAge: 15 * 60 * 1000,
+      })
+      .cookie("refreshToken", refreshToken, {
+        ...options,
+        maxAge: 10 * 24 * 60 * 60 * 1000,
+      })
+      .json(
+        new ApiResponse(
+          200,
+          {
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              phone: user.phone,
+              academicDepartment: user.academicDepartment,
+            },
+            student: {
+              id: studentRecord.id,
+              rollNumber: studentRecord.rollNumber,
+              session: studentRecord.session,
+              hall: studentRecord.hall,
+              roomId: studentRecord.roomId,
+              status: studentRecord.status,
+            },
+          },
+          "User logged in successfully"
+        )
+      );
+  }
+);
+
+export const adminRegister = asyncHandler(
+  async (req: Request, res: Response) => {
+    const {
+      name,
+      email,
+      password,
+      academicDepartment,
+      hall,
+      designation,
+      operationalUnit,
+      phone,
+    } = req.body;
+
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (existingUser) {
+      throw new ApiError(409, "User with this email already exists");
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const userId = randomUUID();
+
+    await db.insert(users).values({
+      id: userId,
+      email,
+      passwordHash,
+      name,
+      phone: phone || null,
+      academicDepartment,
+      role: designation,
+    });
+
+    await db.insert(admins).values({
+      id: randomUUID(),
+      userId,
+      hall,
+      designation,
+      operationalUnit,
+      isActive: true,
+    });
+
+    const [newUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (!newUser) {
+      throw new ApiError(500, "Failed to create user");
+    }
+
+    const tokenPayload: AccessTokenPayload = {
+      userId: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role,
+    };
+
+    const jti = createJti();
+    const refreshToken = signRefreshToken({ ...tokenPayload, jti });
+
+    await db.insert(refreshTokens).values({
+      id: randomUUID(),
+      jti,
+      userId: newUser.id,
+      tokenHash: hashToken(refreshToken),
+      ip: req.ip as string,
+      userAgent: req.headers["user-agent"] || "",
+      expiresAt: getRefreshTokenExpiry(),
+    });
+
+    return res
+      .status(201)
+      .cookie("accessToken", signAccessToken(tokenPayload), {
+        ...options,
+        maxAge: 15 * 60 * 1000,
+      })
+      .cookie("refreshToken", refreshToken, {
+        ...options,
+        maxAge: 10 * 24 * 60 * 60 * 1000,
+      })
+      .json(
+        new ApiResponse(
+          201,
+          {
+            user: {
+              id: newUser.id,
+              email: newUser.email,
+              name: newUser.name,
+              role: newUser.role,
+            },
+          },
+          "Admin registered successfully"
+        )
+      );
+  }
+);
+
+export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
 
   const [user] = await db
     .select()
@@ -129,6 +349,21 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid password");
+  }
+
+  // Fetch admin record from admins table
+  const [adminRecord] = await db
+    .select()
+    .from(admins)
+    .where(eq(admins.userId, user.id))
+    .limit(1);
+
+  if (!adminRecord) {
+    throw new ApiError(401, "Admin record not found for this user");
+  }
+
+  if (!adminRecord.isActive) {
+    throw new ApiError(403, "Admin account is deactivated");
   }
 
   const tokenPayload: AccessTokenPayload = {
@@ -156,7 +391,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = signRefreshToken({ ...tokenPayload, jti });
 
   await db.insert(refreshTokens).values({
-    id: randomUUID(), // Generate UUID for MySQL
+    id: randomUUID(),
     jti,
     userId: user.id,
     tokenHash: hashToken(refreshToken),
@@ -184,9 +419,19 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
             email: user.email,
             name: user.name,
             role: user.role,
+            academicDepartment: user.academicDepartment,
+            phone: user.phone,
+          },
+          admin: {
+            id: adminRecord.id,
+            hall: adminRecord.hall,
+            designation: adminRecord.designation,
+            operationalUnit: adminRecord.operationalUnit,
+            reportingToId: adminRecord.reportingToId,
+            isActive: adminRecord.isActive,
           },
         },
-        "User logged in successfully"
+        "Admin logged in successfully"
       )
     );
 });
@@ -289,6 +534,7 @@ export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
+/* 
 export const getActiveSessions = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -343,3 +589,4 @@ export const revokeSession = asyncHandler(
       .json(new ApiResponse(200, null, "Session revoked successfully"));
   }
 );
+ */

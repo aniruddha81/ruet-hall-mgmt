@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { ROLES } from "../../types/roles";
+import {
+  ACADEMIC_DEPARTMENTS,
+  HALLS,
+  OPERATIONAL_UNITS,
+  ROLES,
+  STAFF_ROLES,
+} from "../../types/enums";
 
 // Common password strength rules used during registration
 const passwordStrengthSchema = z
@@ -10,24 +16,23 @@ const passwordStrengthSchema = z
   .regex(/[0-9]/, "Password must include a number")
   .regex(/[^A-Za-z0-9]/, "Password must include a special character");
 
-// Allowed roles for registration/login
-const RoleEnum = z.enum(ROLES);
-
 /**
  * Validation schema for user registration
  * - Ensures name length
  * - Validates email format
  * - Enforces strong password
- * - Optional role (defaults to "STUDENT") with max length aligned to DB
+ * - Role defaults to "STUDENT" with max length aligned to DB
  */
-const registerSchema = z
+const studentRegisterSchema = z
   .object({
     name: z.string().min(2, "Name must be at least 2 characters").max(255),
     email: z.email("Invalid email address"),
     password: passwordStrengthSchema,
     confirmPassword: passwordStrengthSchema,
-    role: RoleEnum.optional().default("STUDENT"),
-    avatarUrl: z.string().optional(),
+    rollNumber: z.number().int(),
+    academicDepartment: z.enum(ACADEMIC_DEPARTMENTS),
+    session: z.string().max(10),
+    phone: z.string().max(20),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -40,7 +45,30 @@ const registerSchema = z
  * - Requires a non-empty password
  * Note: We don't enforce strength here to avoid leaking rules during login
  */
-const loginSchema = z.object({
+const studentLoginSchema = z.object({
+  email: z.email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+  // rollNumber: z.string().max(20),
+});
+
+const adminRegisterSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters").max(255),
+    email: z.email("Invalid email address"),
+    password: passwordStrengthSchema,
+    confirmPassword: passwordStrengthSchema,
+    academicDepartment: z.enum(ACADEMIC_DEPARTMENTS),
+    hall: z.enum(HALLS),
+    designation: z.enum(STAFF_ROLES),
+    operationalUnit: z.enum(OPERATIONAL_UNITS),
+    phone: z.string().max(20),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+const adminLoginSchema = z.object({
   email: z.email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
 });
@@ -52,4 +80,10 @@ const refreshTokenCookieSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token is required"),
 });
 
-export { loginSchema, refreshTokenCookieSchema, registerSchema, RoleEnum };
+export {
+  adminLoginSchema,
+  adminRegisterSchema,
+  refreshTokenCookieSchema,
+  studentLoginSchema,
+  studentRegisterSchema,
+};
