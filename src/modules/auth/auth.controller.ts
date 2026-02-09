@@ -28,6 +28,9 @@ const options: CookieOptions = {
   sameSite: "strict",
 };
 
+const studentCookiePath = "/api/v1/auth";
+const adminCookiePath = "/api/v1/auth/admin";
+
 export const studentRegister = asyncHandler(
   async (req: Request, res: Response) => {
     const {
@@ -106,10 +109,12 @@ export const studentRegister = asyncHandler(
       .cookie("accessToken", signAccessToken(tokenPayload), {
         ...options,
         maxAge: 15 * 60 * 1000,
+        path: studentCookiePath,
       })
       .cookie("refreshToken", refreshToken, {
         ...options,
         maxAge: 10 * 24 * 60 * 60 * 1000,
+        path: studentCookiePath,
       })
       .json(
         new ApiResponse(
@@ -199,10 +204,12 @@ export const studentLogin = asyncHandler(
       .cookie("accessToken", signAccessToken(tokenPayload), {
         ...options,
         maxAge: 15 * 60 * 1000,
+        path: studentCookiePath,
       })
       .cookie("refreshToken", refreshToken, {
         ...options,
         maxAge: 10 * 24 * 60 * 60 * 1000,
+        path: studentCookiePath,
       })
       .json(
         new ApiResponse(
@@ -311,10 +318,12 @@ export const adminRegister = asyncHandler(
       .cookie("accessToken", signAccessToken(tokenPayload), {
         ...options,
         maxAge: 15 * 60 * 1000,
+        path: adminCookiePath,
       })
       .cookie("refreshToken", refreshToken, {
         ...options,
         maxAge: 10 * 24 * 60 * 60 * 1000,
+        path: adminCookiePath,
       })
       .json(
         new ApiResponse(
@@ -405,10 +414,12 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
     .cookie("accessToken", signAccessToken(tokenPayload), {
       ...options,
       maxAge: 15 * 60 * 1000,
+      path: adminCookiePath,
     })
     .cookie("refreshToken", refreshToken, {
       ...options,
       maxAge: 10 * 24 * 60 * 60 * 1000,
+      path: adminCookiePath,
     })
     .json(
       new ApiResponse(
@@ -485,6 +496,7 @@ export const renewAccessToken = asyncHandler(
       .cookie("accessToken", newAccessToken, {
         ...options,
         maxAge: 15 * 60 * 1000,
+        path: decoded.role === "STUDENT" ? studentCookiePath : adminCookiePath,
       })
       .json(
         new ApiResponse(
@@ -498,6 +510,7 @@ export const renewAccessToken = asyncHandler(
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
+  const user = req.user;
 
   if (!refreshToken) {
     throw new ApiError(400, "Refresh token is required");
@@ -511,13 +524,20 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", {
+      ...options,
+      path: user?.role === "STUDENT" ? studentCookiePath : adminCookiePath,
+    })
+    .clearCookie("refreshToken", {
+      ...options,
+      path: user?.role === "STUDENT" ? studentCookiePath : adminCookiePath,
+    })
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
 export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
+  const user = req.user;
 
   if (!userId) {
     throw new ApiError(401, "User not authenticated");
@@ -527,8 +547,14 @@ export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
 
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", {
+      ...options,
+      path: user?.role === "STUDENT" ? studentCookiePath : adminCookiePath,
+    })
+    .clearCookie("refreshToken", {
+      ...options,
+      path: user?.role === "STUDENT" ? studentCookiePath : adminCookiePath,
+    })
     .json(
       new ApiResponse(200, null, "Logged out from all devices successfully")
     );

@@ -56,14 +56,15 @@ export const authorizeRoles = (...allowedRoles: Role[]) => {
         throw new ApiError(401, "Authentication required");
       }
 
-      if (!allowedRoles.includes(req.user.role)) {
-        throw new ApiError(
-          403,
-          "Forbidden: You do not have access to this resource"
-        );
+      // Provost bypasses all role checks, or user must be in allowed roles
+      if (req.user.role === "PROVOST" || allowedRoles.includes(req.user.role)) {
+        return next();
       }
 
-      next();
+      throw new ApiError(
+        403,
+        "Forbidden: You do not have access to this resource"
+      );
     }
   );
 };

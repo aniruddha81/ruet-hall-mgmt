@@ -9,7 +9,8 @@ CREATE TABLE `admins` (
 	`created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT `admins_id` PRIMARY KEY(`id`),
-	CONSTRAINT `admins_user_id_unique` UNIQUE(`user_id`)
+	CONSTRAINT `admins_user_id_unique` UNIQUE(`user_id`),
+	CONSTRAINT `halls_hall_unique` UNIQUE(`hall`)
 );
 --> statement-breakpoint
 CREATE TABLE `refresh_tokens` (
@@ -31,14 +32,15 @@ CREATE TABLE `students` (
 	`user_id` varchar(36) NOT NULL,
 	`roll_number` int NOT NULL,
 	`session` varchar(10),
-	`hall` enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL'),
+	`hall` enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL') NOT NULL,
 	`room_id` varchar(36),
 	`student_status` enum('ACTIVE','ALUMNI','SUSPENDED','EXPELLED') NOT NULL DEFAULT 'ACTIVE',
 	`created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT `students_id` PRIMARY KEY(`id`),
 	CONSTRAINT `students_user_id_unique` UNIQUE(`user_id`),
-	CONSTRAINT `students_roll_number_unique` UNIQUE(`roll_number`)
+	CONSTRAINT `students_roll_number_unique` UNIQUE(`roll_number`),
+	CONSTRAINT `halls_hall_unique` UNIQUE(`hall`)
 );
 --> statement-breakpoint
 CREATE TABLE `users` (
@@ -74,10 +76,10 @@ CREATE TABLE `halls` (
 CREATE TABLE `rooms` (
 	`id` varchar(36) NOT NULL,
 	`hall_id` varchar(36) NOT NULL,
-	`room_number` int NOT NULL,
-	`floor` int,
-	`capacity` int NOT NULL,
-	`current_occupancy` int NOT NULL DEFAULT 0,
+	`room_number` smallint unsigned NOT NULL,
+	`floor` tinyint unsigned NOT NULL,
+	`capacity` tinyint unsigned NOT NULL,
+	`current_occupancy` smallint unsigned NOT NULL DEFAULT 0,
 	`room_status` enum('AVAILABLE','OCCUPIED','MAINTENANCE','RESERVED') NOT NULL DEFAULT 'AVAILABLE',
 	`created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,

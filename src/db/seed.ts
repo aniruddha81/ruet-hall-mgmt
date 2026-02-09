@@ -80,10 +80,6 @@ async function seed() {
     console.log("👨‍🎓 Creating student users...");
 
     console.log("🎉 Database seed completed successfully!");
-    console.log("\n📝 Default Login Credentials:");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("\nStudents (all with password: Student@123):");
-    console.log("\nAdmins (all with password: Admin@123):");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
     process.exit(0);

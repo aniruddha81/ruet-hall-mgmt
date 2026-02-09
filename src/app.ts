@@ -23,10 +23,13 @@ app.use(morgan("dev"));
 //routes import
 import authRouter from "./modules/auth/auth.routes.ts";
 import profileRouter from "./modules/profile/profile.route.ts";
+import diningRouter from "./modules/dining/dining.routes.ts";
 
 //routes declaration
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/profile", profileRouter);
+
+app.use("/api/v1/dining", diningRouter);
 
 // Error handling middleware
 app.use(handleError);

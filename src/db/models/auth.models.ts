@@ -17,7 +17,7 @@ import {
   STAFF_ROLES,
   STUDENT_STATUSES,
 } from "../../types/enums";
-import { halls, rooms } from "./halls.models";
+import { hallEnum, halls, rooms } from "./halls.models";
 
 export const userRoleEnum = mysqlEnum("user_role", ROLES);
 export const studentStatusEnum = mysqlEnum("student_status", STUDENT_STATUSES);
@@ -26,7 +26,6 @@ export const operationalUnitEnum = mysqlEnum(
   "operational_unit",
   OPERATIONAL_UNITS
 );
-export const hallEnum = mysqlEnum("hall", HALLS);
 export const academicDepartmentsEnum = mysqlEnum(
   "academic_department",
   ACADEMIC_DEPARTMENTS

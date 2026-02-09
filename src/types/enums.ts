@@ -75,3 +75,14 @@ export const ROOM_STATUSES = [
 ] as const;
 
 export type RoomStatus = (typeof ROOM_STATUSES)[number];
+
+//for dining module
+export const MEAL_TYPES = ["LUNCH", "DINNER"] as const;
+export const TOKEN_STATUSES = ["ACTIVE", "CANCELLED", "CONSUMED"] as const;
+export const PAYMENT_METHODS = [
+  "BKASH",
+  "NAGAD",
+  "ROCKET",
+  "BANK",
+  "CASH",
+] as const;

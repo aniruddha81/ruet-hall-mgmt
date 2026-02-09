@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "4e868531-1a4a-41f6-a0a1-aab9f9508e57",
+  "id": "b65f7925-863c-44f1-9e33-c33180bb3831",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "admins": {
@@ -160,6 +160,12 @@
           "columns": [
             "user_id"
           ]
+        },
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
         }
       },
       "checkConstraint": {}
@@ -315,7 +321,7 @@
           "name": "hall",
           "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "room_id": {
@@ -433,6 +439,12 @@
           "name": "students_roll_number_unique",
           "columns": [
             "roll_number"
+          ]
+        },
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
           ]
         }
       },
@@ -662,28 +674,28 @@
         },
         "room_number": {
           "name": "room_number",
-          "type": "int",
+          "type": "smallint unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "floor": {
           "name": "floor",
-          "type": "int",
+          "type": "tinyint unsigned",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "capacity": {
           "name": "capacity",
-          "type": "int",
+          "type": "tinyint unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "current_occupancy": {
           "name": "current_occupancy",
-          "type": "int",
+          "type": "smallint unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,

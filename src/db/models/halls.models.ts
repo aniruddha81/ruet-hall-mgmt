@@ -6,7 +6,9 @@ import {
   int,
   mysqlEnum,
   mysqlTable,
+  smallint,
   text,
+  tinyint,
   varchar,
 } from "drizzle-orm/mysql-core";
 import { HALLS, ROOM_STATUSES } from "../../types/enums";
@@ -23,13 +25,13 @@ export const rooms = mysqlTable(
       .notNull()
       .references(() => halls.id, { onDelete: "cascade" }),
 
-    roomNumber: int("room_number").notNull(),
+    roomNumber: smallint("room_number", { unsigned: true }).notNull(),
 
-    floor: int("floor"),
+    floor: tinyint("floor", { unsigned: true }).notNull(),
 
-    capacity: int("capacity").notNull(),
+    capacity: tinyint("capacity", { unsigned: true }).notNull(),
 
-    currentOccupancy: int("current_occupancy").notNull().default(0),
+    currentOccupancy: smallint("current_occupancy", { unsigned: true }).notNull().default(0),
 
     status: roomStatusEnum.notNull().default("AVAILABLE"),
 
