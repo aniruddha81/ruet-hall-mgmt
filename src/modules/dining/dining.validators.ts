@@ -25,16 +25,13 @@ export const PAYMENT_STATUSES = ["COMPLETED", "REFUNDED"] as const;
  */
 export const bookMealTokensSchema = z.object({
   body: z.object({
-    menuId: z
-      .string()
-      .uuid("Invalid menu ID format")
-      .describe("UUID of the meal menu"),
+    menuId: z.uuid("Invalid menu ID format").describe("UUID of the meal menu"),
     quantity: z
       .number()
       .int("Quantity must be an integer")
       .min(1, "Quantity must be at least 1")
       .max(20, "Maximum 20 tokens per booking (for self + friends)")
-      .describe("Number of tokens to book"),
+      .describe("Number of tokens to book (tinyint)"),
     paymentMethod: z
       .enum(PAYMENT_METHODS)
       .describe("Payment method used for booking"),
@@ -48,7 +45,6 @@ export const bookMealTokensSchema = z.object({
 export const cancelMealTokenSchema = z.object({
   params: z.object({
     tokenId: z
-      .string()
       .uuid("Invalid token ID format")
       .describe("UUID of the meal token to cancel"),
   }),
@@ -96,7 +92,6 @@ export const getTokenHistorySchema = z.object({
 export const getTokenByIdSchema = z.object({
   params: z.object({
     tokenId: z
-      .string()
       .uuid("Invalid token ID format")
       .describe("UUID of the meal token"),
   }),
@@ -122,14 +117,17 @@ export const createMenuSchema = z.object({
       ),
     price: z
       .number()
-      .positive("Price must be greater than 0")
-      .describe("Price per token in BDT"),
-    availableTokens: z
+      .int("Price must be an integer")
+      .min(1, "Price must be at least 1")
+      .max(255, "Price cannot exceed 255")
+      .default(40)
+      .describe("Price per token (tinyint, max 255)"),
+    totalTokens: z
       .number()
-      .int("Available tokens must be an integer")
-      .positive("Available tokens must be greater than 0")
+      .int("Total tokens must be an integer")
+      .min(1, "Total tokens must be at least 1")
       .max(1000, "Maximum 1000 tokens per menu")
-      .describe("Total number of tokens available for this menu"),
+      .describe("Total tokens set by dining manager (int, max 1000)"),
   }),
 });
 
@@ -140,7 +138,6 @@ export const createMenuSchema = z.object({
 export const updateMenuSchema = z.object({
   params: z.object({
     menuId: z
-      .string()
       .uuid("Invalid menu ID format")
       .describe("UUID of the menu to update"),
   }),
@@ -154,15 +151,18 @@ export const updateMenuSchema = z.object({
         .describe("Updated menu description"),
       price: z
         .number()
-        .positive("Price must be greater than 0")
+        .int("Price must be an integer")
+        .min(1, "Price must be at least 1")
+        .max(255, "Price cannot exceed 255")
         .optional()
-        .describe("Updated price per token"),
-      availableTokens: z
+        .describe("Updated price per token (tinyint, max 255)"),
+      totalTokens: z
         .number()
-        .int("Available tokens must be an integer")
-        .positive("Available tokens must be greater than 0")
+        .int("Total tokens must be an integer")
+        .min(1, "Total tokens must be at least 1")
+        .max(1000, "Maximum 1000 tokens per menu")
         .optional()
-        .describe("Updated number of available tokens"),
+        .describe("Updated total tokens (int, max 1000)"),
     })
     .refine(
       (data) => Object.keys(data).length > 0,
@@ -177,7 +177,6 @@ export const updateMenuSchema = z.object({
 export const deleteMenuSchema = z.object({
   params: z.object({
     menuId: z
-      .string()
       .uuid("Invalid menu ID format")
       .describe("UUID of the menu to delete"),
   }),
@@ -189,10 +188,7 @@ export const deleteMenuSchema = z.object({
  */
 export const getMenuBookingsSchema = z.object({
   params: z.object({
-    menuId: z
-      .string()
-      .uuid("Invalid menu ID format")
-      .describe("UUID of the menu"),
+    menuId: z.uuid("Invalid menu ID format").describe("UUID of the menu"),
   }),
   query: z.object({
     status: z
@@ -297,7 +293,6 @@ export const processPaymentSchema = z.object({
 export const getPaymentDetailsSchema = z.object({
   params: z.object({
     paymentId: z
-      .string()
       .uuid("Invalid payment ID format")
       .describe("UUID of the payment"),
   }),
@@ -310,7 +305,6 @@ export const getPaymentDetailsSchema = z.object({
 export const processRefundSchema = z.object({
   params: z.object({
     paymentId: z
-      .string()
       .uuid("Invalid payment ID format")
       .describe("UUID of the payment to refund"),
   }),

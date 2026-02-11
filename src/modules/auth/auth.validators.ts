@@ -3,7 +3,6 @@ import {
   ACADEMIC_DEPARTMENTS,
   HALLS,
   OPERATIONAL_UNITS,
-  ROLES,
   STAFF_ROLES,
 } from "../../types/enums";
 
@@ -48,7 +47,6 @@ const studentRegisterSchema = z
 const studentLoginSchema = z.object({
   email: z.email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
-  // rollNumber: z.string().max(20),
 });
 
 const adminRegisterSchema = z

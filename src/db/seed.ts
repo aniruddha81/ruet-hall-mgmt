@@ -1,92 +1,89 @@
-import bcrypt from "bcrypt";
-import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
+import { HALLS } from "../types/enums";
 import { db } from "./index";
-import { admins, rooms, students, users, halls } from "./models/index";
+import {
+  halls as hallsTable,
+  rooms as roomsTable,
+} from "./models/halls.models";
 
-async function seed() {
-  try {
-    console.log("🌱 Starting database seed...");
+/**
+ * Seed halls and rooms.
+ * - Inserts each hall from `HALLS` if not present
+ * - Creates `totalRooms` rooms per hall with globally-unique room numbers
+ * - Uses sensible defaults so this is safe to run multiple times
+ */
+export async function seedHallsAndRooms(opts?: {
+  roomsPerHall?: number;
+  roomCapacity?: number;
+}) {
+  const roomsPerHall = opts?.roomsPerHall ?? 50;
+  const roomCapacity = opts?.roomCapacity ?? 2;
 
-    // ===== CREATE HALLS =====
-    console.log("📍 Creating halls...");
-    const hallData = [
-      {
-        id: randomUUID(),
-        name: "ZIA_HALL" as const,
-        address: "Block A, RUET Campus",
-        contactNumber: "01711111111",
-        totalCapacity: 200,
-        totalRooms: 40,
-        isActive: true,
-      },
-      {
-        id: randomUUID(),
-        name: "SHAH_JALAL_HALL" as const,
-        address: "Block B, RUET Campus",
-        contactNumber: "01722222222",
-        totalCapacity: 180,
-        totalRooms: 36,
-        isActive: true,
-      },
-      {
-        id: randomUUID(),
-        name: "RASHID_HALL" as const,
-        address: "Block C, RUET Campus",
-        contactNumber: "01733333333",
-        totalCapacity: 160,
-        totalRooms: 32,
-        isActive: true,
-      },
-      {
-        id: randomUUID(),
-        name: "FARUKI_HALL" as const,
-        address: "Block D, RUET Campus",
-        contactNumber: "01744444444",
-        totalCapacity: 140,
-        totalRooms: 28,
-        isActive: true,
-      },
-    ];
+  let globalRoomNumber = 1;
 
-    const insertedHalls: typeof hallData = [];
-    for (const hall of hallData) {
-      await db.insert(halls).values(hall);
-      insertedHalls.push(hall);
+  for (const hallName of HALLS) {
+    // Check if hall exists
+    const [existing] = await db
+      .select()
+      .from(hallsTable)
+      .where(eq(hallsTable.name, hallName))
+      .limit(1);
+
+    const totalRooms = roomsPerHall;
+    const totalCapacity = totalRooms * roomCapacity;
+
+    if (!existing) {
+      await db.insert(hallsTable).values({
+        name: hallName,
+        address: `${hallName.replace(/_/g, " ")} Address`,
+        contactNumber: null,
+        totalCapacity,
+        totalRooms,
+        isActive: true,
+      });
+    } else {
+      // Ensure totals are up-to-date
+      await db
+        .update(hallsTable)
+        .set({ totalCapacity, totalRooms })
+        .where(eq(hallsTable.name, hallName));
     }
-    console.log(`✅ Created ${insertedHalls.length} halls`);
 
-    // ===== CREATE ROOMS =====
-    console.log("🚪 Creating rooms...");
-    let roomCount = 0;
-    for (const hall of insertedHalls) {
-      const numRooms = parseInt(hall.totalRooms.toString());
-      for (let i = 1; i <= numRooms; i++) {
-        const floor = Math.ceil(i / 10);
-        await db.insert(rooms).values({
-          id: randomUUID(),
-          hallId: hall.id,
-          roomNumber: i,
-          floor: floor,
-          capacity: 5,
+    // Insert rooms for this hall if not already present (based on hall & roomNumber index)
+    // We create globally-unique room numbers to satisfy the schema's primary key.
+    for (let i = 0; i < roomsPerHall; i++) {
+      const roomNumber = globalRoomNumber++;
+
+      const [roomExists] = await db
+        .select()
+        .from(roomsTable)
+        .where(eq(roomsTable.roomNumber, roomNumber))
+        .limit(1);
+
+      if (!roomExists) {
+        await db.insert(roomsTable).values({
+          roomNumber,
+          hall: hallName,
+          capacity: roomCapacity,
           currentOccupancy: 0,
           status: "AVAILABLE",
         });
-        roomCount++;
       }
     }
-    console.log(`✅ Created ${roomCount} rooms`);
-
-    // ===== CREATE STUDENT USERS & RECORDS =====
-    console.log("👨‍🎓 Creating student users...");
-
-    console.log("🎉 Database seed completed successfully!");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-
-    process.exit(0);
-  } catch (error) {
-    console.error("❌ Seed failed:", error);
-    process.exit(1);
   }
 }
 
-seed();
+// Run the seed when invoked directly
+if (require.main === module) {
+  (async () => {
+    try {
+      console.log("Seeding halls and rooms...");
+      await seedHallsAndRooms();
+      console.log("Seed complete");
+      process.exit(0);
+    } catch (err) {
+      console.error("Seed failed:", err);
+      process.exit(1);
+    }
+  })();
+}

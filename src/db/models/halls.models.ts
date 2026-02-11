@@ -13,27 +13,27 @@ import {
 } from "drizzle-orm/mysql-core";
 import { HALLS, ROOM_STATUSES } from "../../types/enums";
 
-export const roomStatusEnum = mysqlEnum("room_status", ROOM_STATUSES);
-export const hallEnum = mysqlEnum("hall", HALLS);
+export const roomStatusSQL_Enum = mysqlEnum("room_status", ROOM_STATUSES);
+export const hallSQL_Enum = mysqlEnum("hall", HALLS);
 
 export const rooms = mysqlTable(
   "rooms",
   {
-    id: varchar("id", { length: 36 }).primaryKey(),
-
-    hallId: varchar("hall_id", { length: 36 })
+    roomNumber: smallint("room_number", { unsigned: true })
       .notNull()
-      .references(() => halls.id, { onDelete: "cascade" }),
+      .primaryKey(),
 
-    roomNumber: smallint("room_number", { unsigned: true }).notNull(),
-
-    floor: tinyint("floor", { unsigned: true }).notNull(),
+    hall: hallSQL_Enum
+      .notNull()
+      .references(() => halls.name, { onDelete: "cascade" }),
 
     capacity: tinyint("capacity", { unsigned: true }).notNull(),
 
-    currentOccupancy: smallint("current_occupancy", { unsigned: true }).notNull().default(0),
+    currentOccupancy: smallint("current_occupancy", { unsigned: true })
+      .notNull()
+      .default(0),
 
-    status: roomStatusEnum.notNull().default("AVAILABLE"),
+    status: roomStatusSQL_Enum.notNull().default("AVAILABLE"),
 
     createdAt: datetime("created_at", { mode: "date" })
       .notNull()
@@ -45,16 +45,14 @@ export const rooms = mysqlTable(
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
   },
   (t) => [
-    index("uq_room_hall_number").on(t.hallId, t.roomNumber),
-    index("idx_rooms_hall").on(t.hallId),
+    index("uq_room_hall_number").on(t.hall, t.roomNumber),
+    index("idx_rooms_hall").on(t.hall),
     index("idx_rooms_status").on(t.status),
   ]
 );
 
 export const halls = mysqlTable("halls", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-
-  name: hallEnum.notNull().unique(),
+  name: hallSQL_Enum.notNull().primaryKey().unique(),
 
   address: text("address"),
 

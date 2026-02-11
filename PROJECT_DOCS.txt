@@ -1,0 +1,11 @@
+first run this command "bun db:seed" to seed the values of rooms and halls.
+
+whole project is module based because of two types of frontend..students dashboard, admin panel
+
+used zod schema validations in every route by using validateRequest.middleware.ts file
+
+normal enums are stored in src\types\enums.ts
+
+but sqlEnums are file specific
+
+all utily small functions are in src\utils\helpers.ts

@@ -28,6 +28,24 @@ import {
   updateTomorrowMenu,
 } from "./dining.controller";
 
+import { validateRequest } from "../../middlewares/validateRequest.middleware";
+import {
+  bookMealTokensSchema,
+  cancelMealTokenSchema,
+  createMenuSchema,
+  deleteMenuSchema,
+  getDailyReportSchema,
+  getMenuBookingsSchema,
+  getMonthlyReportSchema,
+  getPaymentDetailsSchema,
+  getTokenByIdSchema,
+  getTokenHistorySchema,
+  markTokensConsumedSchema,
+  processPaymentSchema,
+  processRefundSchema,
+  updateMenuSchema,
+} from "./dining.validators";
+
 const diningRouter = Router();
 
 // ==============================================================
@@ -45,6 +63,7 @@ diningRouter.get(
 // Book meal tokens for tomorrow
 diningRouter.post(
   "/book-tokens",
+  validateRequest(bookMealTokensSchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
   bookMealTokens
@@ -61,6 +80,7 @@ diningRouter.get(
 // Cancel a meal token before midnight
 diningRouter.patch(
   "/cancel-token/:tokenId",
+  validateRequest(cancelMealTokenSchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
   cancelMealToken
@@ -69,6 +89,7 @@ diningRouter.patch(
 // Get student's complete token purchase history with pagination and filters
 diningRouter.get(
   "/token-history",
+  validateRequest(getTokenHistorySchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
   getMyTokenHistory
@@ -77,6 +98,7 @@ diningRouter.get(
 // Get single token details by ID
 diningRouter.get(
   "/token/:tokenId",
+  validateRequest(getTokenByIdSchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
   getMyTokenById
@@ -89,6 +111,7 @@ diningRouter.get(
 // Create menu for tomorrow (lunch or dinner only)
 diningRouter.post(
   "/menu/create",
+  validateRequest(createMenuSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
   createTomorrowMenu
@@ -97,6 +120,7 @@ diningRouter.post(
 // Update tomorrow's menu details
 diningRouter.patch(
   "/menu/:menuId/update",
+  validateRequest(updateMenuSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
   updateTomorrowMenu
@@ -105,6 +129,7 @@ diningRouter.patch(
 // Delete tomorrow's menu (only if no bookings)
 diningRouter.delete(
   "/menu/:menuId",
+  validateRequest(deleteMenuSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
   deleteTomorrowMenu
@@ -129,6 +154,7 @@ diningRouter.get(
 // Get all bookings for a specific menu with filters
 diningRouter.get(
   "/bookings/menu/:menuId",
+  validateRequest(getMenuBookingsSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
   getAllBookingsForMenu
@@ -145,6 +171,7 @@ diningRouter.get(
 // Mark tokens as consumed during meal service
 diningRouter.patch(
   "/tokens/mark-consumed",
+  validateRequest(markTokensConsumedSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
   markTokensAsConsumed
@@ -153,6 +180,7 @@ diningRouter.patch(
 // Generate daily consumption report
 diningRouter.get(
   "/report/daily",
+  validateRequest(getDailyReportSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
   getDailyReport
@@ -161,6 +189,7 @@ diningRouter.get(
 // Generate monthly summary report
 diningRouter.get(
   "/report/monthly",
+  validateRequest(getMonthlyReportSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
   getMonthlyReport
@@ -173,6 +202,7 @@ diningRouter.get(
 // Process payment for meal token bookings
 diningRouter.post(
   "/payment/process",
+  validateRequest(processPaymentSchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
   processPayment
@@ -181,6 +211,7 @@ diningRouter.post(
 // Get payment details by payment ID
 diningRouter.get(
   "/payment/:paymentId",
+  validateRequest(getPaymentDetailsSchema),
   authenticateToken,
   authorizeRoles("STUDENT", "DINING_MANAGER"),
   getPaymentDetails
@@ -189,6 +220,7 @@ diningRouter.get(
 // Process refund for cancelled tokens
 diningRouter.post(
   "/payment/:paymentId/refund",
+  validateRequest(processRefundSchema),
   authenticateToken,
   authorizeRoles("STUDENT", "DINING_MANAGER"),
   processRefund

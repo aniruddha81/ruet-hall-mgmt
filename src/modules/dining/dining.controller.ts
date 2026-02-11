@@ -1,6 +1,11 @@
+import { randomUUID } from "crypto";
+import { and, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
+import { db } from "../../db";
+import { admins, mealMenus } from "../../db/models";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
+import { toDateString } from "../../utils/helpers";
 
 // ==============================================================
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
@@ -216,17 +221,73 @@ export const getMyTokenById = asyncHandler(
 export const createTomorrowMenu = asyncHandler(
   async (req: Request, res: Response) => {
     const diningManagerId = req.user?.userId;
-    const { mealType, menuDescription, price, availableTokens } = req.body;
+    const { mealType, menuDescription, price, totalTokens } = req.body;
 
-    // TODO: Validate mealType is LUNCH or DINNER
-    // TODO: Check menu doesn't already exist for tomorrow + mealType
-    // TODO: Get manager's hall from admins table
-    // TODO: Create mealMenus record with bookedTokens = 0
-    // TODO: Return created menu
+    const [hallResult] = await db
+      .select({ hall: admins.hall })
+      .from(admins)
+      .where(eq(admins.userId, diningManagerId!))
+      .limit(1);
 
-    res
-      .status(201)
-      .json(new ApiResponse(201, {}, "Menu created successfully for tomorrow"));
+    if (!hallResult) {
+      return res
+        .status(404)
+        .json(new ApiResponse(404, {}, "Dining manager's hall not found"));
+    }
+
+    const { hall } = hallResult;
+
+    const tomorrowDate = toDateString(
+      new Date(Date.now() + 24 * 60 * 60 * 1000)
+    );
+
+    const [alreadyExists] = await db
+      .select()
+      .from(mealMenus)
+      .where(
+        and(
+          eq(mealMenus.hall, hall),
+          eq(mealMenus.mealType, mealType),
+          sql`${mealMenus.mealDate} = CAST(${tomorrowDate} AS DATE)`
+        )
+      )
+      .limit(1);
+
+    if (alreadyExists) {
+      return res
+        .status(409)
+        .json(
+          new ApiResponse(
+            409,
+            {},
+            "Menu for this hall, date and meal type already exists"
+          )
+        );
+    }
+
+    await db.insert(mealMenus).values({
+      id: randomUUID(),
+      hall: hall,
+      mealType,
+      menuDescription,
+      price,
+      totalTokens: totalTokens,
+      createdBy: diningManagerId!,
+    });
+
+    res.status(201).json(
+      new ApiResponse(
+        201,
+        {
+          menuDescription,
+          price,
+          totalTokens,
+          mealType,
+          mealDate: tomorrowDate,
+        },
+        "Menu created successfully for tomorrow"
+      )
+    );
   }
 );
 

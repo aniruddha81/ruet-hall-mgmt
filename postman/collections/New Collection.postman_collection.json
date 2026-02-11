@@ -1,0 +1,271 @@
+{
+  "info": {
+    "_postman_id": "4cf73fd7-ae77-4a93-916c-046c9e57042c",
+    "name": "ruet-hall-man-api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "adminRegister",
+          "id": "98490b64-a416-4738-aaba-10ed418c8855",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aniruddha Roy\",\n  \"email\": \"ar.r@example.com\",\n  \"password\": \"StrongPass@123\",\n  \"confirmPassword\": \"StrongPass@123\",\n  \"academicDepartment\": \"CSE\",\n  \"hall\": \"ZIA_HALL\",\n  \"designation\": \"PROVOST\",\n  \"operationalUnit\": \"ALL\",\n  \"phone\": \"01712345678\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/admin/register",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "studentRegister",
+          "id": "ecba6b5f-dcd3-4d60-b7b3-33888f9de35c",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Md. Habibur Rahman\",\n  \"email\": \"habibur.raman@ruet.ac.bd\",\n  \"password\": \"Admin@2024\",\n  \"confirmPassword\": \"Admin@2024\",\n  \"academicDepartment\": \"CSE\",\n  \"hall\": \"ZIA_HALL\",\n  \"designation\": \"PROVOST\",\n  \"operationalUnit\": \"ALL\",\n  \"phone\": \"01712345678\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/login",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "studentLogin",
+          "id": "09ee4649-de82-4be2-9cc5-9ed425ea1467",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"john@example.com\",\n    \"password\": \"StrongPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/login",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "adminLogin",
+          "id": "295e55ae-b3e4-40a7-8433-305b46dcc927",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"ar.roy564@example.com\",\n    \"password\": \"StrongPass@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/admin/login",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout",
+          "id": "21862684-7ef0-4013-92c8-bc17bd91e17e",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "uuid": "7367cae3-8a53-4bd8-bc87-11eef78ab956",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/logout",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "renewAccessToken",
+          "id": "bf94db51-5e63-4cd3-af26-574d44e636fe",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "set-cookie",
+                "value": "refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzYWEzYzY5NS01NDhjLTQzZDEtOGY1Yi01M2I4YTM0NDBjYTUiLCJlbWFpbCI6ImFyLnI0QGV4YW1wbGUuY29tIiwibmFtZSI6IkFuaXJ1ZGRoYSBSb3kiLCJyb2xlIjoiUFJPVk9TVCIsImp0aSI6ImY1YWM5YjQwZDc2YzI1OWM4MzQ4MzdjNDViMGI2NmExIiwiaWF0IjoxNzcwODI3OTUxLCJleHAiOjE3NzE2OTE5NTF9.z7Xbyo1dEYRKE9_G9qHvUI0hUd866ouIinfcrIyAbFI; Max-Age=864000; Path=/api/v1/auth/admin; Expires=Sat, 21 Feb 2026 16:39:11 GMT; HttpOnly; SameSite=Strict",
+                "type": "text",
+                "uuid": "c9f9c3aa-4207-46e1-828e-dc1239fd313e",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/renew-access-token",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "renew-access-token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "id": "82305a62-f7d6-4fc2-9a07-1afd801c86e0",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "uuid": "7367cae3-8a53-4bd8-bc87-11eef78ab956",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/logout-all",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout-all"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "cad2061e-d674-479d-b268-97ddf1b7bd51"
+    },
+    {
+      "name": "profile",
+      "item": [],
+      "id": "95302bb1-efbc-44fd-98b2-297885ae187a"
+    },
+    {
+      "name": "dining",
+      "item": [
+        {
+          "name": "createTomorrowMenu",
+          "id": "82ddbee8-b5f7-4801-845b-220d75386048",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"body\" : {\"mealType\": \"LUNCH\",\n    \"menuDescription\": \"Steamed rice, chicken curry, dal, mixed salad\",\n    \"price\": 50,\n    \"totalTokens\": 200}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/dining/menu/create",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dining",
+                "menu",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "3e91e021-63d4-492c-a87a-e349229120aa"
+    }
+  ],
+  "variable": [
+    {
+      "id": "b283fb17-ef2d-47a1-bf12-011e2e863c03",
+      "key": "BASE_URL",
+      "value": "http://localhost:8000"
+    }
+  ]
+}

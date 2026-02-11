@@ -7,26 +7,26 @@ import {
   int,
   mysqlEnum,
   mysqlTable,
+  smallint,
   varchar,
 } from "drizzle-orm/mysql-core";
 import {
   ACADEMIC_DEPARTMENTS,
-  HALLS,
   OPERATIONAL_UNITS,
   ROLES,
   STAFF_ROLES,
   STUDENT_STATUSES,
 } from "../../types/enums";
-import { hallEnum, halls, rooms } from "./halls.models";
+import { hallSQL_Enum, halls, rooms } from "./halls.models";
 
-export const userRoleEnum = mysqlEnum("user_role", ROLES);
-export const studentStatusEnum = mysqlEnum("student_status", STUDENT_STATUSES);
-export const adminDesignationEnum = mysqlEnum("admin_designation", STAFF_ROLES);
-export const operationalUnitEnum = mysqlEnum(
+export const userRoleSQL_Enum = mysqlEnum("user_role", ROLES);
+export const studentStatusSQL_Enum = mysqlEnum("student_status", STUDENT_STATUSES);
+export const adminDesignationSQL_Enum = mysqlEnum("admin_designation", STAFF_ROLES);
+export const operationalUnitSQL_Enum = mysqlEnum(
   "operational_unit",
   OPERATIONAL_UNITS
 );
-export const academicDepartmentsEnum = mysqlEnum(
+export const academicDepartmentsSQL_Enum = mysqlEnum(
   "academic_department",
   ACADEMIC_DEPARTMENTS
 );
@@ -42,11 +42,11 @@ export const users = mysqlTable(
 
     name: varchar("name", { length: 255 }).notNull(),
 
-    phone: varchar("phone", { length: 20 }),
+    phone: varchar("phone", { length: 20 }).notNull(),
 
-    role: userRoleEnum.notNull().default("STUDENT"),
+    role: userRoleSQL_Enum.notNull().default("STUDENT"),
 
-    academicDepartment: academicDepartmentsEnum.notNull(),
+    academicDepartment: academicDepartmentsSQL_Enum.notNull(),
 
     isActive: boolean("is_active").notNull().default(true),
 
@@ -107,11 +107,13 @@ export const students = mysqlTable(
 
     session: varchar("session", { length: 10 }),
 
-    hall: hallEnum.references(() => halls.name, { onDelete: "cascade" }),
+    hall: hallSQL_Enum.references(() => halls.name, { onDelete: "cascade" }),
 
-    roomId: varchar("room_id", { length: 36 }).references(() => rooms.id),
+    roomNumber: smallint("room_number", { unsigned: true }).references(
+      () => rooms.roomNumber
+    ),
 
-    status: studentStatusEnum.notNull().default("ACTIVE"),
+    status: studentStatusSQL_Enum.notNull().default("ACTIVE"),
 
     createdAt: datetime("created_at", { mode: "date" })
       .notNull()
@@ -124,7 +126,7 @@ export const students = mysqlTable(
   },
   (t) => [
     index("idx_students_hall").on(t.hall),
-    index("idx_students_room").on(t.roomId),
+    index("idx_students_room").on(t.roomNumber),
     index("idx_students_status").on(t.status),
   ]
 );
@@ -132,20 +134,20 @@ export const students = mysqlTable(
 export const admins = mysqlTable(
   "admins",
   {
-    id: varchar("id", { length: 36 }).primaryKey(),
+    id: varchar("id", { length: 36 }).primaryKey().notNull(),
 
     userId: varchar("user_id", { length: 36 })
       .notNull()
       .unique()
       .references(() => users.id, { onDelete: "cascade" }),
 
-    hall: hallEnum
+    hall: hallSQL_Enum
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
-    designation: adminDesignationEnum.notNull(),
+    designation: adminDesignationSQL_Enum.notNull(),
 
-    operationalUnit: operationalUnitEnum.notNull(),
+    operationalUnit: operationalUnitSQL_Enum.notNull(),
 
     reportingToId: varchar("reporting_to_id", { length: 36 }).references(
       () => users.id

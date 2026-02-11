@@ -228,7 +228,7 @@ export const studentLogin = asyncHandler(
               rollNumber: studentRecord.rollNumber,
               session: studentRecord.session,
               hall: studentRecord.hall,
-              roomId: studentRecord.roomId,
+              roomNumber: studentRecord.roomNumber,
               status: studentRecord.status,
             },
           },
@@ -269,7 +269,7 @@ export const adminRegister = asyncHandler(
       email,
       passwordHash,
       name,
-      phone: phone || null,
+      phone,
       academicDepartment,
       role: designation,
     });
