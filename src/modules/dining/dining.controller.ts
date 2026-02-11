@@ -312,12 +312,12 @@ export const createTomorrowMenu = asyncHandler(
 export const updateTomorrowMenu = asyncHandler(
   async (req: Request, res: Response) => {
     const { menuId } = req.params;
-    const { menuDescription, price, availableTokens } = req.body;
+    const { menuDescription, price, totalTokens } = req.body;
 
     // TODO: Verify menu belongs to manager's hall
     // TODO: Validate menu is for tomorrow
     // TODO: If price update: check no bookings exist
-    // TODO: If availableTokens update: validate >= bookedTokens
+    // TODO: If totalTokens update: validate >= bookedTokens
     // TODO: Update mealMenus record
 
     res.status(200).json(new ApiResponse(200, {}, "Menu updated successfully"));

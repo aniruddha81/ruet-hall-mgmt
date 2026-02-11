@@ -63,9 +63,9 @@ diningRouter.get(
 // Book meal tokens for tomorrow
 diningRouter.post(
   "/book-tokens",
-  validateRequest(bookMealTokensSchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
+  validateRequest(bookMealTokensSchema),
   bookMealTokens
 );
 
@@ -80,27 +80,27 @@ diningRouter.get(
 // Cancel a meal token before midnight
 diningRouter.patch(
   "/cancel-token/:tokenId",
-  validateRequest(cancelMealTokenSchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
+  validateRequest(cancelMealTokenSchema),
   cancelMealToken
 );
 
 // Get student's complete token purchase history with pagination and filters
 diningRouter.get(
   "/token-history",
-  validateRequest(getTokenHistorySchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
+  validateRequest(getTokenHistorySchema),
   getMyTokenHistory
 );
 
 // Get single token details by ID
 diningRouter.get(
   "/token/:tokenId",
-  validateRequest(getTokenByIdSchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
+  validateRequest(getTokenByIdSchema),
   getMyTokenById
 );
 
@@ -111,27 +111,27 @@ diningRouter.get(
 // Create menu for tomorrow (lunch or dinner only)
 diningRouter.post(
   "/menu/create",
-  validateRequest(createMenuSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
+  validateRequest(createMenuSchema),
   createTomorrowMenu
 );
 
 // Update tomorrow's menu details
 diningRouter.patch(
   "/menu/:menuId/update",
-  validateRequest(updateMenuSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
+  validateRequest(updateMenuSchema),
   updateTomorrowMenu
 );
 
 // Delete tomorrow's menu (only if no bookings)
 diningRouter.delete(
   "/menu/:menuId",
-  validateRequest(deleteMenuSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
+  validateRequest(deleteMenuSchema),
   deleteTomorrowMenu
 );
 
@@ -154,9 +154,9 @@ diningRouter.get(
 // Get all bookings for a specific menu with filters
 diningRouter.get(
   "/bookings/menu/:menuId",
-  validateRequest(getMenuBookingsSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
+  validateRequest(getMenuBookingsSchema),
   getAllBookingsForMenu
 );
 
@@ -171,27 +171,27 @@ diningRouter.get(
 // Mark tokens as consumed during meal service
 diningRouter.patch(
   "/tokens/mark-consumed",
-  validateRequest(markTokensConsumedSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
+  validateRequest(markTokensConsumedSchema),
   markTokensAsConsumed
 );
 
 // Generate daily consumption report
 diningRouter.get(
   "/report/daily",
-  validateRequest(getDailyReportSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
+  validateRequest(getDailyReportSchema),
   getDailyReport
 );
 
 // Generate monthly summary report
 diningRouter.get(
   "/report/monthly",
-  validateRequest(getMonthlyReportSchema),
   authenticateToken,
   authorizeRoles("DINING_MANAGER"),
+  validateRequest(getMonthlyReportSchema),
   getMonthlyReport
 );
 
@@ -202,27 +202,27 @@ diningRouter.get(
 // Process payment for meal token bookings
 diningRouter.post(
   "/payment/process",
-  validateRequest(processPaymentSchema),
   authenticateToken,
   authorizeRoles("STUDENT"),
+  validateRequest(processPaymentSchema),
   processPayment
 );
 
 // Get payment details by payment ID
 diningRouter.get(
   "/payment/:paymentId",
-  validateRequest(getPaymentDetailsSchema),
   authenticateToken,
   authorizeRoles("STUDENT", "DINING_MANAGER"),
+  validateRequest(getPaymentDetailsSchema),
   getPaymentDetails
 );
 
 // Process refund for cancelled tokens
 diningRouter.post(
   "/payment/:paymentId/refund",
-  validateRequest(processRefundSchema),
   authenticateToken,
   authorizeRoles("STUDENT", "DINING_MANAGER"),
+  validateRequest(processRefundSchema),
   processRefund
 );
 

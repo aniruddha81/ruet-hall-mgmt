@@ -23,7 +23,7 @@ export const PAYMENT_STATUSES = ["COMPLETED", "REFUNDED"] as const;
  * Validator for booking meal tokens
  * POST /api/v1/dining/book-tokens
  */
-export const bookMealTokensSchema = z.object({
+export const bookMealTokensSchema = {
   body: z.object({
     menuId: z.uuid("Invalid menu ID format").describe("UUID of the meal menu"),
     quantity: z
@@ -36,25 +36,25 @@ export const bookMealTokensSchema = z.object({
       .enum(PAYMENT_METHODS)
       .describe("Payment method used for booking"),
   }),
-});
+};
 
 /**
  * Validator for cancelling a meal token
  * PATCH /api/v1/dining/cancel-token/:tokenId
  */
-export const cancelMealTokenSchema = z.object({
+export const cancelMealTokenSchema = {
   params: z.object({
     tokenId: z
       .uuid("Invalid token ID format")
       .describe("UUID of the meal token to cancel"),
   }),
-});
+};
 
 /**
  * Validator for getting token history with pagination and filters
  * GET /api/v1/dining/token-history
  */
-export const getTokenHistorySchema = z.object({
+export const getTokenHistorySchema = {
   query: z.object({
     page: z
       .string()
@@ -83,19 +83,19 @@ export const getTokenHistorySchema = z.object({
       .optional()
       .describe("End date for filtering (YYYY-MM-DD)"),
   }),
-});
+};
 
 /**
  * Validator for getting single token by ID
  * GET /api/v1/dining/token/:tokenId
  */
-export const getTokenByIdSchema = z.object({
+export const getTokenByIdSchema = {
   params: z.object({
     tokenId: z
       .uuid("Invalid token ID format")
       .describe("UUID of the meal token"),
   }),
-});
+};
 
 // ==============================================================
 // DINING MANAGER VALIDATORS
@@ -105,7 +105,7 @@ export const getTokenByIdSchema = z.object({
  * Validator for creating tomorrow's menu
  * POST /api/v1/dining/menu/create
  */
-export const createMenuSchema = z.object({
+export const createMenuSchema = {
   body: z.object({
     mealType: z.enum(MEAL_TYPES).describe("Type of meal (LUNCH or DINNER)"),
     menuDescription: z
@@ -129,13 +129,13 @@ export const createMenuSchema = z.object({
       .max(1000, "Maximum 1000 tokens per menu")
       .describe("Total tokens set by dining manager (int, max 1000)"),
   }),
-});
+};
 
 /**
  * Validator for updating menu details
  * PATCH /api/v1/dining/menu/:menuId/update
  */
-export const updateMenuSchema = z.object({
+export const updateMenuSchema = {
   params: z.object({
     menuId: z
       .uuid("Invalid menu ID format")
@@ -168,25 +168,25 @@ export const updateMenuSchema = z.object({
       (data) => Object.keys(data).length > 0,
       "At least one field must be provided for update"
     ),
-});
+};
 
 /**
  * Validator for deleting a menu
  * DELETE /api/v1/dining/menu/:menuId
  */
-export const deleteMenuSchema = z.object({
+export const deleteMenuSchema = {
   params: z.object({
     menuId: z
       .uuid("Invalid menu ID format")
       .describe("UUID of the menu to delete"),
   }),
-});
+};
 
 /**
  * Validator for getting all bookings for a menu
  * GET /api/v1/dining/bookings/menu/:menuId
  */
-export const getMenuBookingsSchema = z.object({
+export const getMenuBookingsSchema = {
   params: z.object({
     menuId: z.uuid("Invalid menu ID format").describe("UUID of the menu"),
   }),
@@ -208,26 +208,26 @@ export const getMenuBookingsSchema = z.object({
       .refine((val) => val > 0 && val <= 100, "Limit must be between 1 and 100")
       .describe("Number of records per page"),
   }),
-});
+};
 
 /**
  * Validator for marking tokens as consumed
  * PATCH /api/v1/dining/tokens/mark-consumed
  */
-export const markTokensConsumedSchema = z.object({
+export const markTokensConsumedSchema = {
   body: z.object({
     tokenIds: z
       .array(z.string().uuid("Each token ID must be a valid UUID"))
       .nonempty("At least one token ID must be provided")
       .describe("Array of token IDs to mark as consumed"),
   }),
-});
+};
 
 /**
  * Validator for daily report query
  * GET /api/v1/dining/report/daily
  */
-export const getDailyReportSchema = z.object({
+export const getDailyReportSchema = {
   query: z.object({
     date: z
       .string()
@@ -235,13 +235,13 @@ export const getDailyReportSchema = z.object({
       .optional()
       .describe("Report date (YYYY-MM-DD, defaults to today)"),
   }),
-});
+};
 
 /**
  * Validator for monthly report query
  * GET /api/v1/dining/report/monthly
  */
-export const getMonthlyReportSchema = z.object({
+export const getMonthlyReportSchema = {
   query: z.object({
     month: z
       .string()
@@ -254,7 +254,7 @@ export const getMonthlyReportSchema = z.object({
       .refine((val) => val >= 2000, "Year must be 2000 or later")
       .describe("Year (YYYY)"),
   }),
-});
+};
 
 // ==============================================================
 // PAYMENT VALIDATORS
@@ -264,7 +264,7 @@ export const getMonthlyReportSchema = z.object({
  * Validator for processing payment
  * POST /api/v1/dining/payment/process
  */
-export const processPaymentSchema = z.object({
+export const processPaymentSchema = {
   body: z.object({
     amount: z
       .number()
@@ -284,25 +284,25 @@ export const processPaymentSchema = z.object({
       .positive("Total quantity must be greater than 0")
       .describe("Total number of tokens purchased in this payment"),
   }),
-});
+};
 
 /**
  * Validator for getting payment details
  * GET /api/v1/dining/payment/:paymentId
  */
-export const getPaymentDetailsSchema = z.object({
+export const getPaymentDetailsSchema = {
   params: z.object({
     paymentId: z
       .uuid("Invalid payment ID format")
       .describe("UUID of the payment"),
   }),
-});
+};
 
 /**
  * Validator for processing refund
  * POST /api/v1/dining/payment/:paymentId/refund
  */
-export const processRefundSchema = z.object({
+export const processRefundSchema = {
   params: z.object({
     paymentId: z
       .uuid("Invalid payment ID format")
@@ -319,7 +319,7 @@ export const processRefundSchema = z.object({
       .max(500, "Refund reason cannot exceed 500 characters")
       .describe("Reason for refund"),
   }),
-});
+};
 
 // ==============================================================
 // EXPORT TYPES FOR TYPESCRIPT

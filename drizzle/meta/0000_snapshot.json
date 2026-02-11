@@ -1,0 +1,1316 @@
+{
+  "version": "5",
+  "dialect": "mysql",
+  "id": "34c8623a-f4b7-47ec-9cab-91ae32c4c28e",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "admins": {
+      "name": "admins",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "admin_designation": {
+          "name": "admin_designation",
+          "type": "enum('PROVOST','ASST_FINANCE','FINANCE_SECTION_OFFICER','ASST_DINING','DINING_MANAGER','ASST_INVENTORY','INVENTORY_SECTION_OFFICER')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "operational_unit": {
+          "name": "operational_unit",
+          "type": "enum('FINANCE','DINING','INVENTORY','ALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reporting_to_id": {
+          "name": "reporting_to_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_admins_hall": {
+          "name": "idx_admins_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_admins_reporting_to": {
+          "name": "idx_admins_reporting_to",
+          "columns": [
+            "reporting_to_id"
+          ],
+          "isUnique": false
+        },
+        "idx_admins_operational_unit": {
+          "name": "idx_admins_operational_unit",
+          "columns": [
+            "operational_unit"
+          ],
+          "isUnique": false
+        },
+        "uq_admin_user_hall": {
+          "name": "uq_admin_user_hall",
+          "columns": [
+            "user_id",
+            "hall"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "admins_user_id_users_id_fk": {
+          "name": "admins_user_id_users_id_fk",
+          "tableFrom": "admins",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "admins_hall_halls_hall_fk": {
+          "name": "admins_hall_halls_hall_fk",
+          "tableFrom": "admins",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "admins_reporting_to_id_users_id_fk": {
+          "name": "admins_reporting_to_id_users_id_fk",
+          "tableFrom": "admins",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reporting_to_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "admins_id": {
+          "name": "admins_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "admins_hall": {
+          "name": "admins_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "admins_user_id_unique": {
+          "name": "admins_user_id_unique",
+          "columns": [
+            "user_id"
+          ]
+        },
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "refresh_tokens": {
+      "name": "refresh_tokens",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "jti": {
+          "name": "jti",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ip": {
+          "name": "ip",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "refresh_tokens_user_idx": {
+          "name": "refresh_tokens_user_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "refresh_tokens_expires_idx": {
+          "name": "refresh_tokens_expires_idx",
+          "columns": [
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "refresh_tokens_user_id_users_id_fk": {
+          "name": "refresh_tokens_user_id_users_id_fk",
+          "tableFrom": "refresh_tokens",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "refresh_tokens_id": {
+          "name": "refresh_tokens_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "refresh_tokens_token_hash_unique": {
+          "name": "refresh_tokens_token_hash_unique",
+          "columns": [
+            "token_hash"
+          ]
+        },
+        "refresh_tokens_jti_unique": {
+          "name": "refresh_tokens_jti_unique",
+          "columns": [
+            "jti"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "students": {
+      "name": "students",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "roll_number": {
+          "name": "roll_number",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "session": {
+          "name": "session",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "room_number": {
+          "name": "room_number",
+          "type": "smallint unsigned",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "student_status": {
+          "name": "student_status",
+          "type": "enum('ACTIVE','ALUMNI','SUSPENDED','EXPELLED')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'ACTIVE'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_students_hall": {
+          "name": "idx_students_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_students_room": {
+          "name": "idx_students_room",
+          "columns": [
+            "room_number"
+          ],
+          "isUnique": false
+        },
+        "idx_students_status": {
+          "name": "idx_students_status",
+          "columns": [
+            "student_status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "students_user_id_users_id_fk": {
+          "name": "students_user_id_users_id_fk",
+          "tableFrom": "students",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "students_hall_halls_hall_fk": {
+          "name": "students_hall_halls_hall_fk",
+          "tableFrom": "students",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "students_room_number_rooms_room_number_fk": {
+          "name": "students_room_number_rooms_room_number_fk",
+          "tableFrom": "students",
+          "tableTo": "rooms",
+          "columnsFrom": [
+            "room_number"
+          ],
+          "columnsTo": [
+            "room_number"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "students_id": {
+          "name": "students_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "students_hall": {
+          "name": "students_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "students_user_id_unique": {
+          "name": "students_user_id_unique",
+          "columns": [
+            "user_id"
+          ]
+        },
+        "students_roll_number_unique": {
+          "name": "students_roll_number_unique",
+          "columns": [
+            "roll_number"
+          ]
+        },
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "users": {
+      "name": "users",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_role": {
+          "name": "user_role",
+          "type": "enum('PROVOST','ASST_FINANCE','FINANCE_SECTION_OFFICER','ASST_DINING','DINING_MANAGER','ASST_INVENTORY','INVENTORY_SECTION_OFFICER','STUDENT')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'STUDENT'"
+        },
+        "academic_department": {
+          "name": "academic_department",
+          "type": "enum('CSE','EEE','ME','CE','IPE','ECE','ETE','BME','MTE','URP','ChE','Arch')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_users_role": {
+          "name": "idx_users_role",
+          "columns": [
+            "user_role"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "users_id": {
+          "name": "users_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "halls": {
+      "name": "halls",
+      "columns": {
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "contact_number": {
+          "name": "contact_number",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "total_capacity": {
+          "name": "total_capacity",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "total_rooms": {
+          "name": "total_rooms",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "halls_hall_halls_hall_fk": {
+          "name": "halls_hall_halls_hall_fk",
+          "tableFrom": "halls",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "halls_hall": {
+          "name": "halls_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "rooms": {
+      "name": "rooms",
+      "columns": {
+        "room_number": {
+          "name": "room_number",
+          "type": "smallint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "tinyint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "current_occupancy": {
+          "name": "current_occupancy",
+          "type": "smallint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "room_status": {
+          "name": "room_status",
+          "type": "enum('AVAILABLE','OCCUPIED','MAINTENANCE','RESERVED')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'AVAILABLE'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "uq_room_hall_number": {
+          "name": "uq_room_hall_number",
+          "columns": [
+            "hall",
+            "room_number"
+          ],
+          "isUnique": false
+        },
+        "idx_rooms_hall": {
+          "name": "idx_rooms_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_rooms_status": {
+          "name": "idx_rooms_status",
+          "columns": [
+            "room_status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "rooms_hall_halls_hall_fk": {
+          "name": "rooms_hall_halls_hall_fk",
+          "tableFrom": "rooms",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "rooms_room_number": {
+          "name": "rooms_room_number",
+          "columns": [
+            "room_number"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "meal_menus": {
+      "name": "meal_menus",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "meal_date": {
+          "name": "meal_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(CURRENT_DATE + INTERVAL 1 DAY)"
+        },
+        "meal_type": {
+          "name": "meal_type",
+          "type": "enum('LUNCH','DINNER')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "menu_description": {
+          "name": "menu_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "price": {
+          "name": "price",
+          "type": "tinyint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 40
+        },
+        "total_tokens": {
+          "name": "total_tokens",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booked_tokens": {
+          "name": "booked_tokens",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "available_tokens": {
+          "name": "available_tokens",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "generated": {
+            "as": "(`total_tokens` - `booked_tokens`)",
+            "type": "stored"
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_meal_menus_hall": {
+          "name": "idx_meal_menus_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_meal_menus_date": {
+          "name": "idx_meal_menus_date",
+          "columns": [
+            "meal_date"
+          ],
+          "isUnique": false
+        },
+        "uq_menu_hall_date_type": {
+          "name": "uq_menu_hall_date_type",
+          "columns": [
+            "hall",
+            "meal_date",
+            "meal_type"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "meal_menus_hall_halls_hall_fk": {
+          "name": "meal_menus_hall_halls_hall_fk",
+          "tableFrom": "meal_menus",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "meal_menus_created_by_users_id_fk": {
+          "name": "meal_menus_created_by_users_id_fk",
+          "tableFrom": "meal_menus",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "meal_menus_id": {
+          "name": "meal_menus_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "meal_menus_hall": {
+          "name": "meal_menus_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "meal_payments": {
+      "name": "meal_payments",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "total_quantity": {
+          "name": "total_quantity",
+          "type": "tinyint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_method": {
+          "name": "payment_method",
+          "type": "enum('BKASH','NAGAD','ROCKET','BANK','CASH')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "transaction_id": {
+          "name": "transaction_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "payment_date": {
+          "name": "payment_date",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "refunded_at": {
+          "name": "refunded_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "refund_amount": {
+          "name": "refund_amount",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_meal_payments_student": {
+          "name": "idx_meal_payments_student",
+          "columns": [
+            "student_id"
+          ],
+          "isUnique": false
+        },
+        "idx_meal_payments_date": {
+          "name": "idx_meal_payments_date",
+          "columns": [
+            "payment_date"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "meal_payments_student_id_students_id_fk": {
+          "name": "meal_payments_student_id_students_id_fk",
+          "tableFrom": "meal_payments",
+          "tableTo": "students",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "meal_payments_id": {
+          "name": "meal_payments_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "meal_payments_transaction_id_unique": {
+          "name": "meal_payments_transaction_id_unique",
+          "columns": [
+            "transaction_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "meal_tokens": {
+      "name": "meal_tokens",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "menu_id": {
+          "name": "menu_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "meal_date": {
+          "name": "meal_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "meal_type": {
+          "name": "meal_type",
+          "type": "enum('LUNCH','DINNER')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "tinyint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "total_amount": {
+          "name": "total_amount",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_time": {
+          "name": "booking_time",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_meal_tokens_student": {
+          "name": "idx_meal_tokens_student",
+          "columns": [
+            "student_id"
+          ],
+          "isUnique": false
+        },
+        "idx_meal_tokens_menu": {
+          "name": "idx_meal_tokens_menu",
+          "columns": [
+            "menu_id"
+          ],
+          "isUnique": false
+        },
+        "idx_meal_tokens_hall": {
+          "name": "idx_meal_tokens_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_meal_tokens_date": {
+          "name": "idx_meal_tokens_date",
+          "columns": [
+            "meal_date"
+          ],
+          "isUnique": false
+        },
+        "idx_meal_tokens_payment": {
+          "name": "idx_meal_tokens_payment",
+          "columns": [
+            "payment_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "meal_tokens_student_id_students_id_fk": {
+          "name": "meal_tokens_student_id_students_id_fk",
+          "tableFrom": "meal_tokens",
+          "tableTo": "students",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "meal_tokens_menu_id_meal_menus_id_fk": {
+          "name": "meal_tokens_menu_id_meal_menus_id_fk",
+          "tableFrom": "meal_tokens",
+          "tableTo": "meal_menus",
+          "columnsFrom": [
+            "menu_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "meal_tokens_hall_halls_hall_fk": {
+          "name": "meal_tokens_hall_halls_hall_fk",
+          "tableFrom": "meal_tokens",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "meal_tokens_payment_id_meal_payments_id_fk": {
+          "name": "meal_tokens_payment_id_meal_payments_id_fk",
+          "tableFrom": "meal_tokens",
+          "tableTo": "meal_payments",
+          "columnsFrom": [
+            "payment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "meal_tokens_id": {
+          "name": "meal_tokens_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "meal_tokens_hall": {
+          "name": "meal_tokens_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    }
+  },
+  "views": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
+  }
+}

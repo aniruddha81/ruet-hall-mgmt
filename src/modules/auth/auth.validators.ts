@@ -22,21 +22,23 @@ const passwordStrengthSchema = z
  * - Enforces strong password
  * - Role defaults to "STUDENT" with max length aligned to DB
  */
-const studentRegisterSchema = z
-  .object({
-    name: z.string().min(2, "Name must be at least 2 characters").max(255),
-    email: z.email("Invalid email address"),
-    password: passwordStrengthSchema,
-    confirmPassword: passwordStrengthSchema,
-    rollNumber: z.number().int(),
-    academicDepartment: z.enum(ACADEMIC_DEPARTMENTS),
-    session: z.string().max(10),
-    phone: z.string().max(20),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+const studentRegisterSchema = {
+  body: z
+    .object({
+      name: z.string().min(2, "Name must be at least 2 characters").max(255),
+      email: z.email("Invalid email address"),
+      password: passwordStrengthSchema,
+      confirmPassword: passwordStrengthSchema,
+      rollNumber: z.number().int(),
+      academicDepartment: z.enum(ACADEMIC_DEPARTMENTS),
+      session: z.string().max(10),
+      phone: z.string().max(20),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "Passwords do not match",
+      path: ["confirmPassword"],
+    }),
+};
 
 /**
  * Validation schema for user login
@@ -44,39 +46,47 @@ const studentRegisterSchema = z
  * - Requires a non-empty password
  * Note: We don't enforce strength here to avoid leaking rules during login
  */
-const studentLoginSchema = z.object({
-  email: z.email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
-});
-
-const adminRegisterSchema = z
-  .object({
-    name: z.string().min(2, "Name must be at least 2 characters").max(255),
+const studentLoginSchema = {
+  body: z.object({
     email: z.email("Invalid email address"),
-    password: passwordStrengthSchema,
-    confirmPassword: passwordStrengthSchema,
-    academicDepartment: z.enum(ACADEMIC_DEPARTMENTS),
-    hall: z.enum(HALLS),
-    designation: z.enum(STAFF_ROLES),
-    operationalUnit: z.enum(OPERATIONAL_UNITS),
-    phone: z.string().max(20),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+    password: z.string().min(1, "Password is required"),
+  }),
+};
 
-const adminLoginSchema = z.object({
-  email: z.email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
-});
+const adminRegisterSchema = {
+  body: z
+    .object({
+      name: z.string().min(2, "Name must be at least 2 characters").max(255),
+      email: z.email("Invalid email address"),
+      password: passwordStrengthSchema,
+      confirmPassword: passwordStrengthSchema,
+      academicDepartment: z.enum(ACADEMIC_DEPARTMENTS),
+      hall: z.enum(HALLS),
+      designation: z.enum(STAFF_ROLES),
+      operationalUnit: z.enum(OPERATIONAL_UNITS),
+      phone: z.string().max(20),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "Passwords do not match",
+      path: ["confirmPassword"],
+    }),
+};
+
+const adminLoginSchema = {
+  body: z.object({
+    email: z.email("Invalid email address"),
+    password: z.string().min(1, "Password is required"),
+  }),
+};
 
 /**
  * Validation schema for endpoints that expect a refresh token in cookies
  */
-const refreshTokenCookieSchema = z.object({
-  refreshToken: z.string().min(1, "Refresh token is required"),
-});
+const refreshTokenCookieSchema = {
+  cookies: z.object({
+    refreshToken: z.string().min(1, "Refresh token is required"),
+  }),
+};
 
 export {
   adminLoginSchema,

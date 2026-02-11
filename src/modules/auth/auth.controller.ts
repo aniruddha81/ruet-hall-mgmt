@@ -29,7 +29,7 @@ const options: CookieOptions = {
 };
 
 const studentCookiePath = "/api/v1/auth";
-const adminCookiePath = "/api/v1/auth/admin";
+const adminCookiePath = "/api/v1/auth";
 
 export const studentRegister = asyncHandler(
   async (req: Request, res: Response) => {
