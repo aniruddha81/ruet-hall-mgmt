@@ -20,8 +20,14 @@ import {
 import { hallSQL_Enum, halls, rooms } from "./halls.models";
 
 export const userRoleSQL_Enum = mysqlEnum("user_role", ROLES);
-export const studentStatusSQL_Enum = mysqlEnum("student_status", STUDENT_STATUSES);
-export const adminDesignationSQL_Enum = mysqlEnum("admin_designation", STAFF_ROLES);
+export const studentStatusSQL_Enum = mysqlEnum(
+  "student_status",
+  STUDENT_STATUSES
+);
+export const adminDesignationSQL_Enum = mysqlEnum(
+  "admin_designation",
+  STAFF_ROLES
+);
 export const operationalUnitSQL_Enum = mysqlEnum(
   "operational_unit",
   OPERATIONAL_UNITS
@@ -93,8 +99,8 @@ export const refreshTokens = mysqlTable(
   ]
 );
 
-export const students = mysqlTable(
-  "students",
+export const hallStudents = mysqlTable(
+  "hall_students",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
 
@@ -131,8 +137,8 @@ export const students = mysqlTable(
   ]
 );
 
-export const admins = mysqlTable(
-  "admins",
+export const hallAdmins = mysqlTable(
+  "hall_admins",
   {
     id: varchar("id", { length: 36 }).primaryKey().notNull(),
 

@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "f2cefd71-031b-4151-9f49-1a3f4e63c650",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "fc7787a6-083f-4556-bbc7-809db81c70bf",
+  "prevId": "f2cefd71-031b-4151-9f49-1a3f4e63c650",
   "tables": {
     "hall_admins": {
       "name": "hall_admins",
@@ -1056,10 +1056,10 @@
         }
       },
       "foreignKeys": {
-        "meal_payments_student_id_hall_students_id_fk": {
-          "name": "meal_payments_student_id_hall_students_id_fk",
+        "meal_payments_student_id_users_id_fk": {
+          "name": "meal_payments_student_id_users_id_fk",
           "tableFrom": "meal_payments",
-          "tableTo": "hall_students",
+          "tableTo": "users",
           "columnsFrom": [
             "student_id"
           ],
@@ -1225,10 +1225,10 @@
         }
       },
       "foreignKeys": {
-        "meal_tokens_student_id_hall_students_id_fk": {
-          "name": "meal_tokens_student_id_hall_students_id_fk",
+        "meal_tokens_student_id_users_id_fk": {
+          "name": "meal_tokens_student_id_users_id_fk",
           "tableFrom": "meal_tokens",
-          "tableTo": "hall_students",
+          "tableTo": "users",
           "columnsFrom": [
             "student_id"
           ],

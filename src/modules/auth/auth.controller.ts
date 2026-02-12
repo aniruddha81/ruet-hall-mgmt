@@ -5,9 +5,9 @@ import type { CookieOptions, Request, Response } from "express";
 import { NODE_ENV } from "../../Constants.ts";
 import { db } from "../../db/index.ts";
 import {
-  admins,
+  hallAdmins,
+  hallStudents,
   refreshTokens,
-  students,
   users,
 } from "../../db/models/index.ts";
 import { ApiError } from "../../utils/ApiError.ts";
@@ -66,7 +66,7 @@ export const studentRegister = asyncHandler(
       role: "STUDENT",
     });
 
-    await db.insert(students).values({
+    await db.insert(hallStudents).values({
       id: randomUUID(),
       userId,
       rollNumber,
@@ -155,8 +155,8 @@ export const studentLogin = asyncHandler(
     // Fetch student record from students table
     const [studentRecord] = await db
       .select()
-      .from(students)
-      .where(eq(students.userId, user.id))
+      .from(hallStudents)
+      .where(eq(hallStudents.userId, user.id))
       .limit(1);
 
     if (!studentRecord) {
@@ -274,7 +274,7 @@ export const adminRegister = asyncHandler(
       role: designation,
     });
 
-    await db.insert(admins).values({
+    await db.insert(hallAdmins).values({
       id: randomUUID(),
       userId,
       hall,
@@ -363,8 +363,8 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
   // Fetch admin record from admins table
   const [adminRecord] = await db
     .select()
-    .from(admins)
-    .where(eq(admins.userId, user.id))
+    .from(hallAdmins)
+    .where(eq(hallAdmins.userId, user.id))
     .limit(1);
 
   if (!adminRecord) {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HALLS } from "../../types/enums";
 
 // ==============================================================
 // ENUMS FOR VALIDATION
@@ -19,6 +20,12 @@ export const PAYMENT_STATUSES = ["COMPLETED", "REFUNDED"] as const;
 // STUDENT VALIDATORS
 // ==============================================================
 
+export const getTomorrowMenusSchema = {
+  query: z.object({
+    hall: z.enum(HALLS).describe("Name of the hall to get menus for"),
+  }),
+};
+
 /**
  * Validator for booking meal tokens
  * POST /api/v1/dining/book-tokens
@@ -35,6 +42,7 @@ export const bookMealTokensSchema = {
     paymentMethod: z
       .enum(PAYMENT_METHODS)
       .describe("Payment method used for booking"),
+    hall: z.enum(HALLS).describe("Hall for which the tokens are being booked"),
   }),
 };
 
@@ -217,7 +225,7 @@ export const getMenuBookingsSchema = {
 export const markTokensConsumedSchema = {
   body: z.object({
     tokenIds: z
-      .array(z.string().uuid("Each token ID must be a valid UUID"))
+      .array(z.uuid("Each token ID must be a valid UUID"))
       .nonempty("At least one token ID must be provided")
       .describe("Array of token IDs to mark as consumed"),
   }),

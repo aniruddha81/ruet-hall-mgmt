@@ -40,6 +40,7 @@ import {
   getPaymentDetailsSchema,
   getTokenByIdSchema,
   getTokenHistorySchema,
+  getTomorrowMenusSchema,
   markTokensConsumedSchema,
   processPaymentSchema,
   processRefundSchema,
@@ -53,10 +54,12 @@ const diningRouter = Router();
 // ==============================================================
 
 // Get tomorrow's lunch and dinner menus for student's hall
+// /api/v1/dining/tomorrow-menus?hall=HallA
 diningRouter.get(
   "/tomorrow-menus",
   authenticateToken,
   authorizeRoles("STUDENT"),
+  validateRequest(getTomorrowMenusSchema),
   getTomorrowMenus
 );
 

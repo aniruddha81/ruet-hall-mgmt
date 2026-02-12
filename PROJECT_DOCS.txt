@@ -9,3 +9,27 @@ normal enums are stored in src\types\enums.ts
 but sqlEnums are file specific
 
 all utily small functions are in src\utils\helpers.ts
+
+frontend request should be like this -->
+{
+    body: {
+            ...
+    },
+    params: {
+            ...
+    },
+    query: {
+            ...
+    },
+    headers:{
+            ...
+    }
+}
+
+read the validateRequest.middleware.ts file
+
+always use asyncHandler for any controller
+
+use ApiResponse for any response in the controller
+
+use ApiError for any type of Error in controller

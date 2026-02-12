@@ -1,7 +1,6 @@
 // schema/dining.models.ts
 import { sql } from "drizzle-orm";
 import {
-  boolean,
   date,
   datetime,
   index,
@@ -13,7 +12,7 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { MEAL_TYPES, PAYMENT_METHODS, TOKEN_STATUSES } from "../../types/enums";
-import { students, users } from "./auth.models";
+import { users } from "./auth.models";
 import { hallSQL_Enum, halls } from "./halls.models";
 
 // ============================================
@@ -107,7 +106,7 @@ export const mealTokens = mysqlTable(
 
     studentId: varchar("student_id", { length: 36 })
       .notNull()
-      .references(() => students.id, { onDelete: "cascade" }),
+      .references(() => users.id, { onDelete: "cascade" }),
     // Student who booked the tokens
 
     menuId: varchar("menu_id", { length: 36 })
@@ -171,7 +170,7 @@ export const mealPayments = mysqlTable(
 
     studentId: varchar("student_id", { length: 36 })
       .notNull()
-      .references(() => students.id, { onDelete: "cascade" }),
+      .references(() => users.id, { onDelete: "cascade" }),
 
     amount: int("amount", { unsigned: true }).notNull(),
     // Total amount paid (in Taka)
