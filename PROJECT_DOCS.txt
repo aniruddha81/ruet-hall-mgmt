@@ -1,35 +1,893 @@
-first run this command "bun db:seed" to seed the values of rooms and halls.
+================================================================================
+                    RUET HALL MANAGEMENT BACKEND
+                         PROJECT DOCUMENTATION
+================================================================================
 
-whole project is module based because of two types of frontend..students dashboard, admin panel
+📋 TABLE OF CONTENTS
+────────────────────────────────────────────────────────────────────────────────
+1. Project Overview
+2. Tech Stack & Dependencies
+3. Architecture & Design Pattern
+4. Project Structure
+5. Database Schema Overview
+6. Coding Conventions & Standards
+7. API Route Structure
+8. Authentication & Authorization
+9. Error Handling Strategy
+10. Validation & Request Processing
+11. Module Organization
+12. Quick Start Guide
+13. Best Practices
+14. Important Notes
 
-used zod schema validations in every route by using validateRequest.middleware.ts file
 
-normal enums are stored in src\types\enums.ts
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
 
-but sqlEnums are file specific
+Serves two independent frontends:
+  • Student Dashboard  - for students to apply for seats, book meals, view dues
+  • Admin Panel        - for hall admins to manage seeds, inventory, finances
 
-all utily small functions are in src\utils\helpers.ts
+Core Modules:
+  ✓ Authentication (Auth) - JWT-based login/registration
+  ✓ Dining - Meal menu creation, meal token booking, payment tracking
+  ✓ Admission - Seat applications, allocations, status tracking
+  ✓ Inventory - Bed/room management, asset tracking, damage reporting
+  ✓ Finance - Student dues, payments, expense management
+  ✓ Profile - (placeholder for future user profile management)
 
-frontend request should be like this -->
-{
-    body: {
-            ...
-    },
-    params: {
-            ...
-    },
-    query: {
-            ...
-    },
-    headers:{
-            ...
+
+================================================================================
+2. TECH STACK & DEPENDENCIES
+================================================================================
+
+Language & Runtime:
+  • TypeScript 5.9+ for type safety
+  • Bun as JavaScript runtime and package manager
+  • Node.js compatible runtime
+
+Framework & Libraries:
+  • Express.js 5.2+ - HTTP server
+  • Drizzle ORM 0.45+ - TypeScript ORM with MySQL support
+  • MySQL 2 - Database driver
+  • Zod 4.3+ - Schema validation
+  • JWT (jsonwebtoken) - Token-based authentication
+  • bcrypt 6.0+ - Password hashing
+  • Cloudinary - Image/file upload service
+  • Morgan - HTTP request logging
+  • Cookie-Parser - Cookie parsing middleware
+  • CORS - Cross-origin resource sharing
+
+Build & Development:
+  • tsx - TypeScript execution
+  • Drizzle-kit - Database migration tooling
+  • Prettier - Code formatting
+
+
+================================================================================
+3. ARCHITECTURE & DESIGN PATTERN
+================================================================================
+
+## MVC Architecture
+────────────────────────────────────────────────────────────────────────────────
+Each module follows strict MVC separation:
+
+  Controller (*.controller.ts)
+    ├─ HTTP request/response handling
+    ├─ Input validation coordination
+    ├─ Business logic execution
+    ├─ Response formatting using ApiResponse
+    └─ Error handling using ApiError
+
+  Service / Business Logic (*.service.ts)
+    ├─ Reusable code blocks ONLY
+    ├─ Database operations that are shared across controllers
+    └─ Complex calculations or transformations
+    NOTE: Most logic is in controllers. Service is minimal/optional per module.
+
+  Routes (*.routes.ts)
+    ├─ Route definitions
+    ├─ Middleware attachment (auth, validation)
+    ├─ Route grouping by functionality
+    └─ HTTP method binding
+
+  Validators (*.validators.ts)
+    ├─ Zod schemas for request validation
+    ├─ Schema per endpoint operation
+    └─ Validation for body, params, query, headers
+
+  Database Models (db/models/*.ts)
+    ├─ Drizzle ORM table definitions
+    ├─ Foreign key relationships
+    ├─ Indexes for performance
+    └─ Enum definitions (SQL-specific)
+
+## Middleware Stack
+────────────────────────────────────────────────────────────────────────────────
+
+Request Processing Order:
+  1. Morgan (logging)
+  2. CORS (cross-origin)
+  3. Cookie Parser
+  4. Express JSON body parser
+  5. Route-specific:
+     a. authenticateToken (JWT verification, extract user)
+     b. authorizeRoles (role-based access control)
+     c. validateRequest (Zod schema validation)
+  6. Controller handler
+  7. Error Handler (catches ApiError exceptions)
+
+
+================================================================================
+4. PROJECT STRUCTURE
+================================================================================
+
+```
+src/
+├── index.ts                           # Server entry point
+├── app.ts                             # Express app configuration & route registration
+├── Constants.ts                       # Global constants
+│
+├── db/
+│   ├── index.ts                       # Database client export
+│   ├── seed.ts                        # Database seeding script
+│   └── models/
+│       ├── index.ts                   # Export all models
+│       ├── auth.models.ts             # Users, refreshTokens, hallStudents, hallAdmins
+│       ├── halls.models.ts            # Halls, rooms
+│       ├── dining.models.ts           # MealMenus, mealTokens, mealPayments
+│       ├── admission.models.ts        # SeatApplications, seatAllocations
+│       ├── inventory.models.ts        # Beds, assets, damageReports
+│       └── finance.models.ts          # StudentDues, payments, expenses
+│
+├── middlewares/
+│   ├── auth.middleware.ts             # JWT authentication & role authorization
+│   ├── errorHandling.middleware.ts    # Global error handler
+│   ├── multer.middleware.ts           # File upload configuration
+│   └── validateRequest.middleware.ts  # Zod schema validation
+│
+├── modules/                           # Feature modules (MVC structure)
+│   ├── auth/
+│   │   ├── auth.controller.ts
+│   │   ├── auth.service.ts
+│   │   ├── auth.routes.ts
+│   │   └── auth.validators.ts
+│   │
+│   ├── dining/
+│   │   ├── dining.controller.ts       # All logic here (large file)
+│   │   ├── dining.service.ts          # Empty or reusable helpers only
+│   │   ├── dining.routes.ts
+│   │   └── dining.validators.ts
+│   │
+│   ├── admission/
+│   │   ├── admission.controller.ts    # All logic here
+│   │   ├── admission.service.ts       # Placeholder
+│   │   ├── admission.routes.ts
+│   │   └── admission.validators.ts
+│   │
+│   ├── inventory/
+│   │   ├── inventory.controller.ts    # All logic here
+│   │   ├── inventory.service.ts       # Placeholder
+│   │   ├── inventory.routes.ts
+│   │   └── inventory.validators.ts
+│   │
+│   ├── finance/
+│   │   ├── finance.controller.ts      # All logic here
+│   │   ├── finance.service.ts         # Placeholder
+│   │   ├── finance.routes.ts
+│   │   └── finance.validators.ts
+│   │
+│   └── profile/
+│       ├── profile.controller.ts
+│       ├── profile.route.ts
+│       └── (validators & service TBD)
+│
+├── types/
+│   ├── enums.ts                       # TypeScript enums (normal naming)
+│   └── express.d.ts                   # Extended Express type definitions
+│
+└── utils/
+    ├── ApiError.ts                    # Custom error class
+    ├── ApiResponse.ts                 # Standard response wrapper
+    ├── asyncHandler.ts                # Async/await error wrapper
+    ├── cloudinary.ts                  # Cloudinary upload configuration
+    └── helpers.ts                     # Utility functions (hash, date format, etc)
+
+drizzle/                               # Database migration artifacts
+├── migrations/*.sql
+└── meta/_journal.json
+
+postman/                               # API testing
+├── collections/
+├── environments/
+├── globals/
+└── specs/
+
+Configuration Files:
+├── drizzle.config.ts                  # ORM configuration
+├── tsconfig.json                      # TypeScript configuration
+├── package.json                       # Dependencies & scripts
+├── .env                               # Environment variables (not in git)
+└── .env.sample                        # Sample environment config
+```
+
+
+================================================================================
+5. DATABASE SCHEMA OVERVIEW
+================================================================================
+
+## Core Tables
+
+AUTH Module:
+  • users
+    - id (PK, varchar 36)
+    - email, passwordHash, name, phone
+    - role (enum: PROVOST, ASST_FINANCE, FINANCE_SECTION_OFFICER, ASST_DINING,
+            DINING_MANAGER, ASST_INVENTORY, INVENTORY_SECTION_OFFICER, STUDENT)
+    - academicDepartment, isActive, avatarUrl
+    - createdAt, updatedAt
+
+  • refreshTokens
+    - id (PK), userId (FK → users), tokenHash, jti, ip, userAgent
+    - expiresAt, createdAt
+
+  • hallStudents
+    - id (PK), userId (FK → users, unique), rollNumber, session
+    - hall, roomNumber, status, createdAt, updatedAt
+
+  • hallAdmins
+    - id (PK), userId (FK → users, unique), hall, designation
+    - operationalUnit, reportingToId, isActive, createdAt, updatedAt
+
+HALLS Module:
+  • halls
+    - name (PK, enum), address, contactNumber
+    - totalCapacity, totalRooms, isActive, createdAt, updatedAt
+
+  • rooms
+    - roomNumber (PK), hall (FK), capacity, currentOccupancy
+    - status, createdAt, updatedAt
+
+DINING Module:
+  • mealMenus
+    - id (PK), hall, mealDate, mealType (LUNCH/DINNER)
+    - menuDescription, price, totalTokens, bookedTokens
+    - availableTokens (generated/stored), createdBy, createdAt, updatedAt
+
+  • mealTokens
+    - id (PK), studentId (FK), menuId (FK), hall, mealDate, mealType
+    - quantity, totalAmount, paymentId (FK), bookingTime
+    - cancelledAt, createdAt, updatedAt
+
+  • mealPayments
+    - id (PK), studentId (FK), amount, totalQuantity
+    - paymentMethod, transactionId, paymentDate
+    - refundedAt, refundAmount, createdAt, updatedAt
+
+ADMISSION Module:
+  • seatApplications
+    - id (PK), studentId (FK), hall, department, session
+    - status (PENDING/APPROVED/REJECTED/WAITLIST)
+    - reviewedBy (FK → hallAdmins), reviewedAt, createdAt
+
+  • seatAllocations
+    - id (PK), studentId (FK), hall, roomNumber, bedId (FK)
+    - allocatedAt, allocatedBy (FK → hallAdmins)
+
+INVENTORY Module:
+  • beds
+    - id (PK), hall, roomNumber, bedLabel
+    - status (AVAILABLE/OCCUPIED/MAINTENANCE), createdAt
+
+  • assets
+    - id (PK), hall, name, quantity
+    - condition (GOOD/FAIR/POOR/DAMAGED), createdAt, updatedAt
+
+  • damageReports
+    - id (PK), studentId (FK), assetId (FK), hall
+    - description, fineAmount
+    - status (REPORTED/VERIFIED)
+    - verifiedBy (FK → hallAdmins), createdAt, updatedAt
+
+FINANCE Module:
+  • studentDues
+    - id (PK), studentId (FK), hall
+    - type (RENT/DINING/FINE/OTHER), amount
+    - status (UNPAID/PAID), paidAt, createdAt, updatedAt
+
+  • payments
+    - id (PK), studentId (FK), hall, dueId (FK)
+    - amount, method (CASH/BANK/ONLINE), createdAt
+
+  • expenses
+    - id (PK), hall, title, amount, category
+    - approvedBy (FK → users), createdAt
+
+
+================================================================================
+6. CODING CONVENTIONS & STANDARDS
+================================================================================
+
+## Naming Conventions
+
+### TypeScript Enums (src/types/enums.ts)
+────────────────────────────────────────────────────────────────────────────────
+  • UPPERCASE_WITH_UNDERSCORES for enum values
+  • PascalCase for exported type aliases
+
+  ✓ Example:
+    export const ROLES = ["PROVOST", "STUDENT"] as const;
+    export type Role = (typeof ROLES)[number];
+
+### SQL Enums (in model files)
+────────────────────────────────────────────────────────────────────────────────
+  • Strict naming: <fieldName>SQL_Enum
+  • Defined at module level (file-specific)
+  • NOT exported from model files (internal use only)
+
+  ✓ Example in dining.models.ts:
+    export const mealTypeSQL_Enum = mysqlEnum("meal_type", MEAL_TYPES);
+    export const tokenStatusSQL_Enum = mysqlEnum("token_status", TOKEN_STATUSES);
+
+  ✓ Example in inventory.models.ts:
+    export const bedStatusSQL_Enum = mysqlEnum("bed_status", BED_STATUSES);
+    export const assetConditionSQL_Enum = mysqlEnum("asset_condition", ASSET_CONDITIONS);
+
+### File Naming
+────────────────────────────────────────────────────────────────────────────────
+  • Controllers: <module>.controller.ts
+  • Services: <module>.service.ts
+  • Routes: <module>.routes.ts
+  • Validators: <module>.validators.ts
+  • Models: <module>.models.ts
+  • Middleware: <name>.middleware.ts
+  • Utilities: <name>.ts (or grouped in files like helpers.ts)
+
+### Class & Function Naming
+────────────────────────────────────────────────────────────────────────────────
+  • camelCase for function/method names
+  • PascalCase for classes
+
+  ✓ Controllers: export const functionName = asyncHandler(...)
+  ✓ Routes: export default router;
+  ✓ Validators: export const functionNameSchema = { body, params, ... }
+  ✓ Classes: export class ApiError { ... }
+
+## Code Style
+────────────────────────────────────────────────────────────────────────────────
+  • Use Prettier for formatting (auto-format on save)
+  • Max line width: follow project .prettierrc settings
+  • Always use const/let (no var)
+  • Use arrow functions unless this binding is needed
+  • Use async/await, not .then() chains
+  • Always wrap controllers with asyncHandler()
+
+
+================================================================================
+7. API ROUTE STRUCTURE
+================================================================================
+
+## Base URL
+────────────────────────────────────────────────────────────────────────────────
+  http://localhost:<PORT>/api/v1
+
+## Route Organization
+────────────────────────────────────────────────────────────────────────────────
+
+  /auth
+    POST   /register              - User registration
+    POST   /login                 - User login (get JWT)
+    POST   /refresh               - Refresh access token
+    POST   /logout                - Invalidate token
+
+  /dining
+    GET    /tomorrow-menus        - Get tomorrow's menus
+    POST   /book-token            - Student books meal token
+    GET    /my-bookings           - View student's bookings
+    POST   /menu                  - Admin: create menu
+    GET    /menus                 - Admin: list menus
+    PATCH  /menu/:id              - Admin: update menu
+
+  /admission
+    POST   /apply                 - Student applies for seat
+    GET    /my-status             - Student views application status
+    GET    /applications          - Admin: list applications
+    PATCH  /:id/review            - Admin: review application
+    POST   /allocate              - Admin: allocate bed to student
+
+  /inventory
+    GET    /rooms                 - List rooms
+    POST   /beds                  - Admin: create beds
+    GET    /beds                  - List beds
+    POST   /assets                - Admin: create asset
+    POST   /damage                - Report asset damage
+    PATCH  /damage/:id/verify     - Admin: verify damage report
+
+  /finance
+    POST   /dues                  - Admin: create due
+    PATCH  /dues/:id/pay          - Admin: mark due as paid
+    POST   /expense               - Admin: record expense
+    GET    /expenses              - Admin: list expenses
+    GET    /student/:id/ledger    - Get student financial ledger
+
+  /profile (placeholder)
+    GET    /me                    - Get own profile
+    PATCH  /me                    - Update own profile
+    GET    /:id                   - Admin: get user profile
+
+
+================================================================================
+8. AUTHENTICATION & AUTHORIZATION
+================================================================================
+
+## JWT Flow
+────────────────────────────────────────────────────────────────────────────────
+
+  Registration → Login → Issue JWT/Refresh Token → Include in requests
+
+  • Access Token: Short-lived (15 min typically)
+  • Refresh Token: Long-lived (7 days), stored in HTTP-only cookie
+
+  Response on successful login:
+    {
+      "statusCode": 200,
+      "data": {
+        "accessToken": "eyJhbGc...",
+        "user": { "id", "email", "role", ... }
+      },
+      "message": "Login successful"
     }
-}
 
-read the validateRequest.middleware.ts file
+## Authorization Levels
+────────────────────────────────────────────────────────────────────────────────
 
-always use asyncHandler for any controller
+  Role Hierarchy:
+    1. PROVOST (Super admin - all access)
+    2. ASST_FINANCE, FINANCE_SECTION_OFFICER (Finance operations)
+    3. ASST_DINING, DINING_MANAGER (Dining operations)
+    4. ASST_INVENTORY, INVENTORY_SECTION_OFFICER (Inventory operations)
+    5. STUDENT (Limited access - own data only)
 
-use ApiResponse for any response in the controller
+  Authorization Pattern:
+    router.post("/endpoint",
+      authenticateToken,                    // ← Verify JWT, extract user
+      authorizeRoles("ROLE1", "ROLE2"),    // ← Check if user has role
+      validateRequest(schema),              // ← Validate input
+      controller                             // ← Execute handler
+    );
 
-use ApiError for any type of Error in controller
+## Middleware Reference (auth.middleware.ts)
+────────────────────────────────────────────────────────────────────────────────
+
+  authenticateToken(req, res, next)
+    • Extracts JWT from Authorization header (Bearer token)
+    • Verifies token signature
+    • Attaches user object to req.user
+    • Throws 401 if token invalid/expired
+
+  authorizeRoles(...roles)
+    • Checks if req.user.role is in allowed roles
+    • Throws 403 if unauthorized
+    • Can be called with multiple roles: authorizeRoles("PROVOST", "ASST_FINANCE")
+
+
+================================================================================
+9. ERROR HANDLING STRATEGY
+================================================================================
+
+## Custom ApiError Class
+────────────────────────────────────────────────────────────────────────────────
+
+  Location: src/utils/ApiError.ts
+
+  Usage in controllers:
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+  if (!user) {
+      throw new ApiError(403, "Unauthorized access", "FORBIDDEN_ACCESS");
+    }
+
+  Constructor:
+    new ApiError(statusCode: number, message: string, errorCode?: string)
+
+  Caught by: errorHandling.middleware.ts
+
+## Global Error Handler
+────────────────────────────────────────────────────────────────────────────────
+
+  Middleware order at bottom of app.ts:
+    1. 404 handler (routes not found)
+    2. Error handler (catches all errors)
+
+  Error Response Format:
+    {
+      "statusCode": 400,
+      "data": null,
+      "message": "Validation failed",
+      "errors": [ ... ]  // If validation error
+    }
+
+## Database/Validation Errors
+────────────────────────────────────────────────────────────────────────────────
+
+  Validation errors (Zod) are caught by validateRequest middleware.
+  Database errors should be caught and wrapped in ApiError by controller.
+
+  ✓ Pattern:
+    try {
+      const [user] = await db.select().from(users).where(...).limit(1);
+    } catch (error) {
+      throw new ApiError(500, "Database error");
+    }
+
+
+================================================================================
+10. VALIDATION & REQUEST PROCESSING
+================================================================================
+
+## Zod Schema Validation
+────────────────────────────────────────────────────────────────────────────────
+
+  Location: src/modules/<module>/<module>.validators.ts
+
+  Schema structure:
+    export const createUserSchema = {
+      body: z.object({
+        email: z.string().email(),
+        name: z.string().min(2),
+      }),
+      params: z.object({
+        id: z.string().uuid(),
+      }),
+      query: z.object({
+        page: z.string().transform(v => parseInt(v)).optional(),
+      }),
+      headers: z.object({
+        authorization: z.string(),
+      }).optional(),
+    };
+
+  Validation types supported:
+    • body    - Request body (POST, PATCH, PUT)
+    • params  - URL path parameters (:id)
+    • query   - Query string parameters (?page=1)
+    • headers - HTTP headers
+    • cookies - HTTP cookies
+
+## validateRequest Middleware
+────────────────────────────────────────────────────────────────────────────────
+
+  Location: src/middlewares/validateRequest.middleware.ts
+
+  How it works:
+    1. Takes validation schemas object
+    2. Validates each part of request (body, params, query, etc)
+    3. On success: attaches validated & typed data to req object
+    4. On failure: calls next(error) with formatted ZodError
+
+  Usage in route:
+    router.post(
+      "/create",
+      authenticateToken,
+      authorizeRoles("ADMIN"),
+      validateRequest(createUserSchema),    // ← Apply schema
+      createUser                             // ← Handler
+    );
+
+  In controller:
+    export const createUser = asyncHandler(
+      async (req: Request, res: Response) => {
+        const { email, name } = req.body;  // ← Already validated & typed
+        // ...
+      }
+    );
+
+## asyncHandler Wrapper
+────────────────────────────────────────────────────────────────────────────────
+
+  Location: src/utils/asyncHandler.ts
+
+  Purpose:
+    • Wraps async controller functions
+    • Catches thrown errors
+    • Passes errors to next(error) for error handler middleware
+
+  Usage:
+    ✓ ALWAYS wrap controller functions
+    export const myController = asyncHandler(
+      async (req: Request, res: Response) => {
+        // your code
+      }
+    );
+
+
+================================================================================
+11. MODULE ORGANIZATION
+================================================================================
+
+## Auth Module
+────────────────────────────────────────────────────────────────────────────────
+
+  Responsibilities:
+    ✓ User registration/login
+    ✓ Token generation & validation
+    ✓ Password hashing (bcrypt)
+    ✓ Role management
+    ✓ Token refresh
+
+== Dining Module
+────────────────────────────────────────────────────────────────────────────────
+
+  Responsibilities:
+    ✓ Meal menu creation (admin/managers only)
+    ✓ Meal token booking (any user)
+    ✓ Token cancellation (before cutoff time)
+    ✓ Payment recording
+    ✓ Meal consumption tracking
+
+  Key Logic:
+    • Tokens are SOLD in advance (prepaid)
+    • Each token links to a menu + payment
+    • Available tokens auto-calculated: total - booked
+
+## Admission Module
+────────────────────────────────────────────────────────────────────────────────
+
+  Responsibilities:
+    ✓ Students apply for hall seats
+    ✓ Admins review applications
+    ✓ Admins allocate beds to approved students
+    ✓ Track application status per student
+
+  Workflow:
+    1. Student applies for seat in hall
+    2. Admin reviews application (APPROVED/REJECTED/WAITLIST)
+    3. If approved, admin allocates specific bed
+    4. Bed status changes to OCCUPIED
+    5. Student added to hall_students table
+
+## Inventory Module
+────────────────────────────────────────────────────────────────────────────────
+
+  Responsibilities:
+    ✓ Create & manage beds in rooms
+    ✓ Create & track assets/furniture
+    ✓ Record damage reports
+    ✓ Calculate damage fines
+
+  Key Tables:
+    • beds: Tracks individual bed status (available/occupied/maintenance)
+    • assets: Hall inventory (chairs, fans, etc)
+    • damage_reports: Damage incidents with fine tracking
+
+## Finance Module
+────────────────────────────────────────────────────────────────────────────────
+
+  Responsibilities:
+    ✓ Create & track student dues (rent, dining, fines)
+    ✓ Record payments
+    ✓ Track expenses/budget
+    ✓ Student financial ledger
+
+  Due Types:
+    • RENT    - Hall rental charges
+    • DINING  - Meal dues
+    • FINE    - Damage fines
+    • OTHER   - Miscellaneous
+
+  Workflow:
+    1. Admin creates due for student (amount + type)
+    2. Student pays due
+    3. Admin records payment
+    4. Due marked as PAID
+
+
+================================================================================
+12. QUICK START GUIDE
+================================================================================
+
+## Prerequisites
+────────────────────────────────────────────────────────────────────────────────
+  • Bun runtime (https://bun.sh)
+  • MySQL database running
+  • Environment variables configured (.env)
+
+## Setup Steps
+────────────────────────────────────────────────────────────────────────────────
+
+  1. Install dependencies:
+       $ bun install
+
+  2. Create .env file (copy from .env.sample):
+       $ cp .env.sample .env
+       # Edit .env with your database credentials
+
+  3. Generate migrations:
+       $ bun db:generate
+
+  4. Run migrations:
+       $ bun db:migrate
+
+  5. Seed initial data (rooms, halls):
+       $ bun db:seed
+
+  6. Start development server:
+       $ bun dev
+
+  7. Server runs on: http://localhost:5000/api/v1
+
+## Database Commands
+────────────────────────────────────────────────────────────────────────────────
+  $ bun db:generate              # Generate migration from schema changes
+  $ bun db:migrate               # Apply pending migrations
+  $ bun db:both                  # Generate + migrate (combined)
+  $ bun db:seed                  # Seed initial data
+
+
+================================================================================
+13. BEST PRACTICES
+================================================================================
+
+## Controller Development
+────────────────────────────────────────────────────────────────────────────────
+
+  ✓ DO:
+    • Always use asyncHandler wrapper
+    • Validate inputs via Zod schemas (in routes)
+    • Throw ApiError for business logic errors
+    • Use ApiResponse for success responses
+    • Keep SQL queries in controllers (minimal services)
+    • Add JSDoc comments for complex logic
+    • Use descriptive variable names
+
+  ✗ DON'T:
+    • Return raw objects (always use ApiResponse)
+    • Throw generic Error (use ApiError)
+    • Mix business logic across files
+    • Use .then() chains (use async/await)
+    • Forget asyncHandler wrapper
+
+## Validation Patterns
+────────────────────────────────────────────────────────────────────────────────
+
+  ✓ Example: Complete validation schema
+    export const createDueSchema = {
+      body: z.object({
+        studentId: z.string().uuid("Invalid student ID"),
+        hall: z.enum(HALLS),
+        type: z.enum(DUE_TYPES),
+        amount: z.number().int().positive("Amount must be positive"),
+      }),
+    };
+
+  ✓ Apply in route:
+    router.post(
+      "/dues",
+      authenticateToken,
+      authorizeRoles("ASST_FINANCE", "PROVOST"),
+      validateRequest(createDueSchema),
+      createDue
+    );
+
+## Database Query Patterns
+────────────────────────────────────────────────────────────────────────────────
+
+  ✓ Single record with error handling:
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) throw new ApiError(404, "User not found");
+
+  ✓ Filter with multiple conditions:
+    const conditions = [];
+    if (hall) conditions.push(eq(beds.hall, hall));
+    if (status) conditions.push(eq(beds.status, status));
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const result = await db
+      .select()
+      .from(beds)
+      .where(whereClause)
+      .orderBy(beds.roomNumber);
+
+  ✓ Join query:
+    const apps = await db
+      .select({ /* columns */ })
+      .from(seatApplications)
+      .innerJoin(users, eq(seatApplications.studentId, users.id))
+      .where(whereClause)
+      .orderBy(sql`${seatApplications.createdAt} DESC`)
+      .limit(limit)
+      .offset(offset);
+
+## Response Patterns
+────────────────────────────────────────────────────────────────────────────────
+
+  ✓ Single object response:
+    res.status(201).json(
+      new ApiResponse(201, { id, email, role }, "User created successfully")
+    );
+
+  ✓ Paginated list response:
+    res.status(200).json(
+      new ApiResponse(200, {
+        items: data,
+        pagination: { page, limit, total, totalPages }
+      }, "Items retrieved successfully")
+    );
+
+  ✓ Error response (automatic):
+    throw new ApiError(400, "Invalid input", "VALIDATION_ERROR");
+
+## Security Practices
+────────────────────────────────────────────────────────────────────────────────
+
+  ✓ JWT stored in HTTP-only cookies
+  ✓ Passwords hashed with bcrypt (10 salt rounds)
+  ✓ Role-based access control on every sensitive route
+  ✓ Validate all user inputs with Zod
+  ✓ Don't return sensitive data (passwords, tokens) in responses
+  ✓ Use UUID for all primary keys
+  ✓ Validate foreign key relationships before operations
+
+
+================================================================================
+14. IMPORTANT NOTES
+================================================================================
+
+## Key Implementation Details
+────────────────────────────────────────────────────────────────────────────────
+
+  • SQL Enum Naming: Always use <fieldName>SQL_Enum (file-specific, not exported)
+  • Model Relationships: All FKs reference correct fields (e.g., hallAdmins.id
+    not users.id for admin-only actions)
+  • Frontend Requests: Include Authorization header for protected routes
+    Header format: Authorization: Bearer <accessToken>
+  • All controllers MUST be wrapped with asyncHandler()
+  • All responses MUST use ApiResponse class
+  • All errors MUST use ApiError class
+  • All routes MUST include Zod validation via validateRequest()
+
+## Enum Usage
+────────────────────────────────────────────────────────────────────────────────
+
+  TypeScript Enums (in types/enums.ts):
+    import { HALLS, ROLES, DUE_TYPES } from "../../types/enums";
+
+  SQL Enums (in model files):
+    mealTypeSQL_Enum = mysqlEnum("meal_type", MEAL_TYPES)
+    → Used only in table definitions, NOT imported
+
+  Type Casting:
+    When receiving string from req.query/body:
+    const status = req.body.status as SeatApplicationStatus;
+
+## Module Dependencies
+────────────────────────────────────────────────────────────────────────────────
+
+  Admission ← requires Inventory (beds table)
+  Finance ← requires Auth (users table)
+  Dining ← requires Auth (users table)
+  All modules ← require Halls (halls & rooms tables)
+
+## Testing Modules
+────────────────────────────────────────────────────────────────────────────────
+
+  Use Postman collections in /postman directory
+  Each request should include:
+    • Authorization header (if protected)
+    • Content-Type: application/json (for JSON requests)
+    • Validated against Zod schema (see validators)
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================
+
+Last Updated: February 16, 2026
+For questions or updates, refer to database models and controller implementations.

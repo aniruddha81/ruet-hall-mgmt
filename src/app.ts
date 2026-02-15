@@ -21,14 +21,20 @@ app.use(cookieParser());
 app.use(morgan("dev"));
 
 //routes import
+import admissionRouter from "./modules/admission/admission.routes.ts";
 import authRouter from "./modules/auth/auth.routes.ts";
-import profileRouter from "./modules/profile/profile.route.ts";
 import diningRouter from "./modules/dining/dining.routes.ts";
+import financeRouter from "./modules/finance/finance.routes.ts";
+import inventoryRouter from "./modules/inventory/inventory.routes.ts";
+import profileRouter from "./modules/profile/profile.route.ts";
 
 //routes declaration
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/profile", profileRouter);
 app.use("/api/v1/dining", diningRouter);
+app.use("/api/v1/admission", admissionRouter);
+app.use("/api/v1/inventory", inventoryRouter);
+app.use("/api/v1/finance", financeRouter);
 
 // Error handling middleware
 app.use(handleError);
