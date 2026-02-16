@@ -18,13 +18,13 @@ import { hallSQL_Enum, halls } from "./halls.models";
 // ============================================
 // ENUMS
 // ============================================
-export const mealTypeEnum = mysqlEnum("meal_type", MEAL_TYPES);
+export const mealTypeSQL_Enum = mysqlEnum("meal_type", MEAL_TYPES);
 // ['LUNCH', 'DINNER']
 
-export const tokenStatusEnum = mysqlEnum("token_status", TOKEN_STATUSES);
+export const tokenStatusSQL_Enum = mysqlEnum("token_status", TOKEN_STATUSES);
 // ['ACTIVE', 'CANCELLED', 'CONSUMED']
 
-export const paymentMethodEnum = mysqlEnum("payment_method", PAYMENT_METHODS);
+export const paymentMethodSQL_Enum = mysqlEnum("payment_method", PAYMENT_METHODS);
 // ['BKASH', 'NAGAD', 'ROCKET', 'BANK', 'CASH']
 
 // ============================================
@@ -45,7 +45,7 @@ export const mealMenus = mysqlTable(
       .default(sql`(CURRENT_DATE + INTERVAL 1 DAY)`),
     // Must be tomorrow's date
 
-    mealType: mealTypeEnum.notNull(),
+    mealType: mealTypeSQL_Enum.notNull(),
     // LUNCH or DINNER
 
     menuDescription: text("menu_description"),
@@ -120,7 +120,7 @@ export const mealTokens = mysqlTable(
     mealDate: date("meal_date", { mode: "date" }).notNull(),
     // Tomorrow's date (when meal will be consumed)
 
-    mealType: mealTypeEnum.notNull(),
+    mealType: mealTypeSQL_Enum.notNull(),
     // LUNCH or DINNER
 
     quantity: tinyint("quantity", { unsigned: true }).notNull().default(1),
@@ -178,7 +178,7 @@ export const mealPayments = mysqlTable(
     totalQuantity: tinyint("total_quantity", { unsigned: true }).notNull(),
     // Total tokens purchased in this payment
 
-    paymentMethod: paymentMethodEnum.notNull(),
+    paymentMethod: paymentMethodSQL_Enum.notNull(),
     // BKASH, NAGAD, ROCKET, BANK, CASH
 
     transactionId: varchar("transaction_id", { length: 255 }).unique(),

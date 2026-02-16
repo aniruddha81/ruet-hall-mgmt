@@ -1,9 +1,335 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "f2cefd71-031b-4151-9f49-1a3f4e63c650",
+  "id": "c0bc8611-14dd-4411-a7fc-9ef33b0ae42c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
+    "seat_allocations": {
+      "name": "seat_allocations",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "roll_number": {
+          "name": "roll_number",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "room_number": {
+          "name": "room_number",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bed_id": {
+          "name": "bed_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "allocated_at": {
+          "name": "allocated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "allocated_by": {
+          "name": "allocated_by",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_seat_alloc_student": {
+          "name": "idx_seat_alloc_student",
+          "columns": [
+            "student_id"
+          ],
+          "isUnique": false
+        },
+        "idx_seat_alloc_hall": {
+          "name": "idx_seat_alloc_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_seat_alloc_bed": {
+          "name": "idx_seat_alloc_bed",
+          "columns": [
+            "bed_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "seat_allocations_student_id_users_id_fk": {
+          "name": "seat_allocations_student_id_users_id_fk",
+          "tableFrom": "seat_allocations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "seat_allocations_hall_halls_hall_fk": {
+          "name": "seat_allocations_hall_halls_hall_fk",
+          "tableFrom": "seat_allocations",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "seat_allocations_bed_id_beds_id_fk": {
+          "name": "seat_allocations_bed_id_beds_id_fk",
+          "tableFrom": "seat_allocations",
+          "tableTo": "beds",
+          "columnsFrom": [
+            "bed_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "seat_allocations_allocated_by_hall_admins_id_fk": {
+          "name": "seat_allocations_allocated_by_hall_admins_id_fk",
+          "tableFrom": "seat_allocations",
+          "tableTo": "hall_admins",
+          "columnsFrom": [
+            "allocated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "seat_allocations_id": {
+          "name": "seat_allocations_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "seat_allocations_hall": {
+          "name": "seat_allocations_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "seat_applications": {
+      "name": "seat_applications",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "roll_number": {
+          "name": "roll_number",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "academic_department": {
+          "name": "academic_department",
+          "type": "enum('CSE','EEE','ME','CE','IPE','ECE','ETE','BME','MTE','URP','ChE','Arch')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "session": {
+          "name": "session",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "seat_application_status": {
+          "name": "seat_application_status",
+          "type": "enum('PENDING','APPROVED','REJECTED','WAITLIST')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'PENDING'"
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_seat_app_student": {
+          "name": "idx_seat_app_student",
+          "columns": [
+            "student_id"
+          ],
+          "isUnique": false
+        },
+        "idx_seat_app_hall": {
+          "name": "idx_seat_app_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_seat_app_status": {
+          "name": "idx_seat_app_status",
+          "columns": [
+            "seat_application_status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "seat_applications_student_id_users_id_fk": {
+          "name": "seat_applications_student_id_users_id_fk",
+          "tableFrom": "seat_applications",
+          "tableTo": "users",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "seat_applications_hall_halls_hall_fk": {
+          "name": "seat_applications_hall_halls_hall_fk",
+          "tableFrom": "seat_applications",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "seat_applications_reviewed_by_hall_admins_id_fk": {
+          "name": "seat_applications_reviewed_by_hall_admins_id_fk",
+          "tableFrom": "seat_applications",
+          "tableTo": "hall_admins",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "seat_applications_id": {
+          "name": "seat_applications_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "seat_applications_hall": {
+          "name": "seat_applications_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
     "hall_admins": {
       "name": "hall_admins",
       "columns": {
@@ -575,212 +901,6 @@
       },
       "checkConstraint": {}
     },
-    "halls": {
-      "name": "halls",
-      "columns": {
-        "hall": {
-          "name": "hall",
-          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "address": {
-          "name": "address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "contact_number": {
-          "name": "contact_number",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "total_capacity": {
-          "name": "total_capacity",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "total_rooms": {
-          "name": "total_rooms",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "halls_hall_halls_hall_fk": {
-          "name": "halls_hall_halls_hall_fk",
-          "tableFrom": "halls",
-          "tableTo": "halls",
-          "columnsFrom": [
-            "hall"
-          ],
-          "columnsTo": [
-            "hall"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "halls_hall": {
-          "name": "halls_hall",
-          "columns": [
-            "hall"
-          ]
-        }
-      },
-      "uniqueConstraints": {
-        "halls_hall_unique": {
-          "name": "halls_hall_unique",
-          "columns": [
-            "hall"
-          ]
-        }
-      },
-      "checkConstraint": {}
-    },
-    "rooms": {
-      "name": "rooms",
-      "columns": {
-        "room_number": {
-          "name": "room_number",
-          "type": "smallint unsigned",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "hall": {
-          "name": "hall",
-          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "capacity": {
-          "name": "capacity",
-          "type": "tinyint unsigned",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "current_occupancy": {
-          "name": "current_occupancy",
-          "type": "smallint unsigned",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "room_status": {
-          "name": "room_status",
-          "type": "enum('AVAILABLE','OCCUPIED','MAINTENANCE','RESERVED')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'AVAILABLE'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {
-        "uq_room_hall_number": {
-          "name": "uq_room_hall_number",
-          "columns": [
-            "hall",
-            "room_number"
-          ],
-          "isUnique": false
-        },
-        "idx_rooms_hall": {
-          "name": "idx_rooms_hall",
-          "columns": [
-            "hall"
-          ],
-          "isUnique": false
-        },
-        "idx_rooms_status": {
-          "name": "idx_rooms_status",
-          "columns": [
-            "room_status"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "rooms_hall_halls_hall_fk": {
-          "name": "rooms_hall_halls_hall_fk",
-          "tableFrom": "rooms",
-          "tableTo": "halls",
-          "columnsFrom": [
-            "hall"
-          ],
-          "columnsTo": [
-            "hall"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "rooms_room_number": {
-          "name": "rooms_room_number",
-          "columns": [
-            "room_number"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
     "meal_menus": {
       "name": "meal_menus",
       "columns": {
@@ -1056,10 +1176,10 @@
         }
       },
       "foreignKeys": {
-        "meal_payments_student_id_hall_students_id_fk": {
-          "name": "meal_payments_student_id_hall_students_id_fk",
+        "meal_payments_student_id_users_id_fk": {
+          "name": "meal_payments_student_id_users_id_fk",
           "tableFrom": "meal_payments",
-          "tableTo": "hall_students",
+          "tableTo": "users",
           "columnsFrom": [
             "student_id"
           ],
@@ -1225,10 +1345,10 @@
         }
       },
       "foreignKeys": {
-        "meal_tokens_student_id_hall_students_id_fk": {
-          "name": "meal_tokens_student_id_hall_students_id_fk",
+        "meal_tokens_student_id_users_id_fk": {
+          "name": "meal_tokens_student_id_users_id_fk",
           "tableFrom": "meal_tokens",
-          "tableTo": "hall_students",
+          "tableTo": "users",
           "columnsFrom": [
             "student_id"
           ],
@@ -1287,6 +1407,1014 @@
         },
         "meal_tokens_hall": {
           "name": "meal_tokens_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "expenses": {
+      "name": "expenses",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "category": {
+          "name": "category",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "approved_by": {
+          "name": "approved_by",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_expenses_hall": {
+          "name": "idx_expenses_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_expenses_category": {
+          "name": "idx_expenses_category",
+          "columns": [
+            "category"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "expenses_hall_halls_hall_fk": {
+          "name": "expenses_hall_halls_hall_fk",
+          "tableFrom": "expenses",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "expenses_approved_by_hall_admins_id_fk": {
+          "name": "expenses_approved_by_hall_admins_id_fk",
+          "tableFrom": "expenses",
+          "tableTo": "hall_admins",
+          "columnsFrom": [
+            "approved_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "expenses_id": {
+          "name": "expenses_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "expenses_hall": {
+          "name": "expenses_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "payments": {
+      "name": "payments",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "due_id": {
+          "name": "due_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "finance_payment_method": {
+          "name": "finance_payment_method",
+          "type": "enum('CASH','BANK','ONLINE')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_payments_student": {
+          "name": "idx_payments_student",
+          "columns": [
+            "student_id"
+          ],
+          "isUnique": false
+        },
+        "idx_payments_hall": {
+          "name": "idx_payments_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "payments_student_id_users_id_fk": {
+          "name": "payments_student_id_users_id_fk",
+          "tableFrom": "payments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "payments_hall_halls_hall_fk": {
+          "name": "payments_hall_halls_hall_fk",
+          "tableFrom": "payments",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "payments_due_id_student_dues_id_fk": {
+          "name": "payments_due_id_student_dues_id_fk",
+          "tableFrom": "payments",
+          "tableTo": "student_dues",
+          "columnsFrom": [
+            "due_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "payments_id": {
+          "name": "payments_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "payments_hall": {
+          "name": "payments_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "student_dues": {
+      "name": "student_dues",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "due_type": {
+          "name": "due_type",
+          "type": "enum('RENT','FINE','OTHER')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "due_status": {
+          "name": "due_status",
+          "type": "enum('UNPAID','PAID')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'UNPAID'"
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_dues_student": {
+          "name": "idx_dues_student",
+          "columns": [
+            "student_id"
+          ],
+          "isUnique": false
+        },
+        "idx_dues_hall": {
+          "name": "idx_dues_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_dues_status": {
+          "name": "idx_dues_status",
+          "columns": [
+            "due_status"
+          ],
+          "isUnique": false
+        },
+        "idx_dues_type": {
+          "name": "idx_dues_type",
+          "columns": [
+            "due_type"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "student_dues_student_id_users_id_fk": {
+          "name": "student_dues_student_id_users_id_fk",
+          "tableFrom": "student_dues",
+          "tableTo": "users",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "student_dues_hall_halls_hall_fk": {
+          "name": "student_dues_hall_halls_hall_fk",
+          "tableFrom": "student_dues",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "student_dues_id": {
+          "name": "student_dues_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "student_dues_hall": {
+          "name": "student_dues_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "halls": {
+      "name": "halls",
+      "columns": {
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "contact_number": {
+          "name": "contact_number",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "total_capacity": {
+          "name": "total_capacity",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "total_rooms": {
+          "name": "total_rooms",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "halls_hall_halls_hall_fk": {
+          "name": "halls_hall_halls_hall_fk",
+          "tableFrom": "halls",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "halls_hall": {
+          "name": "halls_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "rooms": {
+      "name": "rooms",
+      "columns": {
+        "room_number": {
+          "name": "room_number",
+          "type": "smallint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "tinyint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "current_occupancy": {
+          "name": "current_occupancy",
+          "type": "smallint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "room_status": {
+          "name": "room_status",
+          "type": "enum('AVAILABLE','OCCUPIED','MAINTENANCE','RESERVED')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'AVAILABLE'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "uq_room_hall_number": {
+          "name": "uq_room_hall_number",
+          "columns": [
+            "hall",
+            "room_number"
+          ],
+          "isUnique": false
+        },
+        "idx_rooms_hall": {
+          "name": "idx_rooms_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_rooms_status": {
+          "name": "idx_rooms_status",
+          "columns": [
+            "room_status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "rooms_hall_halls_hall_fk": {
+          "name": "rooms_hall_halls_hall_fk",
+          "tableFrom": "rooms",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "rooms_room_number": {
+          "name": "rooms_room_number",
+          "columns": [
+            "room_number"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "assets": {
+      "name": "assets",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "asset_condition": {
+          "name": "asset_condition",
+          "type": "enum('GOOD','FAIR','POOR','DAMAGED')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'GOOD'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_assets_hall": {
+          "name": "idx_assets_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "assets_hall_halls_hall_fk": {
+          "name": "assets_hall_halls_hall_fk",
+          "tableFrom": "assets",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "assets_id": {
+          "name": "assets_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "assets_hall": {
+          "name": "assets_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "beds": {
+      "name": "beds",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "room_number": {
+          "name": "room_number",
+          "type": "smallint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bed_label": {
+          "name": "bed_label",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bed_status": {
+          "name": "bed_status",
+          "type": "enum('AVAILABLE','OCCUPIED','MAINTENANCE')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'AVAILABLE'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_beds_hall": {
+          "name": "idx_beds_hall",
+          "columns": [
+            "hall"
+          ],
+          "isUnique": false
+        },
+        "idx_beds_room": {
+          "name": "idx_beds_room",
+          "columns": [
+            "room_number"
+          ],
+          "isUnique": false
+        },
+        "idx_beds_status": {
+          "name": "idx_beds_status",
+          "columns": [
+            "bed_status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "beds_hall_halls_hall_fk": {
+          "name": "beds_hall_halls_hall_fk",
+          "tableFrom": "beds",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "beds_id": {
+          "name": "beds_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "beds_hall": {
+          "name": "beds_hall",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "halls_hall_unique": {
+          "name": "halls_hall_unique",
+          "columns": [
+            "hall"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "damage_reports": {
+      "name": "damage_reports",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hall": {
+          "name": "hall",
+          "type": "enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fine_amount": {
+          "name": "fine_amount",
+          "type": "int unsigned",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "damage_report_status": {
+          "name": "damage_report_status",
+          "type": "enum('REPORTED','VERIFIED')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'REPORTED'"
+        },
+        "verified_by": {
+          "name": "verified_by",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_damage_student": {
+          "name": "idx_damage_student",
+          "columns": [
+            "student_id"
+          ],
+          "isUnique": false
+        },
+        "idx_damage_asset": {
+          "name": "idx_damage_asset",
+          "columns": [
+            "asset_id"
+          ],
+          "isUnique": false
+        },
+        "idx_damage_status": {
+          "name": "idx_damage_status",
+          "columns": [
+            "damage_report_status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "damage_reports_student_id_hall_students_id_fk": {
+          "name": "damage_reports_student_id_hall_students_id_fk",
+          "tableFrom": "damage_reports",
+          "tableTo": "hall_students",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "damage_reports_asset_id_assets_id_fk": {
+          "name": "damage_reports_asset_id_assets_id_fk",
+          "tableFrom": "damage_reports",
+          "tableTo": "assets",
+          "columnsFrom": [
+            "asset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "damage_reports_hall_halls_hall_fk": {
+          "name": "damage_reports_hall_halls_hall_fk",
+          "tableFrom": "damage_reports",
+          "tableTo": "halls",
+          "columnsFrom": [
+            "hall"
+          ],
+          "columnsTo": [
+            "hall"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "damage_reports_verified_by_hall_admins_id_fk": {
+          "name": "damage_reports_verified_by_hall_admins_id_fk",
+          "tableFrom": "damage_reports",
+          "tableTo": "hall_admins",
+          "columnsFrom": [
+            "verified_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "damage_reports_id": {
+          "name": "damage_reports_id",
+          "columns": [
+            "id"
+          ]
+        },
+        "damage_reports_hall": {
+          "name": "damage_reports_hall",
           "columns": [
             "hall"
           ]

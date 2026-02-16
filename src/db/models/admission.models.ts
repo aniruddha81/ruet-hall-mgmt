@@ -7,11 +7,11 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { SEAT_APPLICATION_STATUSES } from "../../types/enums";
-import { academicDepartmentsSQL_Enum, users , hallAdmins } from "./auth.models";
+import { academicDepartmentsSQL_Enum, users, hallAdmins } from "./auth.models";
 import { hallSQL_Enum, halls } from "./halls.models";
 import { beds } from "./inventory.models.ts";
 
-export const seatApplicationStatusEnum = mysqlEnum(
+export const seatApplicationStatusSQL_Enum = mysqlEnum(
   "seat_application_status",
   SEAT_APPLICATION_STATUSES
 );
@@ -29,6 +29,8 @@ export const seatApplications = mysqlTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
+    rollNumber: varchar("roll_number", { length: 20 }).notNull(),
+
     hall: hallSQL_Enum
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
@@ -37,7 +39,7 @@ export const seatApplications = mysqlTable(
 
     session: varchar("session", { length: 10 }).notNull(),
 
-    status: seatApplicationStatusEnum.notNull().default("PENDING"),
+    status: seatApplicationStatusSQL_Enum.notNull().default("PENDING"),
 
     reviewedBy: varchar("reviewed_by", { length: 36 }).references(
       () => hallAdmins.id
@@ -68,6 +70,8 @@ export const seatAllocations = mysqlTable(
     studentId: varchar("student_id", { length: 36 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+
+    rollNumber: varchar("roll_number", { length: 20 }).notNull(),
 
     hall: hallSQL_Enum
       .notNull()

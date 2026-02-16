@@ -12,7 +12,7 @@ import {
   DUE_TYPES,
   FINANCE_PAYMENT_METHODS,
 } from "../../types/enums";
-import { users } from "./auth.models";
+import { hallAdmins, users } from "./auth.models";
 import { hallSQL_Enum, halls } from "./halls.models";
 
 export const dueTypeSQL_Enum = mysqlEnum("due_type", DUE_TYPES);
@@ -115,7 +115,7 @@ export const expenses = mysqlTable(
 
     approvedBy: varchar("approved_by", { length: 36 })
       .notNull()
-      .references(() => users.id),
+      .references(() => hallAdmins.id),
 
     createdAt: datetime("created_at", { mode: "date" })
       .notNull()

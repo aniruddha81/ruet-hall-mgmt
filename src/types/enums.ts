@@ -107,7 +107,7 @@ export const DAMAGE_REPORT_STATUSES = ["REPORTED", "VERIFIED"] as const;
 export type DamageReportStatus = (typeof DAMAGE_REPORT_STATUSES)[number];
 
 // for finance module
-export const DUE_TYPES = ["RENT", "DINING", "FINE", "OTHER"] as const;
+export const DUE_TYPES = ["RENT", "FINE", "OTHER"] as const;
 export type DueType = (typeof DUE_TYPES)[number];
 
 export const DUE_STATUSES = ["UNPAID", "PAID"] as const;

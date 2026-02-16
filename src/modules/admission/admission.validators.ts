@@ -54,5 +54,6 @@ export const allocateSeatSchema = {
   body: z.object({
     applicationId: z.uuid("Invalid application ID"),
     bedId: z.uuid("Invalid bed ID"),
+    rollNumber: z.string().min(1, "Roll number is required"),
   }),
 };

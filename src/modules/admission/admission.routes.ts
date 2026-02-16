@@ -56,7 +56,7 @@ admissionRouter.get(
 
 // Review (approve / reject / waitlist)
 admissionRouter.patch(
-  "/:id/review",
+  "/review/:id/",
   authenticateToken,
   authorizeRoles("PROVOST"),
   validateRequest(reviewApplicationSchema),

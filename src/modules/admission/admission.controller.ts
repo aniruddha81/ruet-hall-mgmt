@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
 import {
@@ -25,7 +25,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
  */
 export const applyForSeat = asyncHandler(
   async (req: Request, res: Response) => {
-    const studentId = req.user!.userId;
+    const { userId: studentId, rollNumber } = req.user!;
     const { hall, department, session } = req.body;
 
     // Check if user already has a pending/approved application
@@ -65,6 +65,7 @@ export const applyForSeat = asyncHandler(
       hall,
       department,
       session,
+      rollNumber,
     });
 
     res
@@ -144,12 +145,12 @@ export const getApplications = asyncHandler(
       .from(seatApplications)
       .innerJoin(users, eq(seatApplications.studentId, users.id))
       .where(whereClause)
-      .orderBy(sql`${seatApplications.createdAt} DESC`)
+      .orderBy(desc(seatApplications.createdAt))
       .limit(limit)
       .offset(offset);
 
     const [countResult] = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(seatApplications)
       .where(whereClause);
 
@@ -231,7 +232,7 @@ export const reviewApplication = asyncHandler(
  */
 export const allocateSeat = asyncHandler(
   async (req: Request, res: Response) => {
-    const { applicationId, bedId } = req.body;
+    const { applicationId, bedId, rollNumber } = req.body;
     const userId = req.user!.userId;
 
     // Resolve hallAdmin record for allocatedBy FK
@@ -275,6 +276,7 @@ export const allocateSeat = asyncHandler(
       roomNumber: String(bed.roomNumber),
       bedId,
       allocatedBy: admin.id,
+      rollNumber,
     });
 
     // Mark bed as occupied
@@ -290,13 +292,18 @@ export const allocateSeat = asyncHandler(
     if (existingStudent) {
       await db
         .update(hallStudents)
-        .set({ hall: app.hall, roomNumber: bed.roomNumber, status: "ACTIVE" })
+        .set({
+          hall: app.hall,
+          roomNumber: bed.roomNumber,
+          status: "ACTIVE",
+          rollNumber,
+        })
         .where(eq(hallStudents.userId, app.studentId));
     } else {
       await db.insert(hallStudents).values({
         id: randomUUID(),
         userId: app.studentId,
-        rollNumber: Date.now(), // temporary — should be set properly
+        rollNumber,
         session: app.session,
         hall: app.hall,
         roomNumber: bed.roomNumber,

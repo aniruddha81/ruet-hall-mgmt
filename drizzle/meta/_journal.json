@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "5",
-      "when": 1770901571250,
-      "tag": "0000_marvelous_spitfire",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1770904304868,
-      "tag": "0001_cheerful_firebrand",
+      "when": 1771280883865,
+      "tag": "0000_colorful_sabretooth",
       "breakpoints": true
     }
   ]

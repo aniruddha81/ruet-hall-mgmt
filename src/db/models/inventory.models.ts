@@ -14,7 +14,7 @@ import {
   BED_STATUSES,
   DAMAGE_REPORT_STATUSES,
 } from "../../types/enums";
-import { hallAdmins, users } from "./auth.models";
+import { hallAdmins, hallStudents, users } from "./auth.models";
 import { hallSQL_Enum, halls } from "./halls.models";
 
 export const bedStatusSQL_Enum = mysqlEnum("bed_status", BED_STATUSES);
@@ -99,7 +99,7 @@ export const damageReports = mysqlTable(
 
     studentId: varchar("student_id", { length: 36 })
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => hallStudents.id, { onDelete: "cascade" }),
 
     assetId: varchar("asset_id", { length: 36 })
       .notNull()
