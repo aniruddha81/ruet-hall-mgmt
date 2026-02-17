@@ -1,3 +1,4 @@
+// =================== ENUM GROUP ===================
 export const ROLES = [
   "PROVOST",
   "ASST_FINANCE",
@@ -9,8 +10,6 @@ export const ROLES = [
   "STUDENT",
 ] as const;
 
-export type Role = (typeof ROLES)[number];
-
 export const STAFF_ROLES = [
   "PROVOST",
   "ASST_FINANCE",
@@ -21,8 +20,6 @@ export const STAFF_ROLES = [
   "INVENTORY_SECTION_OFFICER",
 ] as const;
 
-export type StaffRole = (typeof STAFF_ROLES)[number];
-
 export const OPERATIONAL_UNITS = [
   "FINANCE",
   "DINING",
@@ -30,16 +27,12 @@ export const OPERATIONAL_UNITS = [
   "ALL",
 ] as const;
 
-export type OperationalUnit = (typeof OPERATIONAL_UNITS)[number];
-
 export const STUDENT_STATUSES = [
   "ACTIVE",
   "ALUMNI",
   "SUSPENDED",
   "EXPELLED",
 ] as const;
-
-export type StudentStatus = (typeof STUDENT_STATUSES)[number];
 
 export const ACADEMIC_DEPARTMENTS = [
   "CSE",
@@ -56,16 +49,12 @@ export const ACADEMIC_DEPARTMENTS = [
   "Arch",
 ] as const;
 
-export type AcademicDepartment = (typeof ACADEMIC_DEPARTMENTS)[number];
-
 export const HALLS = [
   "ZIA_HALL",
   "SHAH_JALAL_HALL",
   "RASHID_HALL",
   "FARUKI_HALL",
 ] as const;
-
-export type Hall = (typeof HALLS)[number];
 
 export const ROOM_STATUSES = [
   "AVAILABLE",
@@ -74,9 +63,7 @@ export const ROOM_STATUSES = [
   "RESERVED",
 ] as const;
 
-export type RoomStatus = (typeof ROOM_STATUSES)[number];
-
-//for dining module
+// for dining module
 export const MEAL_TYPES = ["LUNCH", "DINNER"] as const;
 export const TOKEN_STATUSES = ["ACTIVE", "CANCELLED", "CONSUMED"] as const;
 export const PAYMENT_METHODS = [
@@ -94,24 +81,31 @@ export const SEAT_APPLICATION_STATUSES = [
   "REJECTED",
   "WAITLIST",
 ] as const;
-export type SeatApplicationStatus = (typeof SEAT_APPLICATION_STATUSES)[number];
 
 // for inventory module
 export const BED_STATUSES = ["AVAILABLE", "OCCUPIED", "MAINTENANCE"] as const;
-export type BedStatus = (typeof BED_STATUSES)[number];
-
 export const ASSET_CONDITIONS = ["GOOD", "FAIR", "POOR", "DAMAGED"] as const;
-export type AssetCondition = (typeof ASSET_CONDITIONS)[number];
-
 export const DAMAGE_REPORT_STATUSES = ["REPORTED", "VERIFIED"] as const;
-export type DamageReportStatus = (typeof DAMAGE_REPORT_STATUSES)[number];
 
 // for finance module
 export const DUE_TYPES = ["RENT", "FINE", "OTHER"] as const;
-export type DueType = (typeof DUE_TYPES)[number];
-
 export const DUE_STATUSES = ["UNPAID", "PAID"] as const;
-export type DueStatus = (typeof DUE_STATUSES)[number];
-
 export const FINANCE_PAYMENT_METHODS = ["CASH", "BANK", "ONLINE"] as const;
+
+// =================== TYPE GROUP ===================
+export type Role = (typeof ROLES)[number];
+export type StaffRole = (typeof STAFF_ROLES)[number];
+export type OperationalUnit = (typeof OPERATIONAL_UNITS)[number];
+export type StudentStatus = (typeof STUDENT_STATUSES)[number];
+export type AcademicDepartment = (typeof ACADEMIC_DEPARTMENTS)[number];
+export type Hall = (typeof HALLS)[number];
+export type RoomStatus = (typeof ROOM_STATUSES)[number];
+export type SeatApplicationStatus = (typeof SEAT_APPLICATION_STATUSES)[number];
+export type BedStatus = (typeof BED_STATUSES)[number];
+export type AssetCondition = (typeof ASSET_CONDITIONS)[number];
+export type DamageReportStatus = (typeof DAMAGE_REPORT_STATUSES)[number];
+export type DueType = (typeof DUE_TYPES)[number];
+export type DueStatus = (typeof DUE_STATUSES)[number];
 export type FinancePaymentMethod = (typeof FINANCE_PAYMENT_METHODS)[number];
+export type MealType = (typeof MEAL_TYPES)[number];
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];

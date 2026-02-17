@@ -1,20 +1,5 @@
 import { z } from "zod";
-import { HALLS } from "../../types/enums";
-
-// ==============================================================
-// ENUMS FOR VALIDATION
-// ==============================================================
-
-export const MEAL_TYPES = ["LUNCH", "DINNER"] as const;
-export const TOKEN_STATUSES = ["ACTIVE", "CANCELLED", "CONSUMED"] as const;
-export const PAYMENT_METHODS = [
-  "BKASH",
-  "NAGAD",
-  "ROCKET",
-  "BANK",
-  "CASH",
-] as const;
-export const PAYMENT_STATUSES = ["COMPLETED", "REFUNDED"] as const;
+import { HALLS, MEAL_TYPES, PAYMENT_METHODS, TOKEN_STATUSES } from "../../types/enums";
 
 // ==============================================================
 // STUDENT VALIDATORS

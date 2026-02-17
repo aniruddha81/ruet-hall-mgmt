@@ -1,5 +1,15 @@
 import { randomUUID } from "crypto";
-import { and, count, desc, eq, isNotNull, isNull, not, sql, sum } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  isNotNull,
+  isNull,
+  not,
+  sql,
+  sum,
+} from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
 import {
@@ -15,22 +25,11 @@ import { ApiError } from "../../utils/ApiError";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { toDateString } from "../../utils/helpers";
+import { createMealPayment } from "../finance/finance.service";
 
-// ==============================================================
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
-// ==============================================================
 
-/**
- * GET /api/v1/dining/tomorrow-menus
- *
- * Get tomorrow's lunch and dinner menu for student's hall
- * - Shows available tokens, price, menu description
- * - Returns both lunch and dinner if available
- *
- * Returns:
- * - lunch: { id, menuDescription, price, availableTokens, bookedTokens, mealType }
- * - dinner: { id, menuDescription, price, availableTokens, bookedTokens, mealType }
- */
+// GET /api/v1/dining/tomorrow-menus - Get tomorrow's lunch and dinner menu
 export const getTomorrowMenus = asyncHandler(
   async (req: Request, res: Response) => {
     const hall = req.query.hall as Hall;
@@ -75,26 +74,7 @@ export const getTomorrowMenus = asyncHandler(
   }
 );
 
-/**
- * POST /api/v1/dining/book-tokens
- *
- * Book tokens for tomorrow (lunch or dinner)
- *
- * Input Body:
- * - menuId: string
- * - quantity: number (1-20 for student + friends)
- * - paymentMethod: 'BKASH' | 'NAGAD' | 'ROCKET' | 'BANK' | 'CASH'
- *
- * Process:
- * 1. Validate menu is for tomorrow
- * 2. Check available tokens (availableTokens - bookedTokens >= quantity)
- * 3. Create payment record
- * 4. Create meal token record
- * 5. Update bookedTokens count in menu
- * 6. Send booking confirmation email
- *
- * Returns: payment details, token details, booking confirmation
- */
+// POST /api/v1/dining/book-tokens - Book tokens for tomorrow's meal
 export const bookMealTokens = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -142,18 +122,18 @@ export const bookMealTokens = asyncHandler(
     }
 
     const totalAmount = menu.price * quantity;
-    const paymentId = randomUUID();
-    const tokenId = randomUUID();
 
-    await db.insert(mealPayments).values({
-      id: paymentId,
+    // Process payment through finance service
+    const payment = await createMealPayment({
       studentId: user.id,
       amount: totalAmount,
       totalQuantity: quantity,
       paymentMethod,
-      transactionId: `TXN-${Date.now()}-${randomUUID().slice(0, 8)}`,
     });
 
+    const tokenId = randomUUID();
+
+    // Create meal token record
     await db.insert(mealTokens).values({
       id: tokenId,
       studentId: user.id,
@@ -163,9 +143,10 @@ export const bookMealTokens = asyncHandler(
       mealType: menu.mealType,
       quantity,
       totalAmount,
-      paymentId,
+      paymentId: payment.id,
     });
 
+    // Update booked tokens count
     await db
       .update(mealMenus)
       .set({ bookedTokens: sql`${mealMenus.bookedTokens} + ${quantity}` })
@@ -176,11 +157,12 @@ export const bookMealTokens = asyncHandler(
         201,
         {
           tokenId,
-          paymentId,
+          paymentId: payment.id,
           quantity,
           totalAmount,
           mealType: menu.mealType,
           mealDate: menuDateStr,
+          transactionId: payment.transactionId,
         },
         "Meal tokens booked successfully"
       )
@@ -188,16 +170,7 @@ export const bookMealTokens = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/my-active-tokens
- *
- * Get student's active tokens for tomorrow
- * - Shows tokens that can be cancelled (before midnight)
- * - Only returns ACTIVE tokens for tomorrow
- *
- * Returns:
- * - Array of tokens with: tokenId, quantity, mealType, mealDate, price, status
- */
+// GET /api/v1/dining/my-active-tokens - Get student's active tokens
 export const getMyActiveTokens = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -249,21 +222,7 @@ export const getMyActiveTokens = asyncHandler(
   }
 );
 
-/**
- * PATCH /api/v1/dining/cancel-token/:tokenId
- *
- * Cancel token before midnight
- *
- * Process:
- * 1. Verify token belongs to student
- * 2. Validate current time < midnight of booking date
- * 3. Update token status to CANCELLED
- * 4. Process refund (update mealPayments refundAmount, refundedAt)
- * 5. Decrease bookedTokens count in menu
- * 6. Send cancellation confirmation email
- *
- * Returns: refund details, updated token status
- */
+// PATCH /api/v1/dining/cancel-token/:tokenId - Cancel token before midnight
 export const cancelMealToken = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -349,20 +308,7 @@ export const cancelMealToken = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/token-history
- *
- * Get student's complete token purchase history
- *
- * Query Parameters:
- * - page: number (default: 1)
- * - limit: number (default: 10)
- * - status: 'ACTIVE' | 'CANCELLED' | 'CONSUMED' (optional filter)
- * - startDate: YYYY-MM-DD (optional)
- * - endDate: YYYY-MM-DD (optional)
- *
- * Returns: paginated list of all past bookings with details
- */
+// GET /api/v1/dining/token-history - Get student's token purchase history
 export const getMyTokenHistory = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -445,16 +391,7 @@ export const getMyTokenHistory = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/token/:tokenId
- *
- * Get single token details by ID
- *
- * Returns:
- * - Token details with payment info, menu info, meal date, quantity, status
- * - Refund details if cancelled
- * - Consumed timestamp if consumed
- */
+// GET /api/v1/dining/token/:tokenId - Get token details
 export const getMyTokenById = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -511,29 +448,9 @@ export const getMyTokenById = asyncHandler(
   }
 );
 
-// ==============================================================
 // DINING MANAGER CONTROLLERS - MENU & BOOKING MANAGEMENT
-// ==============================================================
 
-/**
- * POST /api/v1/dining/menu/create
- *
- * Create menu for tomorrow only
- *
- * Input Body:
- * - mealType: 'LUNCH' | 'DINNER'
- * - menuDescription: string (e.g., "Rice, Chicken Curry, Dal, Salad")
- * - price: number (price per token)
- * - availableTokens: number (total tokens available)
- *
- * Process:
- * 1. Validate date is tomorrow
- * 2. Check if menu already exists for tomorrow + mealType
- * 3. Create mealMenus record
- * 4. Initialize bookedTokens = 0
- *
- * Returns: created menu details with id
- */
+// POST /api/v1/dining/menu/create - Create menu for tomorrow
 export const createTomorrowMenu = asyncHandler(
   async (req: Request, res: Response) => {
     const diningManagerId = req.user?.userId;
@@ -607,24 +524,7 @@ export const createTomorrowMenu = asyncHandler(
   }
 );
 
-/**
- * PATCH /api/v1/dining/menu/:menuId/update
- *
- * Update tomorrow's menu (before any bookings or limited updates)
- *
- * Input Body:
- * - menuDescription: string (optional)
- * - price: number (optional, may be restricted if bookings exist)
- * - availableTokens: number (optional)
- *
- * Process:
- * 1. Validate menu is for tomorrow
- * 2. Check if bookings exist (may restrict price updates)
- * 3. Validate availableTokens >= bookedTokens
- * 4. Update menu details
- *
- * Returns: updated menu details
- */
+// PATCH /api/v1/dining/menu/:menuId/update - Update tomorrow's menu
 export const updateTomorrowMenu = asyncHandler(
   async (req: Request, res: Response) => {
     const { menuId } = req.params as { menuId: string };
@@ -698,19 +598,7 @@ export const updateTomorrowMenu = asyncHandler(
   }
 );
 
-/**
- * DELETE /api/v1/dining/menu/:menuId
- *
- * Delete tomorrow's menu (only if no bookings)
- *
- * Process:
- * 1. Validate menu is for tomorrow
- * 2. Check bookedTokens = 0
- * 3. Delete menu record if no bookings
- * 4. Return success or error if bookings exist
- *
- * Returns: success message or error
- */
+// DELETE /api/v1/dining/menu/:menuId - Delete tomorrow's menu (only if no bookings)
 export const deleteTomorrowMenu = asyncHandler(
   async (req: Request, res: Response) => {
     const { menuId } = req.params as { menuId: string };
@@ -752,17 +640,7 @@ export const deleteTomorrowMenu = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/menus/tomorrow
- *
- * View tomorrow's created menus for dining manager
- * - Shows both lunch and dinner
- * - Display bookedTokens vs availableTokens
- * - Shows revenue potential
- *
- * Returns:
- * - Array of menus with: menuId, mealType, description, price, availableTokens, bookedTokens
- */
+// GET /api/v1/dining/menus/tomorrow - View tomorrow's menus
 export const getTomorrowMenusList = asyncHandler(
   async (req: Request, res: Response) => {
     const diningManagerId = req.user?.userId;
@@ -809,16 +687,7 @@ export const getTomorrowMenusList = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/menus/today
- *
- * View today's menus (for consumption tracking)
- * - Shows how many tokens were booked
- * - Used during meal service
- *
- * Returns:
- * - Array of today's menus with booking statistics
- */
+// GET /api/v1/dining/menus/today - View today's menus
 export const getTodayMenus = asyncHandler(
   async (req: Request, res: Response) => {
     const diningManagerId = req.user?.userId;
@@ -863,19 +732,7 @@ export const getTodayMenus = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/bookings/menu/:menuId
- *
- * Get all student bookings for specific menu
- *
- * Query Parameters (optional):
- * - status: 'ACTIVE' | 'CANCELLED' | 'CONSUMED'
- * - page: number
- * - limit: number
- *
- * Returns:
- * - Array of bookings with: studentId, studentName, quantity, bookingTime, status, amount
- */
+// GET /api/v1/dining/bookings/menu/:menuId - Get all bookings for a menu
 export const getAllBookingsForMenu = asyncHandler(
   async (req: Request, res: Response) => {
     const { menuId } = req.params as { menuId: string };
@@ -965,16 +822,7 @@ export const getAllBookingsForMenu = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/bookings/tomorrow
- *
- * Get all active bookings for tomorrow
- * - Both lunch and dinner
- * - Shows total tokens booked, revenue
- *
- * Returns:
- * - Object with lunch and dinner sections showing total bookings and revenue
- */
+// GET /api/v1/dining/bookings/tomorrow - Get all bookings for tomorrow
 export const getTomorrowBookings = asyncHandler(
   async (req: Request, res: Response) => {
     const diningManagerId = req.user?.userId;
@@ -1034,22 +882,7 @@ export const getTomorrowBookings = asyncHandler(
   }
 );
 
-/**
- * PATCH /api/v1/dining/tokens/mark-consumed
- *
- * Mark tokens as consumed during meal service
- *
- * Input Body:
- * - tokenIds: string[] (array of token IDs or single tokenId)
- *
- * Process:
- * 1. Validate all tokens belong to manager's hall
- * 2. Update status to CONSUMED
- * 3. Set consumedAt timestamp
- * 4. Set verifiedBy to manager's id
- *
- * Returns: updated token details
- */
+// PATCH /api/v1/dining/tokens/mark-consumed - Mark tokens as consumed
 export const markTokensAsConsumed = asyncHandler(
   async (req: Request, res: Response) => {
     const diningManagerId = req.user?.userId;
@@ -1078,21 +911,7 @@ export const markTokensAsConsumed = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/report/daily
- *
- * Generate daily consumption report
- *
- * Query Parameters:
- * - date: YYYY-MM-DD (optional, defaults to today)
- *
- * Returns:
- * - totalTokensSold: number
- * - totalRevenue: decimal
- * - totalCancellations: number
- * - lunch: { booked, revenue, consumed }
- * - dinner: { booked, revenue, consumed }
- */
+// GET /api/v1/dining/report/daily - Generate daily consumption report
 export const getDailyReport = asyncHandler(
   async (req: Request, res: Response) => {
     const diningManagerId = req.user?.userId;
@@ -1168,22 +987,7 @@ export const getDailyReport = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/report/monthly
- *
- * Generate monthly summary
- *
- * Query Parameters:
- * - month: number (1-12)
- * - year: number
- *
- * Returns:
- * - totalRevenue: decimal
- * - totalTokensSold: number
- * - averageTokensPerDay: number
- * - cancellationRate: number (%)
- * - weeklyBreakdown: array
- */
+// GET /api/v1/dining/report/monthly - Generate monthly summary
 export const getMonthlyReport = asyncHandler(
   async (req: Request, res: Response) => {
     const diningManagerId = req.user?.userId;
@@ -1254,30 +1058,9 @@ export const getMonthlyReport = asyncHandler(
   }
 );
 
-// ==============================================================
 // PAYMENT CONTROLLERS - SHARED BY STUDENT & MANAGER
-// ==============================================================
 
-/**
- * POST /api/v1/dining/payment/process
- *
- * Process payment through payment gateway
- * Called during booking flow
- *
- * Input Body:
- * - amount: decimal
- * - paymentMethod: 'BKASH' | 'NAGAD' | 'ROCKET' | 'BANK' | 'CASH'
- * - transactionId: string (from payment gateway)
- * - totalQuantity: number
- *
- * Process:
- * 1. Validate payment amount matches booking
- * 2. Call payment gateway API (if online method)
- * 3. Create mealPayments record
- * 4. Return payment confirmation
- *
- * Returns: payment confirmation with transactionId, amount, status
- */
+// POST /api/v1/dining/payment/process - Process payment
 export const processPayment = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -1330,16 +1113,7 @@ export const processPayment = asyncHandler(
   }
 );
 
-/**
- * GET /api/v1/dining/payment/:paymentId
- *
- * Get payment details by paymentId
- *
- * Returns:
- * - paymentId, amount, paymentMethod, transactionId, status
- * - paymentDate, studentId
- * - Refund details if refunded
- */
+// GET /api/v1/dining/payment/:paymentId - Get payment details
 export const getPaymentDetails = asyncHandler(
   async (req: Request, res: Response) => {
     const { paymentId } = req.params as { paymentId: string };
@@ -1415,24 +1189,7 @@ export const getPaymentDetails = asyncHandler(
   }
 );
 
-/**
- * POST /api/v1/dining/payment/:paymentId/refund
- *
- * Handle refund processing
- *
- * Input Body:
- * - refundAmount: decimal (can be partial)
- * - refundReason: string
- *
- * Process:
- * 1. Verify payment exists and belongs to student/manager's hall
- * 2. Validate refundAmount <= original amount
- * 3. Call payment gateway for refund (if applicable)
- * 4. Update mealPayments with refund info
- * 5. Send refund confirmation email
- *
- * Returns: refund confirmation with details
- */
+// POST /api/v1/dining/payment/:paymentId/refund - Process refund
 export const processRefund = asyncHandler(
   async (req: Request, res: Response) => {
     const { paymentId } = req.params as { paymentId: string };

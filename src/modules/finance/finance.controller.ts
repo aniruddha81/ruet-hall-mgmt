@@ -1,8 +1,9 @@
 import { randomUUID } from "crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
-import { users } from "../../db/models";
+import { hallStudents, users } from "../../db/models";
+import { mealPayments } from "../../db/models/dining.models";
 import {
   expenses,
   payments,
@@ -12,6 +13,7 @@ import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums";
 import { ApiError } from "../../utils/ApiError";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
+import { createMealPayment } from "./finance.service";
 
 // ========================
 // DUES
@@ -241,6 +243,199 @@ export const getStudentLedger = asyncHandler(
           summary: { totalDue, totalPaid },
         },
         "Student ledger retrieved successfully"
+      )
+    );
+  }
+);
+
+// ========================
+// MEAL PAYMENTS
+// ========================
+
+/**
+ * GET /api/v1/finance/meal-payments
+ * Get all meal payments with filters (for finance officers)
+ */
+export const getMealPayments = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { studentId, startDate, endDate, page = 1, limit = 20 } = req.query;
+
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const offset = (pageNum - 1) * limitNum;
+
+    const conditions = [];
+    if (studentId)
+      conditions.push(eq(mealPayments.studentId, studentId as string));
+    if (startDate)
+      conditions.push(
+        sql`${mealPayments.paymentDate} >= CAST(${startDate} AS DATE)`
+      );
+    if (endDate)
+      conditions.push(
+        sql`${mealPayments.paymentDate} <= CAST(${endDate} AS DATE)`
+      );
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const paymentsList = await db
+      .select({
+        id: mealPayments.id,
+        studentId: mealPayments.studentId,
+        studentName: users.name,
+        rollNumber: hallStudents.rollNumber,
+        amount: mealPayments.amount,
+        totalQuantity: mealPayments.totalQuantity,
+        paymentMethod: mealPayments.paymentMethod,
+        transactionId: mealPayments.transactionId,
+        paymentDate: mealPayments.paymentDate,
+        refundAmount: mealPayments.refundAmount,
+        refundedAt: mealPayments.refundedAt,
+      })
+      .from(mealPayments)
+      .innerJoin(users, eq(mealPayments.studentId, users.id))
+      .leftJoin(hallStudents, eq(users.id, hallStudents.userId))
+      .where(whereClause)
+      .orderBy(desc(mealPayments.paymentDate))
+      .limit(limitNum)
+      .offset(offset);
+
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mealPayments)
+      .where(whereClause);
+
+    const total = countResult?.count || 0;
+    const totalPages = Math.ceil(total / limitNum);
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          payments: paymentsList,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages,
+          },
+        },
+        "Meal payments retrieved successfully"
+      )
+    );
+  }
+);
+
+/**
+ * GET /api/v1/finance/meal-payment/:id
+ * Get specific meal payment details
+ */
+export const getMealPaymentById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+
+    const [payment] = await db
+      .select({
+        id: mealPayments.id,
+        studentId: mealPayments.studentId,
+        studentName: users.name,
+        studentEmail: users.email,
+        rollNumber: hallStudents.rollNumber,
+        amount: mealPayments.amount,
+        totalQuantity: mealPayments.totalQuantity,
+        paymentMethod: mealPayments.paymentMethod,
+        transactionId: mealPayments.transactionId,
+        paymentDate: mealPayments.paymentDate,
+        refundAmount: mealPayments.refundAmount,
+        refundedAt: mealPayments.refundedAt,
+      })
+      .from(mealPayments)
+      .innerJoin(users, eq(mealPayments.studentId, users.id))
+      .leftJoin(hallStudents, eq(users.id, hallStudents.userId))
+      .where(eq(mealPayments.id, id))
+      .limit(1);
+
+    if (!payment) {
+      throw new ApiError(404, "Meal payment not found");
+    }
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          payment,
+          "Meal payment details retrieved successfully"
+        )
+      );
+  }
+);
+
+/**
+ * GET /api/v1/finance/meal-payments/report
+ * Generate meal payment revenue report
+ */
+export const getMealPaymentsReport = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { startDate, endDate, hall } = req.query;
+
+    const conditions = [];
+    if (startDate)
+      conditions.push(
+        sql`${mealPayments.paymentDate} >= CAST(${startDate} AS DATE)`
+      );
+    if (endDate)
+      conditions.push(
+        sql`${mealPayments.paymentDate} <= CAST(${endDate} AS DATE)`
+      );
+    if (hall) conditions.push(eq(hallStudents.hall, hall as Hall));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [summary] = await db
+      .select({
+        totalRevenue: sql<number>`COALESCE(SUM(${mealPayments.amount}), 0)`,
+        totalRefunded: sql<number>`COALESCE(SUM(${mealPayments.refundAmount}), 0)`,
+        totalTokensSold: sql<number>`COALESCE(SUM(${mealPayments.totalQuantity}), 0)`,
+        totalTransactions: sql<number>`COUNT(${mealPayments.id})`,
+      })
+      .from(mealPayments)
+      .leftJoin(users, eq(mealPayments.studentId, users.id))
+      .leftJoin(hallStudents, eq(users.id, hallStudents.userId))
+      .where(whereClause);
+
+    const paymentMethodBreakdown = await db
+      .select({
+        paymentMethod: mealPayments.paymentMethod,
+        count: sql<number>`COUNT(*)`,
+        totalAmount: sql<number>`COALESCE(SUM(${mealPayments.amount}), 0)`,
+      })
+      .from(mealPayments)
+      .leftJoin(users, eq(mealPayments.studentId, users.id))
+      .leftJoin(hallStudents, eq(users.id, hallStudents.userId))
+      .where(whereClause)
+      .groupBy(mealPayments.paymentMethod);
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          summary: {
+            totalRevenue: Number(summary?.totalRevenue || 0),
+            totalRefunded: Number(summary?.totalRefunded || 0),
+            netRevenue:
+              Number(summary?.totalRevenue || 0) -
+              Number(summary?.totalRefunded || 0),
+            totalTokensSold: Number(summary?.totalTokensSold || 0),
+            totalTransactions: Number(summary?.totalTransactions || 0),
+          },
+          paymentMethodBreakdown: paymentMethodBreakdown.map((item) => ({
+            method: item.paymentMethod,
+            count: Number(item.count),
+            totalAmount: Number(item.totalAmount),
+          })),
+        },
+        "Meal payments report generated successfully"
       )
     );
   }

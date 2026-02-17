@@ -50,6 +50,8 @@ export const users = mysqlTable(
 
     phone: varchar("phone", { length: 20 }).notNull(),
 
+    rollNumber: varchar("roll_number", { length: 20 }).unique(),
+
     role: userRoleSQL_Enum.notNull().default("STUDENT"),
 
     academicDepartment: academicDepartmentsSQL_Enum.notNull(),

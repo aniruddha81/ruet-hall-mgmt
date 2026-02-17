@@ -7,7 +7,7 @@ export const createDueSchema = {
     studentId: z.uuid("Invalid student ID"),
     hall: z.enum(HALLS),
     type: z.enum(DUE_TYPES),
-    amount: z.number().int().positive("Amount must be positive"),
+    amount: z.int().positive("Amount must be a positive integer"),
   }),
 };
 
@@ -26,7 +26,7 @@ export const createExpenseSchema = {
   body: z.object({
     hall: z.enum(HALLS),
     title: z.string().min(3).max(255),
-    amount: z.number().int().positive(),
+    amount: z.int().positive("Amount must be a positive integer"),
     category: z.string().min(2).max(100),
   }),
 };

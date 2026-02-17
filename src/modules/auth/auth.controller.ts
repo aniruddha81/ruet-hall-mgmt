@@ -4,6 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import type { CookieOptions, Request, Response } from "express";
 import { NODE_ENV } from "../../Constants.ts";
 import { db } from "../../db/index.ts";
+import type { AccessTokenPayload, RefreshTokenPayload } from "./auth.d.ts";
 import {
   hallAdmins,
   hallStudents,
@@ -14,7 +15,6 @@ import { ApiError } from "../../utils/ApiError.ts";
 import { ApiResponse } from "../../utils/ApiResponse.ts";
 import { asyncHandler } from "../../utils/asyncHandler.ts";
 import { createJti, hashToken } from "../../utils/helpers.ts";
-import type { AccessTokenPayload, RefreshTokenPayload } from "./auth";
 import {
   getRefreshTokenExpiry,
   signAccessToken,

@@ -39,6 +39,7 @@ export const authenticateToken = asyncHandler(
         email: user.email,
         name: user.name,
         role: user.role,
+        rollNumber: user.rollNumber ?? undefined,
       };
 
       next();

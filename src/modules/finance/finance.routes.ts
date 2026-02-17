@@ -8,6 +8,9 @@ import {
   createDue,
   createExpense,
   getExpenses,
+  getMealPaymentById,
+  getMealPayments,
+  getMealPaymentsReport,
   getStudentLedger,
   payDue,
 } from "./finance.controller";
@@ -29,16 +32,16 @@ const financeRouter = Router();
 financeRouter.post(
   "/dues",
   authenticateToken,
-  authorizeRoles("ASST_FINANCE", "PROVOST"),
+  authorizeRoles("ASST_FINANCE"),
   validateRequest(createDueSchema),
   createDue
 );
 
 // Mark due as paid
 financeRouter.patch(
-  "/dues/:id/pay",
+  "/dues/pay/:id",
   authenticateToken,
-  authorizeRoles("ASST_FINANCE", "PROVOST"),
+  authorizeRoles("ASST_FINANCE"),
   validateRequest(payDueSchema),
   payDue
 );
@@ -51,7 +54,7 @@ financeRouter.patch(
 financeRouter.post(
   "/expense",
   authenticateToken,
-  authorizeRoles("ASST_FINANCE", "PROVOST"),
+  authorizeRoles("ASST_FINANCE"),
   validateRequest(createExpenseSchema),
   createExpense
 );
@@ -60,7 +63,7 @@ financeRouter.post(
 financeRouter.get(
   "/expenses",
   authenticateToken,
-  authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER", "PROVOST"),
+  authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER"),
   validateRequest(listExpensesSchema),
   getExpenses
 );
@@ -73,9 +76,37 @@ financeRouter.get(
 financeRouter.get(
   "/student/:id/ledger",
   authenticateToken,
-  authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER", "PROVOST"),
+  authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER"),
   validateRequest(studentLedgerSchema),
   getStudentLedger
+);
+
+// ==============================================================
+// MEAL PAYMENTS
+// ==============================================================
+
+// Get all meal payments with filters
+financeRouter.get(
+  "/meal-payments",
+  authenticateToken,
+  authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER"),
+  getMealPayments
+);
+
+// Get meal payments report
+financeRouter.get(
+  "/meal-payments/report",
+  authenticateToken,
+  authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER"),
+  getMealPaymentsReport
+);
+
+// Get specific meal payment
+financeRouter.get(
+  "/meal-payment/:id",
+  authenticateToken,
+  authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER"),
+  getMealPaymentById
 );
 
 export default financeRouter;

@@ -1,14 +1,13 @@
 import type { Role } from "../../types/enums";
 
-interface AccessTokenPayload {
+type AccessTokenPayload = {
   userId: string;
   email: string;
   name: string;
   role: Role;
-}
+  rollNumber?: string;
+};
 
-interface RefreshTokenPayload extends AccessTokenPayload {
+type RefreshTokenPayload = AccessTokenPayload & {
   jti: string;
-}
-
-export { AccessTokenPayload, RefreshTokenPayload };
+};
