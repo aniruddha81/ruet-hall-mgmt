@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { SEAT_APPLICATION_STATUSES } from "../../types/enums";
 import { academicDepartmentsSQL_Enum, users, hallAdmins } from "./auth.models";
-import { hallSQL_Enum, halls } from "./halls.models";
+import { hallSQL_Enum, halls, rooms } from "./halls.models";
 import { beds } from "./inventory.models.ts";
 
 export const seatApplicationStatusSQL_Enum = mysqlEnum(
@@ -77,7 +77,9 @@ export const seatAllocations = mysqlTable(
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
-    roomNumber: varchar("room_number", { length: 10 }).notNull(),
+    roomId: varchar("room_id", { length: 36 })
+      .notNull()
+      .references(() => rooms.id),
 
     bedId: varchar("bed_id", { length: 36 })
       .notNull()
@@ -93,6 +95,7 @@ export const seatAllocations = mysqlTable(
   },
   (t) => [
     index("idx_seat_alloc_student").on(t.studentId),
+    index("idx_seat_alloc_room").on(t.roomId),
     index("idx_seat_alloc_hall").on(t.hall),
     index("idx_seat_alloc_bed").on(t.bedId),
   ]

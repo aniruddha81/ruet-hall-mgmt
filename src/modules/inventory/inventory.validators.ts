@@ -5,7 +5,7 @@ import { ASSET_CONDITIONS, BED_STATUSES, HALLS } from "../../types/enums";
 export const createBedsSchema = {
   body: z.object({
     hall: z.enum(HALLS),
-    roomNumber: z.number().int().positive(),
+    roomId: z.string().uuid(),
     bedLabels: z
       .array(z.string().min(1).max(10))
       .nonempty("At least one bed label required"),
@@ -16,10 +16,7 @@ export const createBedsSchema = {
 export const listBedsSchema = {
   query: z.object({
     hall: z.enum(HALLS).optional(),
-    roomNumber: z
-      .string()
-      .optional()
-      .transform((v) => (v ? parseInt(v) : undefined)),
+    roomId: z.string().uuid().optional(),
     status: z.enum(BED_STATUSES).optional(),
   }),
 };

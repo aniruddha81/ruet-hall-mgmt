@@ -1,0 +1,324 @@
+THIS INSTRUCTION IS FOR USERS AND ANY LLMs.. DON'T TOUCH THIS FILE.. ANYTHING CHANGE HERE CAN CAUSE HUGE DAMAGE
+
+
+========================================
+RUET HALL MANAGEMENT - ER DIAGRAM (DSL)
+========================================
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+User {
+  id uuid pk
+  email string unique
+  passwordHash string
+  name string
+  phone string
+  rollNumber string unique
+  role enum(STUDENT, ADMIN, STAFF, DINING_MANAGER)
+  academicDepartment enum
+  isActive boolean
+  avatarUrl string
+  createdAt datetime
+  updatedAt datetime
+}
+
+RefreshToken {
+  id uuid pk
+  userId uuid fk -> User.id
+  tokenHash string unique
+  jti string unique
+  ip string
+  userAgent string
+  expiresAt datetime
+  createdAt datetime
+}
+
+Hall {
+  name enum(ZIA_HALL, SHAH_JALAL_HALL, RASHID_HALL, FARUKI_HALL) pk
+  address text
+  contactNumber string
+  totalCapacity int
+  totalRooms int
+  isActive boolean
+  createdAt datetime
+  updatedAt datetime
+}
+
+Room {
+  id uuid pk
+  roomNumber smallint
+  hall enum fk -> Hall.name
+  capacity tinyint
+  currentOccupancy smallint
+  status enum(AVAILABLE, OCCUPIED, MAINTENANCE)
+  createdAt datetime
+  updatedAt datetime
+}
+
+Bed {
+  id uuid pk
+  hall enum fk -> Hall.name
+  roomId uuid fk -> Room.id
+  bedLabel string
+  status enum(AVAILABLE, OCCUPIED, MAINTENANCE)
+  createdAt datetime
+}
+
+// ============================================
+// RESIDENTIAL MANAGEMENT ENTITIES
+// ============================================
+
+HallStudent {
+  id uuid pk
+  userId uuid fk -> User.id unique
+  rollNumber int unique
+  session string
+  hall enum fk -> Hall.name
+  roomId uuid fk -> Room.id
+  status enum(ACTIVE, INACTIVE, SUSPENDED)
+  createdAt datetime
+  updatedAt datetime
+}
+
+HallAdmin {
+  id uuid pk
+  userId uuid fk -> User.id unique
+  hall enum fk -> Hall.name
+  designation enum(WARDEN, ACADEMIC_ADVISOR, SECURITY_CHIEF)
+  operationalUnit enum(MAINTENANCE, SECURITY, ACADEMIC)
+  reportingToId uuid fk -> User.id
+  isActive boolean
+  createdAt datetime
+  updatedAt datetime
+}
+
+// ============================================
+// DINING ENTITIES
+// ============================================
+
+MealMenu {
+  id uuid pk
+  hall enum fk -> Hall.name
+  mealDate date
+  mealType enum(LUNCH, DINNER)
+  menuDescription text
+  price tinyint
+  totalTokens int
+  bookedTokens int
+  availableTokens int (computed: totalTokens - bookedTokens)
+  createdBy uuid fk -> User.id
+  createdAt datetime
+  updatedAt datetime
+}
+
+MealToken {
+  id uuid pk
+  studentId uuid fk -> User.id
+  menuId uuid fk -> MealMenu.id
+  hall enum fk -> Hall.name
+  mealDate date
+  mealType enum(LUNCH, DINNER)
+  quantity tinyint
+  totalAmount int
+  paymentId uuid fk -> MealPayment.id
+  bookingTime datetime
+  cancelledAt datetime
+  createdAt datetime
+  updatedAt datetime
+}
+
+MealPayment {
+  id uuid pk
+  studentId uuid fk -> User.id
+  amount int
+  totalQuantity tinyint
+  paymentMethod enum(BKASH, NAGAD, ROCKET, BANK, CASH)
+  transactionId string unique
+  paymentDate datetime
+  refundedAt datetime
+  refundAmount int
+  createdAt datetime
+  updatedAt datetime
+}
+
+// ============================================
+// FINANCE ENTITIES
+// ============================================
+
+StudentDue {
+  id uuid pk
+  studentId uuid fk -> User.id
+  hall enum fk -> Hall.name
+  type enum(ROOM_RENT, MEAL_DEFAULT, LIBRARY_FINE, DAMAGE_FINE)
+  amount int
+  status enum(UNPAID, PAID, PARTIAL)
+  paidAt datetime
+  createdAt datetime
+  updatedAt datetime
+}
+
+Payment {
+  id uuid pk
+  studentId uuid fk -> User.id
+  hall enum fk -> Hall.name
+  dueId uuid fk -> StudentDue.id
+  amount int
+  method enum(BKASH, BANK_TRANSFER, CASH, CHECK)
+  createdAt datetime
+}
+
+Expense {
+  id uuid pk
+  hall enum fk -> Hall.name
+  title string
+  amount int
+  category string
+  approvedBy uuid fk -> HallAdmin.id
+  createdAt datetime
+}
+
+// ============================================
+// INVENTORY & MAINTENANCE ENTITIES
+// ============================================
+
+Asset {
+  id uuid pk
+  hall enum fk -> Hall.name
+  name string
+  quantity int
+  condition enum(GOOD, FAIR, DAMAGED, DISPOSED)
+  createdAt datetime
+  updatedAt datetime
+}
+
+DamageReport {
+  id uuid pk
+  studentId uuid fk -> HallStudent.id
+  assetId uuid fk -> Asset.id
+  hall enum fk -> Hall.name
+  description text
+  fineAmount int
+  status enum(REPORTED, VERIFIED, RESOLVED, DISMISSED)
+  verifiedBy uuid fk -> HallAdmin.id
+  createdAt datetime
+  updatedAt datetime
+}
+
+// ============================================
+// ADMISSION & ALLOCATION ENTITIES
+// ============================================
+
+SeatApplication {
+  id uuid pk
+  studentId uuid fk -> User.id
+  rollNumber string
+  hall enum fk -> Hall.name
+  department enum
+  session string
+  status enum(PENDING, APPROVED, REJECTED, WITHDRAWN)
+  reviewedBy uuid fk -> HallAdmin.id
+  reviewedAt datetime
+  createdAt datetime
+}
+
+SeatAllocation {
+  id uuid pk
+  studentId uuid fk -> User.id
+  rollNumber string
+  hall enum fk -> Hall.name
+  roomId uuid fk -> Room.id
+  bedId uuid fk -> Bed.id
+  allocatedAt datetime
+  allocatedBy uuid fk -> HallAdmin.id
+}
+
+// ============================================
+// RELATIONSHIPS
+// ============================================
+
+// Authentication
+User.id < RefreshToken.userId
+
+// Hall Structure
+Hall.name < Room.hall
+Hall.name < Bed.hall
+Room.id < Bed.roomId
+
+// Residential Management
+User.id < HallStudent.userId
+Hall.name < HallStudent.hall
+Room.id < HallStudent.roomId
+User.id < HallAdmin.userId
+Hall.name < HallAdmin.hall
+User.id < HallAdmin.reportingToId
+
+// Dining System
+Hall.name < MealMenu.hall
+User.id < MealMenu.createdBy
+User.id < MealToken.studentId
+MealMenu.id < MealToken.menuId
+Hall.name < MealToken.hall
+MealPayment.id < MealToken.paymentId
+User.id < MealPayment.studentId
+
+// Finance Management
+User.id < StudentDue.studentId
+Hall.name < StudentDue.hall
+User.id < Payment.studentId
+Hall.name < Payment.hall
+StudentDue.id < Payment.dueId
+Hall.name < Expense.hall
+HallAdmin.id < Expense.approvedBy
+
+// Inventory & Maintenance
+Hall.name < Asset.hall
+HallStudent.id < DamageReport.studentId
+Asset.id < DamageReport.assetId
+Hall.name < DamageReport.hall
+HallAdmin.id < DamageReport.verifiedBy
+
+// Admission & Allocation
+User.id < SeatApplication.studentId
+Hall.name < SeatApplication.hall
+HallAdmin.id < SeatApplication.reviewedBy
+User.id < SeatAllocation.studentId
+Hall.name < SeatAllocation.hall
+Room.id < SeatAllocation.roomId
+Bed.id < SeatAllocation.bedId
+HallAdmin.id < SeatAllocation.allocatedBy
+
+// ============================================
+// KEY CONSTRAINTS & NOTES
+// ============================================
+
+UNIQUE CONSTRAINTS:
+  - User.email (unique)
+  - User.rollNumber (unique)
+  - RefreshToken.tokenHash (unique)
+  - RefreshToken.jti (unique)
+  - HallStudent.userId (unique) -> only 1 student per user
+  - HallStudent.rollNumber (unique)
+  - HallAdmin.userId (unique) -> only 1 admin role per user
+  - MealPayment.transactionId (unique)
+  - (HallAdmin.userId, Hall.name) -> 1 admin per hall per user
+  - (MealMenu.hall, mealDate, mealType) -> 1 lunch & 1 dinner per hall per day
+
+ONE-TO-MANY RELATIONSHIPS:
+  - User → RefreshToken (1 user can have multiple tokens)
+  - User → HallStudent (1 user can be in 1 hall only)
+  - User → HallAdmin (1 user can admin 1 hall only)
+  - Hall → Room (1 hall has many rooms)
+  - Room → Bed (1 room has multiple beds)
+  - Hall → various entities (menus, dues, expenses, assets, etc.)
+
+DERIVED FIELDS:
+  - MealMenu.availableTokens = totalTokens - bookedTokens (auto-calculated)
+
+CASCADE DELETES:
+  - User deletion cascades to: RefreshToken, HallStudent, HallAdmin, MealToken, MealPayment, StudentDue, Payment, SeatApplication, SeatAllocation
+  - Hall deletion cascades to: Room, MealMenu, MealToken, StudentDue, Payment, Expense, Asset, DamageReport, SeatApplication, SeatAllocation
+  - Room deletion cascades to bed references
+  - Asset deletion cascades to DamageReport references
+  - HallStudent deletion cascades to DamageReport references

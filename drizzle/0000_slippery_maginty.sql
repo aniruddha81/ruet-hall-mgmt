@@ -47,7 +47,7 @@ CREATE TABLE `hall_students` (
 	`roll_number` int NOT NULL,
 	`session` varchar(10),
 	`hall` enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL') NOT NULL,
-	`room_number` smallint unsigned,
+	`room_id` varchar(36),
 	`student_status` enum('ACTIVE','ALUMNI','SUSPENDED','EXPELLED') NOT NULL DEFAULT 'ACTIVE',
 	`created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -77,6 +77,7 @@ CREATE TABLE `users` (
 	`password_hash` varchar(255) NOT NULL,
 	`name` varchar(255) NOT NULL,
 	`phone` varchar(20) NOT NULL,
+	`roll_number` varchar(20),
 	`user_role` enum('PROVOST','ASST_FINANCE','FINANCE_SECTION_OFFICER','ASST_DINING','DINING_MANAGER','ASST_INVENTORY','INVENTORY_SECTION_OFFICER','STUDENT') NOT NULL DEFAULT 'STUDENT',
 	`academic_department` enum('CSE','EEE','ME','CE','IPE','ECE','ETE','BME','MTE','URP','ChE','Arch') NOT NULL,
 	`is_active` boolean NOT NULL DEFAULT true,
@@ -84,7 +85,8 @@ CREATE TABLE `users` (
 	`created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT `users_id` PRIMARY KEY(`id`),
-	CONSTRAINT `users_email_unique` UNIQUE(`email`)
+	CONSTRAINT `users_email_unique` UNIQUE(`email`),
+	CONSTRAINT `users_roll_number_unique` UNIQUE(`roll_number`)
 );
 --> statement-breakpoint
 CREATE TABLE `meal_menus` (
@@ -190,6 +192,7 @@ CREATE TABLE `halls` (
 );
 --> statement-breakpoint
 CREATE TABLE `rooms` (
+	`id` varchar(36) NOT NULL,
 	`room_number` smallint unsigned NOT NULL,
 	`hall` enum('ZIA_HALL','SHAH_JALAL_HALL','RASHID_HALL','FARUKI_HALL') NOT NULL,
 	`capacity` tinyint unsigned NOT NULL,
@@ -197,7 +200,7 @@ CREATE TABLE `rooms` (
 	`room_status` enum('AVAILABLE','OCCUPIED','MAINTENANCE','RESERVED') NOT NULL DEFAULT 'AVAILABLE',
 	`created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	CONSTRAINT `rooms_room_number` PRIMARY KEY(`room_number`)
+	CONSTRAINT `rooms_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `assets` (
@@ -250,7 +253,7 @@ ALTER TABLE `hall_admins` ADD CONSTRAINT `hall_admins_hall_halls_hall_fk` FOREIG
 ALTER TABLE `hall_admins` ADD CONSTRAINT `hall_admins_reporting_to_id_users_id_fk` FOREIGN KEY (`reporting_to_id`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `hall_students` ADD CONSTRAINT `hall_students_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `hall_students` ADD CONSTRAINT `hall_students_hall_halls_hall_fk` FOREIGN KEY (`hall`) REFERENCES `halls`(`hall`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE `hall_students` ADD CONSTRAINT `hall_students_room_number_rooms_room_number_fk` FOREIGN KEY (`room_number`) REFERENCES `rooms`(`room_number`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `hall_students` ADD CONSTRAINT `hall_students_room_id_rooms_id_fk` FOREIGN KEY (`room_id`) REFERENCES `rooms`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `refresh_tokens` ADD CONSTRAINT `refresh_tokens_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `meal_menus` ADD CONSTRAINT `meal_menus_hall_halls_hall_fk` FOREIGN KEY (`hall`) REFERENCES `halls`(`hall`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `meal_menus` ADD CONSTRAINT `meal_menus_created_by_users_id_fk` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -285,7 +288,7 @@ CREATE INDEX `idx_admins_reporting_to` ON `hall_admins` (`reporting_to_id`);--> 
 CREATE INDEX `idx_admins_operational_unit` ON `hall_admins` (`operational_unit`);--> statement-breakpoint
 CREATE INDEX `uq_admin_user_hall` ON `hall_admins` (`user_id`,`hall`);--> statement-breakpoint
 CREATE INDEX `idx_students_hall` ON `hall_students` (`hall`);--> statement-breakpoint
-CREATE INDEX `idx_students_room` ON `hall_students` (`room_number`);--> statement-breakpoint
+CREATE INDEX `idx_students_room` ON `hall_students` (`room_id`);--> statement-breakpoint
 CREATE INDEX `idx_students_status` ON `hall_students` (`student_status`);--> statement-breakpoint
 CREATE INDEX `refresh_tokens_user_idx` ON `refresh_tokens` (`user_id`);--> statement-breakpoint
 CREATE INDEX `refresh_tokens_expires_idx` ON `refresh_tokens` (`expires_at`);--> statement-breakpoint
@@ -308,7 +311,7 @@ CREATE INDEX `idx_dues_student` ON `student_dues` (`student_id`);--> statement-b
 CREATE INDEX `idx_dues_hall` ON `student_dues` (`hall`);--> statement-breakpoint
 CREATE INDEX `idx_dues_status` ON `student_dues` (`due_status`);--> statement-breakpoint
 CREATE INDEX `idx_dues_type` ON `student_dues` (`due_type`);--> statement-breakpoint
-CREATE INDEX `uq_room_hall_number` ON `rooms` (`hall`,`room_number`);--> statement-breakpoint
+CREATE INDEX `idx_room_number` ON `rooms` (`room_number`);--> statement-breakpoint
 CREATE INDEX `idx_rooms_hall` ON `rooms` (`hall`);--> statement-breakpoint
 CREATE INDEX `idx_rooms_status` ON `rooms` (`room_status`);--> statement-breakpoint
 CREATE INDEX `idx_assets_hall` ON `assets` (`hall`);--> statement-breakpoint

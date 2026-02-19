@@ -1,89 +1,86 @@
-import { eq } from "drizzle-orm";
-import { HALLS } from "../types/enums";
-import { db } from "./index";
-import {
-  halls as hallsTable,
-  rooms as roomsTable,
-} from "./models/halls.models";
+import { randomUUID } from "crypto";
+import { db } from ".";
+import { halls as hallsTable, rooms } from "./models";
 
-/**
- * Seed halls and rooms.
- * - Inserts each hall from `HALLS` if not present
- * - Creates `totalRooms` rooms per hall with globally-unique room numbers
- * - Uses sensible defaults so this is safe to run multiple times
- */
-export async function seedHallsAndRooms(opts?: {
-  roomsPerHall?: number;
-  roomCapacity?: number;
-}) {
-  const roomsPerHall = opts?.roomsPerHall ?? 50;
-  const roomCapacity = opts?.roomCapacity ?? 2;
+async function seed() {
+  // hall insertion
 
-  let globalRoomNumber = 1;
+  const hallsData = [
+    {
+      name: "ZIA_HALL" as const,
+      address: "Block A, Main Campus",
+      contactNumber: "01710000001",
+      totalCapacity: 80,
+      totalRooms: 20,
+      isActive: true,
+    },
+    {
+      name: "SHAH_JALAL_HALL" as const,
+      address: "East Residential Zone",
+      contactNumber: "01710000002",
+      totalCapacity: 120,
+      totalRooms: 30,
+      isActive: true,
+    },
+    {
+      name: "RASHID_HALL" as const,
+      address: "South Campus Road",
+      contactNumber: "01710000003",
+      totalCapacity: 100,
+      totalRooms: 25,
+      isActive: true,
+    },
+    {
+      name: "FARUKI_HALL" as const,
+      address: "North Academic Area",
+      contactNumber: "01710000004",
+      totalCapacity: 90,
+      totalRooms: 22,
+      isActive: true,
+    },
+  ];
 
-  for (const hallName of HALLS) {
-    // Check if hall exists
-    const [existing] = await db
-      .select()
-      .from(hallsTable)
-      .where(eq(hallsTable.name, hallName))
-      .limit(1);
+  for (const hallData of hallsData) {
+    await db.insert(hallsTable).values(hallData);
+  }
 
-    const totalRooms = roomsPerHall;
-    const totalCapacity = totalRooms * roomCapacity;
+  // room insertion
 
-    if (!existing) {
-      await db.insert(hallsTable).values({
-        name: hallName,
-        address: `${hallName.replace(/_/g, " ")} Address`,
-        contactNumber: null,
-        totalCapacity,
-        totalRooms,
-        isActive: true,
+  const hallRoomConfig = [
+    { name: "ZIA_HALL" as const, totalRooms: 20, capacity: 4 },
+    { name: "SHAH_JALAL_HALL" as const, totalRooms: 30, capacity: 4 },
+    { name: "RASHID_HALL" as const, totalRooms: 25, capacity: 4 },
+    { name: "FARUKI_HALL" as const, totalRooms: 22, capacity: 4 },
+  ] as const;
+
+  const roomsData = [];
+
+  let roomNumberCount = 1;
+
+  for (const hall of hallRoomConfig) {
+    for (let i = 0; i < hall.totalRooms; i++) {
+      roomsData.push({
+        id: randomUUID(),
+        roomNumber: roomNumberCount++,
+        hall: hall.name,
+        capacity: hall.capacity,
+        currentOccupancy: 0,
+        status: "AVAILABLE" as const,
       });
-    } else {
-      // Ensure totals are up-to-date
-      await db
-        .update(hallsTable)
-        .set({ totalCapacity, totalRooms })
-        .where(eq(hallsTable.name, hallName));
     }
+    roomNumberCount = 1;
+  }
 
-    // Insert rooms for this hall if not already present (based on hall & roomNumber index)
-    // We create globally-unique room numbers to satisfy the schema's primary key.
-    for (let i = 0; i < roomsPerHall; i++) {
-      const roomNumber = globalRoomNumber++;
-
-      const [roomExists] = await db
-        .select()
-        .from(roomsTable)
-        .where(eq(roomsTable.roomNumber, roomNumber))
-        .limit(1);
-
-      if (!roomExists) {
-        await db.insert(roomsTable).values({
-          roomNumber,
-          hall: hallName,
-          capacity: roomCapacity,
-          currentOccupancy: 0,
-          status: "AVAILABLE",
-        });
-      }
-    }
+  for (const room of roomsData) {
+    await db.insert(rooms).values(room);
   }
 }
 
-// Run the seed when invoked directly
-if (require.main === module) {
-  (async () => {
-    try {
-      console.log("Seeding halls and rooms...");
-      await seedHallsAndRooms();
-      console.log("Seed complete");
-      process.exit(0);
-    } catch (err) {
-      console.error("Seed failed:", err);
-      process.exit(1);
-    }
-  })();
+try {
+  await seed();
+  console.log("Seed completed successfully!");
+  process.exit(0);
+} catch (error) {
+  console.error("Seed failed:", error);
+  process.exit(1);
 }

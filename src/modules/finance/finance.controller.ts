@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
 import { hallStudents, users } from "../../db/models";
@@ -13,7 +13,6 @@ import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums";
 import { ApiError } from "../../utils/ApiError";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { createMealPayment } from "./finance.service";
 
 // ========================
 // DUES
@@ -157,12 +156,12 @@ export const getExpenses = asyncHandler(async (req: Request, res: Response) => {
     })
     .from(expenses)
     .where(whereClause)
-    .orderBy(sql`${expenses.createdAt} DESC`)
+    .orderBy(desc(expenses.createdAt))
     .limit(limit)
     .offset(offset);
 
   const [countResult] = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: count() })
     .from(expenses)
     .where(whereClause);
 
@@ -214,7 +213,7 @@ export const getStudentLedger = asyncHandler(
       })
       .from(studentDues)
       .where(eq(studentDues.studentId, id))
-      .orderBy(sql`${studentDues.createdAt} DESC`);
+      .orderBy(desc(studentDues.createdAt));
 
     const studentPayments = await db
       .select({
@@ -225,7 +224,7 @@ export const getStudentLedger = asyncHandler(
       })
       .from(payments)
       .where(eq(payments.studentId, id))
-      .orderBy(sql`${payments.createdAt} DESC`);
+      .orderBy(desc(payments.createdAt));
 
     const totalDue = dues
       .filter((d) => d.status === "UNPAID")

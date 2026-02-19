@@ -74,7 +74,7 @@ financeRouter.get(
 
 // Get student's financial ledger
 financeRouter.get(
-  "/student/:id/ledger",
+  "/student/ledger/:id",
   authenticateToken,
   authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER"),
   validateRequest(studentLedgerSchema),

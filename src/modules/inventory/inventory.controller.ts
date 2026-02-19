@@ -33,6 +33,7 @@ export const getRooms = asyncHandler(async (req: Request, res: Response) => {
 
   const result = await db
     .select({
+      id: rooms.id,
       roomNumber: rooms.roomNumber,
       hall: rooms.hall,
       capacity: rooms.capacity,
@@ -57,13 +58,13 @@ export const getRooms = asyncHandler(async (req: Request, res: Response) => {
  * Create beds for a room (admin)
  */
 export const createBeds = asyncHandler(async (req: Request, res: Response) => {
-  const { hall, roomNumber, bedLabels } = req.body;
+  const { hall, roomId, bedLabels } = req.body;
 
   // Verify room exists
   const [room] = await db
     .select()
     .from(rooms)
-    .where(and(eq(rooms.hall, hall), eq(rooms.roomNumber, roomNumber)))
+    .where(and(eq(rooms.hall, hall), eq(rooms.id, roomId)))
     .limit(1);
 
   if (!room) throw new ApiError(404, "Room not found");
@@ -71,7 +72,7 @@ export const createBeds = asyncHandler(async (req: Request, res: Response) => {
   const values = (bedLabels as string[]).map((label) => ({
     id: randomUUID(),
     hall: hall as Hall,
-    roomNumber: roomNumber as number,
+    roomId: roomId as string,
     bedLabel: label,
   }));
 
@@ -88,14 +89,12 @@ export const createBeds = asyncHandler(async (req: Request, res: Response) => {
  */
 export const getBeds = asyncHandler(async (req: Request, res: Response) => {
   const hall = req.query.hall as Hall | undefined;
-  const roomNumber = req.query.roomNumber
-    ? Number(req.query.roomNumber)
-    : undefined;
+  const roomId = req.query.roomId as string | undefined;
   const status = req.query.status as BedStatus | undefined;
 
   const conditions = [];
   if (hall) conditions.push(eq(beds.hall, hall));
-  if (roomNumber) conditions.push(eq(beds.roomNumber, roomNumber));
+  if (roomId) conditions.push(eq(beds.roomId, roomId));
   if (status) conditions.push(eq(beds.status, status));
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -103,13 +102,13 @@ export const getBeds = asyncHandler(async (req: Request, res: Response) => {
     .select({
       id: beds.id,
       hall: beds.hall,
-      roomNumber: beds.roomNumber,
+      roomId: beds.roomId,
       bedLabel: beds.bedLabel,
       status: beds.status,
     })
     .from(beds)
     .where(whereClause)
-    .orderBy(beds.roomNumber, beds.bedLabel);
+    .orderBy(beds.roomId, beds.bedLabel);
 
   res
     .status(200)

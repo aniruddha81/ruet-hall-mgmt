@@ -26,6 +26,11 @@ import { asyncHandler } from "../../utils/asyncHandler";
 export const applyForSeat = asyncHandler(
   async (req: Request, res: Response) => {
     const { userId: studentId, rollNumber } = req.user!;
+
+    if (!rollNumber) {
+      throw new ApiError(400, "Roll number is required to apply for a seat");
+    }
+
     const { hall, department, session } = req.body;
 
     // Check if user already has a pending/approved application
@@ -62,10 +67,10 @@ export const applyForSeat = asyncHandler(
     await db.insert(seatApplications).values({
       id,
       studentId,
+      rollNumber,
       hall,
       department,
       session,
-      rollNumber,
     });
 
     res
@@ -273,7 +278,7 @@ export const allocateSeat = asyncHandler(
       id: allocationId,
       studentId: app.studentId,
       hall: app.hall,
-      roomNumber: String(bed.roomNumber),
+      roomId: bed.roomId,
       bedId,
       allocatedBy: admin.id,
       rollNumber,
@@ -294,7 +299,7 @@ export const allocateSeat = asyncHandler(
         .update(hallStudents)
         .set({
           hall: app.hall,
-          roomNumber: bed.roomNumber,
+          roomId: bed.roomId,
           status: "ACTIVE",
           rollNumber,
         })
@@ -306,7 +311,7 @@ export const allocateSeat = asyncHandler(
         rollNumber,
         session: app.session,
         hall: app.hall,
-        roomNumber: bed.roomNumber,
+        roomId: bed.roomId,
         status: "ACTIVE",
       });
     }
@@ -318,7 +323,7 @@ export const allocateSeat = asyncHandler(
           allocationId,
           studentId: app.studentId,
           hall: app.hall,
-          roomNumber: bed.roomNumber,
+          roomId: bed.roomId,
           bedId,
         },
         "Seat allocated successfully"

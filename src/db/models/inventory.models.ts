@@ -15,7 +15,7 @@ import {
   DAMAGE_REPORT_STATUSES,
 } from "../../types/enums";
 import { hallAdmins, hallStudents, users } from "./auth.models";
-import { hallSQL_Enum, halls } from "./halls.models";
+import { hallSQL_Enum, halls, rooms } from "./halls.models";
 
 export const bedStatusSQL_Enum = mysqlEnum("bed_status", BED_STATUSES);
 export const assetConditionSQL_Enum = mysqlEnum(
@@ -40,7 +40,9 @@ export const beds = mysqlTable(
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
-    roomNumber: smallint("room_number", { unsigned: true }).notNull(),
+    roomId: varchar("room_id", { length: 36 })
+      .notNull()
+      .references(() => rooms.id),
 
     bedLabel: varchar("bed_label", { length: 10 }).notNull(),
     // e.g. "A", "B", "C"
@@ -53,7 +55,7 @@ export const beds = mysqlTable(
   },
   (t) => [
     index("idx_beds_hall").on(t.hall),
-    index("idx_beds_room").on(t.roomNumber),
+    index("idx_beds_room_id").on(t.roomId),
     index("idx_beds_status").on(t.status),
   ]
 );

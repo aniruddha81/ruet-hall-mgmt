@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "d19e3c15-4571-4ff6-ad49-56019bac756c",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "921a8128-6816-47ad-8f11-c93e12b3a5cd",
+  "prevId": "d19e3c15-4571-4ff6-ad49-56019bac756c",
   "tables": {
     "seat_allocations": {
       "name": "seat_allocations",
@@ -35,9 +35,9 @@
           "notNull": true,
           "autoincrement": false
         },
-        "room_number": {
-          "name": "room_number",
-          "type": "varchar(10)",
+        "room_id": {
+          "name": "room_id",
+          "type": "varchar(36)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -70,6 +70,13 @@
           "name": "idx_seat_alloc_student",
           "columns": [
             "student_id"
+          ],
+          "isUnique": false
+        },
+        "idx_seat_alloc_room": {
+          "name": "idx_seat_alloc_room",
+          "columns": [
+            "room_id"
           ],
           "isUnique": false
         },
@@ -113,6 +120,19 @@
             "hall"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "seat_allocations_room_id_rooms_id_fk": {
+          "name": "seat_allocations_room_id_rooms_id_fk",
+          "tableFrom": "seat_allocations",
+          "tableTo": "rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "seat_allocations_bed_id_beds_id_fk": {
@@ -2008,10 +2028,10 @@
         }
       },
       "indexes": {
-        "idx_room_number": {
-          "name": "idx_room_number",
+        "idx_room_id": {
+          "name": "idx_room_id",
           "columns": [
-            "room_number"
+            "id"
           ],
           "isUnique": false
         },
@@ -2178,9 +2198,9 @@
           "notNull": true,
           "autoincrement": false
         },
-        "room_number": {
-          "name": "room_number",
-          "type": "smallint unsigned",
+        "room_id": {
+          "name": "room_id",
+          "type": "varchar(36)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -2217,10 +2237,10 @@
           ],
           "isUnique": false
         },
-        "idx_beds_room": {
-          "name": "idx_beds_room",
+        "idx_beds_room_id": {
+          "name": "idx_beds_room_id",
           "columns": [
-            "room_number"
+            "room_id"
           ],
           "isUnique": false
         },
@@ -2244,6 +2264,19 @@
             "hall"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "beds_room_id_rooms_id_fk": {
+          "name": "beds_room_id_rooms_id_fk",
+          "tableFrom": "beds",
+          "tableTo": "rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -2454,7 +2487,10 @@
   "_meta": {
     "schemas": {},
     "tables": {},
-    "columns": {}
+    "columns": {
+      "\"seat_allocations\".\"room_number\"": "\"seat_allocations\".\"room_id\"",
+      "\"beds\".\"room_number\"": "\"beds\".\"room_id\""
+    }
   },
   "internal": {
     "tables": {},

@@ -7,7 +7,6 @@ import {
   int,
   mysqlEnum,
   mysqlTable,
-  smallint,
   varchar,
 } from "drizzle-orm/mysql-core";
 import {
@@ -117,9 +116,7 @@ export const hallStudents = mysqlTable(
 
     hall: hallSQL_Enum.references(() => halls.name, { onDelete: "cascade" }),
 
-    roomNumber: smallint("room_number", { unsigned: true }).references(
-      () => rooms.roomNumber
-    ),
+    roomId: varchar("room_id", { length: 36 }).references(() => rooms.id),
 
     status: studentStatusSQL_Enum.notNull().default("ACTIVE"),
 
@@ -134,7 +131,7 @@ export const hallStudents = mysqlTable(
   },
   (t) => [
     index("idx_students_hall").on(t.hall),
-    index("idx_students_room").on(t.roomNumber),
+    index("idx_students_room").on(t.roomId),
     index("idx_students_status").on(t.status),
   ]
 );

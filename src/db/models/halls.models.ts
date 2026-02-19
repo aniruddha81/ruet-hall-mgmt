@@ -19,9 +19,8 @@ export const hallSQL_Enum = mysqlEnum("hall", HALLS);
 export const rooms = mysqlTable(
   "rooms",
   {
-    roomNumber: smallint("room_number", { unsigned: true })
-      .notNull()
-      .primaryKey(),
+    id: varchar("id", { length: 36 }).primaryKey(),
+    roomNumber: smallint("room_number", { unsigned: true }).notNull(),
 
     hall: hallSQL_Enum
       .notNull()
@@ -45,7 +44,7 @@ export const rooms = mysqlTable(
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
   },
   (t) => [
-    index("uq_room_hall_number").on(t.hall, t.roomNumber),
+    index("idx_room_id").on(t.id),
     index("idx_rooms_hall").on(t.hall),
     index("idx_rooms_status").on(t.status),
   ]
