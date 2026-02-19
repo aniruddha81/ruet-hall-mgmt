@@ -2,11 +2,15 @@ import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
 import { users } from "../../db/models";
-import { uploadOnCloudinary } from "../../utils/cloudinary";
 import { ApiError } from "../../utils/ApiError";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
+import { uploadOnCloudinary } from "../../utils/cloudinary";
 
+/**
+ * POST /api/v1/profile/upload-image
+ * Upload user avatar image to Cloudinary
+ */
 export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
   const avatarLocalPath = req.file?.path;
   const userId = req.user?.userId;

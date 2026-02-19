@@ -85,7 +85,7 @@ export const createBeds = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * GET /api/v1/inventory/beds
- * List beds with optional filters
+ * List beds with optional hall/roomId/status filters
  */
 export const getBeds = asyncHandler(async (req: Request, res: Response) => {
   const hall = req.query.hall as Hall | undefined;
@@ -192,8 +192,7 @@ export const reportDamage = asyncHandler(
 
 /**
  * PATCH /api/v1/inventory/damage/:id/verify
- * Admin verifies a damage report
- * verifiedBy → hallAdmins.id
+ * Admin verifies a damage report and assigns fine
  */
 export const verifyDamage = asyncHandler(
   async (req: Request, res: Response) => {

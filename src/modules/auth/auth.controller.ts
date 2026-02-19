@@ -31,6 +31,10 @@ const options: CookieOptions = {
 const studentCookiePath = "/api/v1/auth";
 const adminCookiePath = "/api/v1/auth";
 
+/**
+ * POST /api/v1/auth/register
+ * Register a new student account
+ */
 export const studentRegister = asyncHandler(
   async (req: Request, res: Response) => {
     const {
@@ -133,6 +137,10 @@ export const studentRegister = asyncHandler(
   }
 );
 
+/**
+ * POST /api/v1/auth/login
+ * Login a student with email and password
+ */
 export const studentLogin = asyncHandler(
   async (req: Request, res: Response) => {
     const { email, password } = req.body;
@@ -238,6 +246,10 @@ export const studentLogin = asyncHandler(
   }
 );
 
+/**
+ * POST /api/v1/auth/admin/register
+ * Register a new admin account with hall assignment
+ */
 export const adminRegister = asyncHandler(
   async (req: Request, res: Response) => {
     const {
@@ -447,6 +459,10 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
+/**
+ * POST /api/v1/auth/renew-access-token
+ * Refresh access token using refresh token
+ */
 export const renewAccessToken = asyncHandler(
   async (req: Request, res: Response) => {
     const incomingRefreshToken = req.cookies?.refreshToken;
@@ -508,6 +524,10 @@ export const renewAccessToken = asyncHandler(
   }
 );
 
+/**
+ * POST /api/v1/auth/logout
+ * Logout from current device only
+ */
 export const logout = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
   const user = req.user;
@@ -535,6 +555,10 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
+/**
+ * POST /api/v1/auth/logout-all
+ * Logout from all devices (invalidate all refresh tokens)
+ */
 export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   const user = req.user;

@@ -87,7 +87,7 @@ export const applyForSeat = asyncHandler(
 
 /**
  * GET /api/v1/admission/my-status
- * Student views own application history
+ * Student views own application status history
  */
 export const getMyStatus = asyncHandler(async (req: Request, res: Response) => {
   const studentId = req.user!.userId;
@@ -104,7 +104,7 @@ export const getMyStatus = asyncHandler(async (req: Request, res: Response) => {
     })
     .from(seatApplications)
     .where(eq(seatApplications.studentId, studentId))
-    .orderBy(sql`${seatApplications.createdAt} DESC`);
+    .orderBy(desc(seatApplications.createdAt));
 
   res
     .status(200)
@@ -119,7 +119,7 @@ export const getMyStatus = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * GET /api/v1/admission/applications
- * Admin lists applications with optional hall/status filters + pagination
+ * Admin lists seat applications with optional hall/status filters + pagination
  */
 export const getApplications = asyncHandler(
   async (req: Request, res: Response) => {
@@ -179,8 +179,7 @@ export const getApplications = asyncHandler(
 
 /**
  * PATCH /api/v1/admission/:id/review
- * Provost reviews (approve / reject / waitlist) an application
- * reviewedBy → hallAdmins.id
+ * Provost reviews and updates application status (approve/reject/waitlist)
  */
 export const reviewApplication = asyncHandler(
   async (req: Request, res: Response) => {
@@ -233,7 +232,6 @@ export const reviewApplication = asyncHandler(
 /**
  * POST /api/v1/admission/allocate
  * Provost allocates a bed to an approved applicant
- * allocatedBy → hallAdmins.id
  */
 export const allocateSeat = asyncHandler(
   async (req: Request, res: Response) => {

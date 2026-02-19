@@ -29,7 +29,10 @@ import { createMealPayment } from "../finance/finance.service";
 
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
 
-// GET /api/v1/dining/tomorrow-menus - Get tomorrow's lunch and dinner menu
+/**
+ * GET /api/v1/dining/tomorrow-menus
+ * Get tomorrow's lunch and dinner menus for a hall
+ */
 export const getTomorrowMenus = asyncHandler(
   async (req: Request, res: Response) => {
     const hall = req.query.hall as Hall;
@@ -74,7 +77,10 @@ export const getTomorrowMenus = asyncHandler(
   }
 );
 
-// POST /api/v1/dining/book-tokens - Book tokens for tomorrow's meal
+/**
+ * POST /api/v1/dining/book-tokens
+ * Book meal tokens for tomorrow's meal
+ */
 export const bookMealTokens = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -170,7 +176,10 @@ export const bookMealTokens = asyncHandler(
   }
 );
 
-// GET /api/v1/dining/my-active-tokens - Get student's active tokens
+/**
+ * GET /api/v1/dining/my-active-tokens
+ * Get student's active tokens for tomorrow's meals
+ */
 export const getMyActiveTokens = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -222,7 +231,10 @@ export const getMyActiveTokens = asyncHandler(
   }
 );
 
-// PATCH /api/v1/dining/cancel-token/:tokenId - Cancel token before midnight
+/**
+ * PATCH /api/v1/dining/cancel-token/:tokenId
+ * Cancel a booked meal token before the meal date
+ */
 export const cancelMealToken = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
@@ -732,7 +744,10 @@ export const getTodayMenus = asyncHandler(
   }
 );
 
-// GET /api/v1/dining/bookings/menu/:menuId - Get all bookings for a menu
+/**
+ * GET /api/v1/dining/bookings/menu/:menuId
+ * Get all bookings for a specific menu
+ */
 export const getAllBookingsForMenu = asyncHandler(
   async (req: Request, res: Response) => {
     const { menuId } = req.params as { menuId: string };
@@ -882,7 +897,10 @@ export const getTomorrowBookings = asyncHandler(
   }
 );
 
-// PATCH /api/v1/dining/tokens/mark-consumed - Mark tokens as consumed
+/**
+ * PATCH /api/v1/dining/tokens/mark-consumed
+ * Mark tokens as consumed after meal service
+ */
 export const markTokensAsConsumed = asyncHandler(
   async (req: Request, res: Response) => {
     const diningManagerId = req.user?.userId;
