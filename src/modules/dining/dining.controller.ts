@@ -14,11 +14,10 @@ import type { Request, Response } from "express";
 import { db } from "../../db";
 import {
   hallAdmins,
-  hallStudents,
   mealMenus,
   mealPayments,
   mealTokens,
-  users,
+  uniStudents,
 } from "../../db/models";
 import type { Hall } from "../../types/enums";
 import { ApiError } from "../../utils/ApiError";
@@ -86,11 +85,11 @@ export const bookMealTokens = asyncHandler(
     const userId = req.user?.userId;
     const { menuId, quantity, paymentMethod, hall } = req.body;
 
-    // Find user in users table
+    // Find student in uni_students table
     const [user] = await db
-      .select({ id: users.id, name: users.name })
-      .from(users)
-      .where(eq(users.id, userId!))
+      .select({ id: uniStudents.id, name: uniStudents.name })
+      .from(uniStudents)
+      .where(eq(uniStudents.id, userId!))
       .limit(1);
 
     if (!user) {
@@ -185,9 +184,9 @@ export const getMyActiveTokens = asyncHandler(
     const userId = req.user?.userId;
 
     const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, userId!))
+      .select({ id: uniStudents.id })
+      .from(uniStudents)
+      .where(eq(uniStudents.id, userId!))
       .limit(1);
 
     if (!user) {
@@ -241,9 +240,9 @@ export const cancelMealToken = asyncHandler(
     const { tokenId } = req.params as { tokenId: string };
 
     const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, userId!))
+      .select({ id: uniStudents.id })
+      .from(uniStudents)
+      .where(eq(uniStudents.id, userId!))
       .limit(1);
 
     if (!user) {
@@ -327,9 +326,9 @@ export const getMyTokenHistory = asyncHandler(
     const { page = 1, limit = 10, status, startDate, endDate } = req.query;
 
     const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, userId!))
+      .select({ id: uniStudents.id })
+      .from(uniStudents)
+      .where(eq(uniStudents.id, userId!))
       .limit(1);
 
     if (!user) {
@@ -410,9 +409,9 @@ export const getMyTokenById = asyncHandler(
     const { tokenId } = req.params as { tokenId: string };
 
     const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, userId!))
+      .select({ id: uniStudents.id })
+      .from(uniStudents)
+      .where(eq(uniStudents.id, userId!))
       .limit(1);
 
     if (!user) {
@@ -471,7 +470,7 @@ export const createTomorrowMenu = asyncHandler(
     const [hallResult] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!hallResult) {
@@ -546,7 +545,7 @@ export const updateTomorrowMenu = asyncHandler(
     const [manager] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!manager) {
@@ -619,7 +618,7 @@ export const deleteTomorrowMenu = asyncHandler(
     const [manager] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!manager) {
@@ -660,7 +659,7 @@ export const getTomorrowMenusList = asyncHandler(
     const [manager] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!manager) {
@@ -707,7 +706,7 @@ export const getTodayMenus = asyncHandler(
     const [manager] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!manager) {
@@ -757,7 +756,7 @@ export const getAllBookingsForMenu = asyncHandler(
     const [manager] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!manager) {
@@ -793,9 +792,9 @@ export const getAllBookingsForMenu = asyncHandler(
     const bookings = await db
       .select({
         tokenId: mealTokens.id,
-        studentId: users.id,
-        studentName: users.name,
-        rollNumber: hallStudents.rollNumber,
+        studentId: uniStudents.id,
+        studentName: uniStudents.name,
+        rollNumber: uniStudents.rollNumber,
         quantity: mealTokens.quantity,
         totalAmount: mealTokens.totalAmount,
         bookingTime: mealTokens.bookingTime,
@@ -803,8 +802,7 @@ export const getAllBookingsForMenu = asyncHandler(
         paymentMethod: mealPayments.paymentMethod,
       })
       .from(mealTokens)
-      .innerJoin(users, eq(mealTokens.studentId, users.id))
-      .leftJoin(hallStudents, eq(users.id, hallStudents.userId))
+      .innerJoin(uniStudents, eq(mealTokens.studentId, uniStudents.id))
       .innerJoin(mealPayments, eq(mealTokens.paymentId, mealPayments.id))
       .where(and(...conditions))
       .orderBy(desc(mealTokens.bookingTime))
@@ -845,7 +843,7 @@ export const getTomorrowBookings = asyncHandler(
     const [manager] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!manager) {
@@ -909,7 +907,7 @@ export const markTokensAsConsumed = asyncHandler(
     const [manager] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!manager) {
@@ -938,7 +936,7 @@ export const getDailyReport = asyncHandler(
     const [manager] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!manager) {
@@ -1014,7 +1012,7 @@ export const getMonthlyReport = asyncHandler(
     const [manager] = await db
       .select({ hall: hallAdmins.hall })
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, diningManagerId!))
+      .where(eq(hallAdmins.id, diningManagerId!))
       .limit(1);
 
     if (!manager) {
@@ -1085,9 +1083,9 @@ export const processPayment = asyncHandler(
     const { amount, paymentMethod, transactionId, totalQuantity } = req.body;
 
     const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, userId!))
+      .select({ id: uniStudents.id })
+      .from(uniStudents)
+      .where(eq(uniStudents.id, userId!))
       .limit(1);
 
     if (!user) {
@@ -1148,12 +1146,12 @@ export const getPaymentDetails = asyncHandler(
         paymentDate: mealPayments.paymentDate,
         refundedAt: mealPayments.refundedAt,
         refundAmount: mealPayments.refundAmount,
-        studentId: users.id,
-        studentName: users.name,
-        studentEmail: users.email,
+        studentId: uniStudents.id,
+        studentName: uniStudents.name,
+        studentEmail: uniStudents.email,
       })
       .from(mealPayments)
-      .innerJoin(users, eq(mealPayments.studentId, users.id))
+      .innerJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
       .where(eq(mealPayments.id, paymentId))
       .limit(1);
 
@@ -1163,9 +1161,9 @@ export const getPaymentDetails = asyncHandler(
 
     if (userRole === "STUDENT") {
       const [user] = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.id, userId!))
+        .select({ id: uniStudents.id })
+        .from(uniStudents)
+        .where(eq(uniStudents.id, userId!))
         .limit(1);
 
       if (!user || payment.studentId !== user.id) {
@@ -1175,7 +1173,7 @@ export const getPaymentDetails = asyncHandler(
       const [manager] = await db
         .select({ hall: hallAdmins.hall })
         .from(hallAdmins)
-        .where(eq(hallAdmins.userId, userId!))
+        .where(eq(hallAdmins.id, userId!))
         .limit(1);
 
       if (!manager) {
@@ -1185,9 +1183,9 @@ export const getPaymentDetails = asyncHandler(
       // For dining managers, we need to check if the user who made the payment
       // is associated with their hall (if they are a hall student)
       const [studentHall] = await db
-        .select({ hall: hallStudents.hall })
-        .from(hallStudents)
-        .where(eq(hallStudents.userId, payment.studentId))
+        .select({ hall: uniStudents.hall })
+        .from(uniStudents)
+        .where(eq(uniStudents.id, payment.studentId))
         .limit(1);
 
       // If user is not a hall student, or belongs to different hall, deny access
@@ -1227,9 +1225,9 @@ export const processRefund = asyncHandler(
 
     if (userRole === "STUDENT") {
       const [user] = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.id, userId!))
+        .select({ id: uniStudents.id })
+        .from(uniStudents)
+        .where(eq(uniStudents.id, userId!))
         .limit(1);
 
       if (!user || payment.studentId !== user.id) {

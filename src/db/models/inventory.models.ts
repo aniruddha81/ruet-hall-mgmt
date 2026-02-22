@@ -5,7 +5,6 @@ import {
   int,
   mysqlEnum,
   mysqlTable,
-  smallint,
   text,
   varchar,
 } from "drizzle-orm/mysql-core";
@@ -14,15 +13,15 @@ import {
   BED_STATUSES,
   DAMAGE_REPORT_STATUSES,
 } from "../../types/enums";
-import { hallAdmins, hallStudents, users } from "./auth.models";
+import { hallAdmins, uniStudents } from "./auth.models";
 import { hallSQL_Enum, halls, rooms } from "./halls.models";
 
-export const bedStatusSQL_Enum = mysqlEnum("bed_status", BED_STATUSES);
-export const assetConditionSQL_Enum = mysqlEnum(
+export const bedStatusSQL_Enum = () => mysqlEnum("bed_status", BED_STATUSES);
+export const assetConditionSQL_Enum = () => mysqlEnum(
   "asset_condition",
   ASSET_CONDITIONS
 );
-export const damageReportStatusSQL_Enum = mysqlEnum(
+export const damageReportStatusSQL_Enum = () => mysqlEnum(
   "damage_report_status",
   DAMAGE_REPORT_STATUSES
 );
@@ -36,7 +35,7 @@ export const beds = mysqlTable(
   {
     id: varchar("id", { length: 36 }).primaryKey(),
 
-    hall: hallSQL_Enum
+    hall: hallSQL_Enum()
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
@@ -47,7 +46,7 @@ export const beds = mysqlTable(
     bedLabel: varchar("bed_label", { length: 10 }).notNull(),
     // e.g. "A", "B", "C"
 
-    status: bedStatusSQL_Enum.notNull().default("AVAILABLE"),
+    status: bedStatusSQL_Enum().notNull().default("AVAILABLE"),
 
     createdAt: datetime("created_at", { mode: "date" })
       .notNull()
@@ -69,7 +68,7 @@ export const assets = mysqlTable(
   {
     id: varchar("id", { length: 36 }).primaryKey(),
 
-    hall: hallSQL_Enum
+    hall: hallSQL_Enum()
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
@@ -77,7 +76,7 @@ export const assets = mysqlTable(
 
     quantity: int("quantity", { unsigned: true }).notNull().default(1),
 
-    condition: assetConditionSQL_Enum.notNull().default("GOOD"),
+    condition: assetConditionSQL_Enum().notNull().default("GOOD"),
 
     createdAt: datetime("created_at", { mode: "date" })
       .notNull()
@@ -101,13 +100,13 @@ export const damageReports = mysqlTable(
 
     studentId: varchar("student_id", { length: 36 })
       .notNull()
-      .references(() => hallStudents.id, { onDelete: "cascade" }),
+      .references(() => uniStudents.id, { onDelete: "cascade" }),
 
     assetId: varchar("asset_id", { length: 36 })
       .notNull()
       .references(() => assets.id, { onDelete: "cascade" }),
 
-    hall: hallSQL_Enum
+    hall: hallSQL_Enum()
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
@@ -115,7 +114,7 @@ export const damageReports = mysqlTable(
 
     fineAmount: int("fine_amount", { unsigned: true }),
 
-    status: damageReportStatusSQL_Enum.notNull().default("REPORTED"),
+    status: damageReportStatusSQL_Enum().notNull().default("REPORTED"),
 
     verifiedBy: varchar("verified_by", { length: 36 }).references(
       () => hallAdmins.id

@@ -13,8 +13,8 @@ import {
 } from "drizzle-orm/mysql-core";
 import { HALLS, ROOM_STATUSES } from "../../types/enums";
 
-export const roomStatusSQL_Enum = mysqlEnum("room_status", ROOM_STATUSES);
-export const hallSQL_Enum = mysqlEnum("hall", HALLS);
+export const roomStatusSQL_Enum = () => mysqlEnum("room_status", ROOM_STATUSES);
+export const hallSQL_Enum = () => mysqlEnum("hall", HALLS);
 
 export const rooms = mysqlTable(
   "rooms",
@@ -22,7 +22,7 @@ export const rooms = mysqlTable(
     id: varchar("id", { length: 36 }).primaryKey(),
     roomNumber: smallint("room_number", { unsigned: true }).notNull(),
 
-    hall: hallSQL_Enum
+    hall: hallSQL_Enum()
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
@@ -32,7 +32,7 @@ export const rooms = mysqlTable(
       .notNull()
       .default(0),
 
-    status: roomStatusSQL_Enum.notNull().default("AVAILABLE"),
+    status: roomStatusSQL_Enum().notNull().default("AVAILABLE"),
 
     createdAt: datetime("created_at", { mode: "date" })
       .notNull()
@@ -51,7 +51,7 @@ export const rooms = mysqlTable(
 );
 
 export const halls = mysqlTable("halls", {
-  name: hallSQL_Enum.notNull().primaryKey().unique(),
+  name: hallSQL_Enum().notNull().primaryKey().unique(),
 
   address: text("address"),
 

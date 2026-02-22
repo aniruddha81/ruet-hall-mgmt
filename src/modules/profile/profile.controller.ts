@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
-import { users } from "../../db/models";
+import { hallAdmins, uniStudents } from "../../db/models";
 import { ApiError } from "../../utils/ApiError";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
@@ -28,10 +28,17 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(500, "Failed to upload avatar");
   }
 
-  await db
-    .update(users)
-    .set({ avatarUrl: avatarCloudinaryUrl.url })
-    .where(eq(users.id, userId));
+  if (req.user?.role === "STUDENT") {
+    await db
+      .update(uniStudents)
+      .set({ avatarUrl: avatarCloudinaryUrl.url })
+      .where(eq(uniStudents.id, userId));
+  } else {
+    await db
+      .update(hallAdmins)
+      .set({ avatarUrl: avatarCloudinaryUrl.url })
+      .where(eq(hallAdmins.id, userId));
+  }
 
   res
     .status(200)

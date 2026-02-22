@@ -6,9 +6,8 @@ import { NODE_ENV } from "../../Constants.ts";
 import { db } from "../../db/index.ts";
 import {
   hallAdmins,
-  hallStudents,
   refreshTokens,
-  users,
+  uniStudents,
 } from "../../db/models/index.ts";
 import { ApiError } from "../../utils/ApiError.ts";
 import { ApiResponse } from "../../utils/ApiResponse.ts";
@@ -49,8 +48,8 @@ export const studentRegister = asyncHandler(
 
     const [existingUser] = await db
       .select()
-      .from(users)
-      .where(eq(users.email, email))
+      .from(uniStudents)
+      .where(eq(uniStudents.email, email))
       .limit(1);
 
     if (existingUser) {
@@ -60,28 +59,22 @@ export const studentRegister = asyncHandler(
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = randomUUID();
 
-    await db.insert(users).values({
+    await db.insert(uniStudents).values({
       id: userId,
       email,
       passwordHash,
       name,
       phone,
+      rollNumber: String(rollNumber),
       academicDepartment,
-      role: "STUDENT",
-    });
-
-    await db.insert(hallStudents).values({
-      id: randomUUID(),
-      userId,
-      rollNumber,
       session,
-      status: "ACTIVE",
+      isAllocated: false,
     });
 
     const [newUser] = await db
       .select()
-      .from(users)
-      .where(eq(users.email, email))
+      .from(uniStudents)
+      .where(eq(uniStudents.email, email))
       .limit(1);
 
     if (!newUser) {
@@ -92,7 +85,7 @@ export const studentRegister = asyncHandler(
       userId: newUser.id,
       email: newUser.email,
       name: newUser.name,
-      role: newUser.role,
+      role: "STUDENT",
     };
 
     const jti = createJti();
@@ -128,7 +121,6 @@ export const studentRegister = asyncHandler(
               id: newUser.id,
               email: newUser.email,
               name: newUser.name,
-              role: newUser.role,
             },
           },
           "User registered successfully"
@@ -147,8 +139,8 @@ export const studentLogin = asyncHandler(
 
     const [user] = await db
       .select()
-      .from(users)
-      .where(eq(users.email, email))
+      .from(uniStudents)
+      .where(eq(uniStudents.email, email))
       .limit(1);
 
     if (!user) {
@@ -160,22 +152,11 @@ export const studentLogin = asyncHandler(
       throw new ApiError(401, "Invalid password");
     }
 
-    // Fetch student record from students table
-    const [studentRecord] = await db
-      .select()
-      .from(hallStudents)
-      .where(eq(hallStudents.userId, user.id))
-      .limit(1);
-
-    if (!studentRecord) {
-      throw new ApiError(401, "Student record not found for this user");
-    }
-
     const tokenPayload: AccessTokenPayload = {
       userId: user.id,
       email: user.email,
       name: user.name,
-      role: user.role,
+      role: "STUDENT",
     };
 
     const activeTokens = await db
@@ -223,21 +204,18 @@ export const studentLogin = asyncHandler(
         new ApiResponse(
           200,
           {
-            user: {
+            student_data: {
               id: user.id,
               email: user.email,
               name: user.name,
-              role: user.role,
               phone: user.phone,
               academicDepartment: user.academicDepartment,
-            },
-            student: {
-              id: studentRecord.id,
-              rollNumber: studentRecord.rollNumber,
-              session: studentRecord.session,
-              hall: studentRecord.hall,
-              roomId: studentRecord.roomId,
-              status: studentRecord.status,
+              rollNumber: user.rollNumber,
+              session: user.session,
+              hall: user.hall,
+              roomId: user.roomId,
+              status: user.status,
+              isAllocated: user.isAllocated,
             },
           },
           "User logged in successfully"
@@ -265,8 +243,8 @@ export const adminRegister = asyncHandler(
 
     const [existingUser] = await db
       .select()
-      .from(users)
-      .where(eq(users.email, email))
+      .from(hallAdmins)
+      .where(eq(hallAdmins.email, email))
       .limit(1);
 
     if (existingUser) {
@@ -274,21 +252,15 @@ export const adminRegister = asyncHandler(
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const userId = randomUUID();
+    const adminId = randomUUID();
 
-    await db.insert(users).values({
-      id: userId,
+    await db.insert(hallAdmins).values({
+      id: adminId,
       email,
       passwordHash,
       name,
       phone,
       academicDepartment,
-      role: designation,
-    });
-
-    await db.insert(hallAdmins).values({
-      id: randomUUID(),
-      userId,
       hall,
       designation,
       operationalUnit,
@@ -297,8 +269,8 @@ export const adminRegister = asyncHandler(
 
     const [newUser] = await db
       .select()
-      .from(users)
-      .where(eq(users.email, email))
+      .from(hallAdmins)
+      .where(eq(hallAdmins.email, email))
       .limit(1);
 
     if (!newUser) {
@@ -309,7 +281,7 @@ export const adminRegister = asyncHandler(
       userId: newUser.id,
       email: newUser.email,
       name: newUser.name,
-      role: newUser.role,
+      role: newUser.designation,
     };
 
     const jti = createJti();
@@ -345,7 +317,7 @@ export const adminRegister = asyncHandler(
               id: newUser.id,
               email: newUser.email,
               name: newUser.name,
-              role: newUser.role,
+              role: newUser.designation,
             },
           },
           "Admin registered successfully"
@@ -359,8 +331,8 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
 
   const [user] = await db
     .select()
-    .from(users)
-    .where(eq(users.email, email))
+    .from(hallAdmins)
+    .where(eq(hallAdmins.email, email))
     .limit(1);
 
   if (!user) {
@@ -372,18 +344,7 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(401, "Invalid password");
   }
 
-  // Fetch admin record from admins table
-  const [adminRecord] = await db
-    .select()
-    .from(hallAdmins)
-    .where(eq(hallAdmins.userId, user.id))
-    .limit(1);
-
-  if (!adminRecord) {
-    throw new ApiError(401, "Admin record not found for this user");
-  }
-
-  if (!adminRecord.isActive) {
+  if (!user.isActive) {
     throw new ApiError(403, "Admin account is deactivated");
   }
 
@@ -391,7 +352,7 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
     userId: user.id,
     email: user.email,
     name: user.name,
-    role: user.role,
+    role: user.designation,
   };
 
   const activeTokens = await db
@@ -441,17 +402,17 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
             id: user.id,
             email: user.email,
             name: user.name,
-            role: user.role,
+            role: user.designation,
             academicDepartment: user.academicDepartment,
             phone: user.phone,
           },
           admin: {
-            id: adminRecord.id,
-            hall: adminRecord.hall,
-            designation: adminRecord.designation,
-            operationalUnit: adminRecord.operationalUnit,
-            reportingToId: adminRecord.reportingToId,
-            isActive: adminRecord.isActive,
+            id: user.id,
+            hall: user.hall,
+            designation: user.designation,
+            operationalUnit: user.operationalUnit,
+            reportingToId: user.reportingToId,
+            isActive: user.isActive,
           },
         },
         "Admin logged in successfully"

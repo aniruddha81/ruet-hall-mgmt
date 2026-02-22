@@ -9,7 +9,7 @@ declare global {
         email: string;
         name: string;
         role: Role;
-        rollNumber: string | undefined;
+        rollNumber?: string;
       };
     }
   }

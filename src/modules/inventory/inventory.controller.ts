@@ -204,7 +204,7 @@ export const verifyDamage = asyncHandler(
     const [admin] = await db
       .select()
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, userId))
+      .where(eq(hallAdmins.id, userId))
       .limit(1);
 
     if (!admin) throw new ApiError(403, "Hall admin record not found");

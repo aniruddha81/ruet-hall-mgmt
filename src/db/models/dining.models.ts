@@ -12,19 +12,21 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { MEAL_TYPES, PAYMENT_METHODS, TOKEN_STATUSES } from "../../types/enums";
-import { users } from "./auth.models";
+import { hallAdmins, uniStudents } from "./auth.models";
 import { hallSQL_Enum, halls } from "./halls.models";
 
 // ============================================
 // ENUMS
 // ============================================
-export const mealTypeSQL_Enum = mysqlEnum("meal_type", MEAL_TYPES);
+export const mealTypeSQL_Enum = () => mysqlEnum("meal_type", MEAL_TYPES);
 // ['LUNCH', 'DINNER']
 
-export const tokenStatusSQL_Enum = mysqlEnum("token_status", TOKEN_STATUSES);
+export const tokenStatusSQL_Enum = () =>
+  mysqlEnum("token_status", TOKEN_STATUSES);
 // ['ACTIVE', 'CANCELLED', 'CONSUMED']
 
-export const paymentMethodSQL_Enum = mysqlEnum("payment_method", PAYMENT_METHODS);
+export const paymentMethodSQL_Enum = () =>
+  mysqlEnum("payment_method", PAYMENT_METHODS);
 // ['BKASH', 'NAGAD', 'ROCKET', 'BANK', 'CASH']
 
 // ============================================
@@ -36,7 +38,7 @@ export const mealMenus = mysqlTable(
   {
     id: varchar("id", { length: 36 }).primaryKey().notNull(),
 
-    hall: hallSQL_Enum
+    hall: hallSQL_Enum()
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
@@ -45,7 +47,7 @@ export const mealMenus = mysqlTable(
       .default(sql`(CURRENT_DATE + INTERVAL 1 DAY)`),
     // Must be tomorrow's date
 
-    mealType: mealTypeSQL_Enum.notNull(),
+    mealType: mealTypeSQL_Enum().notNull(),
     // LUNCH or DINNER
 
     menuDescription: text("menu_description"),
@@ -72,7 +74,7 @@ export const mealMenus = mysqlTable(
 
     createdBy: varchar("created_by", { length: 36 })
       .notNull()
-      .references(() => users.id),
+      .references(() => hallAdmins.id),
     // Dining Manager who created this menu
 
     createdAt: datetime("created_at", { mode: "date" })
@@ -106,21 +108,21 @@ export const mealTokens = mysqlTable(
 
     studentId: varchar("student_id", { length: 36 })
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => uniStudents.id, { onDelete: "cascade" }),
     // Student who booked the tokens
 
     menuId: varchar("menu_id", { length: 36 })
       .notNull()
       .references(() => mealMenus.id, { onDelete: "cascade" }),
 
-    hall: hallSQL_Enum
+    hall: hallSQL_Enum()
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
     mealDate: date("meal_date", { mode: "date" }).notNull(),
     // Tomorrow's date (when meal will be consumed)
 
-    mealType: mealTypeSQL_Enum.notNull(),
+    mealType: mealTypeSQL_Enum().notNull(),
     // LUNCH or DINNER
 
     quantity: tinyint("quantity", { unsigned: true }).notNull().default(1),
@@ -170,7 +172,7 @@ export const mealPayments = mysqlTable(
 
     studentId: varchar("student_id", { length: 36 })
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => uniStudents.id, { onDelete: "cascade" }),
 
     amount: int("amount", { unsigned: true }).notNull(),
     // Total amount paid (in Taka)
@@ -178,7 +180,7 @@ export const mealPayments = mysqlTable(
     totalQuantity: tinyint("total_quantity", { unsigned: true }).notNull(),
     // Total tokens purchased in this payment
 
-    paymentMethod: paymentMethodSQL_Enum.notNull(),
+    paymentMethod: paymentMethodSQL_Enum().notNull(),
     // BKASH, NAGAD, ROCKET, BANK, CASH
 
     transactionId: varchar("transaction_id", { length: 255 }).unique(),

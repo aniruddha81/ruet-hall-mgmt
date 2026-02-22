@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
 import { db } from "../db/index.ts";
-import { users } from "../db/models/auth.models.ts";
+import { hallAdmins, uniStudents } from "../db/models/auth.models.ts";
 import { verifyAccessToken } from "../modules/auth/auth.service.ts";
 import type { Role } from "../types/enums.ts";
 import { ApiError } from "../utils/ApiError.ts";
@@ -24,23 +24,43 @@ export const authenticateToken = asyncHandler(
     try {
       const decoded = verifyAccessToken(token);
 
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, decoded.userId))
-        .limit(1);
+      if (decoded.role === "STUDENT") {
+        const [student] = await db
+          .select()
+          .from(uniStudents)
+          .where(eq(uniStudents.id, decoded.userId))
+          .limit(1);
 
-      if (!user) {
-        throw new ApiError(401, "User not found or has been deleted");
+        if (!student) {
+          throw new ApiError(401, "Student not found or has been deleted");
+        }
+
+        req.user = {
+          userId: student.id,
+          email: student.email,
+          name: student.name,
+          role: "STUDENT",
+          rollNumber: student.rollNumber,
+        };
+      } else {
+        const [admin] = await db
+          .select()
+          .from(hallAdmins)
+          .where(eq(hallAdmins.id, decoded.userId))
+          .limit(1);
+
+        if (!admin) {
+          throw new ApiError(401, "Admin not found or has been deleted");
+        }
+
+        req.user = {
+          userId: admin.id,
+          email: admin.email,
+          name: admin.name,
+          role: admin.designation,
+          rollNumber: undefined,
+        };
       }
-
-      req.user = {
-        userId: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        rollNumber: user.rollNumber ?? undefined,
-      };
 
       next();
     } catch {

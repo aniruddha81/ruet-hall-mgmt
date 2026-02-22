@@ -4,10 +4,9 @@ import type { Request, Response } from "express";
 import { db } from "../../db";
 import {
   hallAdmins,
-  hallStudents,
   seatAllocations,
   seatApplications,
-  users,
+  uniStudents,
 } from "../../db/models";
 import { beds } from "../../db/models/inventory.models";
 import type { Hall, SeatApplicationStatus } from "../../types/enums";
@@ -52,14 +51,14 @@ export const applyForSeat = asyncHandler(
       );
     }
 
-    // Check if already allocated in hallStudents
+    // Check if already allocated in uniStudents
     const [alreadyAllocated] = await db
       .select()
-      .from(hallStudents)
-      .where(eq(hallStudents.userId, studentId))
+      .from(uniStudents)
+      .where(eq(uniStudents.id, studentId))
       .limit(1);
 
-    if (alreadyAllocated && alreadyAllocated.hall) {
+    if (alreadyAllocated?.isAllocated) {
       throw new ApiError(409, "You already have a hall seat allocated");
     }
 
@@ -138,8 +137,8 @@ export const getApplications = asyncHandler(
       .select({
         id: seatApplications.id,
         studentId: seatApplications.studentId,
-        studentName: users.name,
-        studentEmail: users.email,
+        studentName: uniStudents.name,
+        studentEmail: uniStudents.email,
         hall: seatApplications.hall,
         department: seatApplications.department,
         session: seatApplications.session,
@@ -148,7 +147,7 @@ export const getApplications = asyncHandler(
         reviewedAt: seatApplications.reviewedAt,
       })
       .from(seatApplications)
-      .innerJoin(users, eq(seatApplications.studentId, users.id))
+      .innerJoin(uniStudents, eq(seatApplications.studentId, uniStudents.id))
       .where(whereClause)
       .orderBy(desc(seatApplications.createdAt))
       .limit(limit)
@@ -191,7 +190,7 @@ export const reviewApplication = asyncHandler(
     const [admin] = await db
       .select()
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, userId))
+      .where(eq(hallAdmins.id, userId))
       .limit(1);
 
     if (!admin) throw new ApiError(403, "Hall admin record not found");
@@ -235,14 +234,14 @@ export const reviewApplication = asyncHandler(
  */
 export const allocateSeat = asyncHandler(
   async (req: Request, res: Response) => {
-    const { applicationId, bedId, rollNumber } = req.body;
+    const { applicationId, bedId } = req.body;
     const userId = req.user!.userId;
 
     // Resolve hallAdmin record for allocatedBy FK
     const [admin] = await db
       .select()
       .from(hallAdmins)
-      .where(eq(hallAdmins.userId, userId))
+      .where(eq(hallAdmins.id, userId))
       .limit(1);
 
     if (!admin) throw new ApiError(403, "Hall admin record not found");
@@ -279,39 +278,31 @@ export const allocateSeat = asyncHandler(
       roomId: bed.roomId,
       bedId,
       allocatedBy: admin.id,
-      rollNumber,
+      rollNumber: app.rollNumber,
     });
 
     // Mark bed as occupied
     await db.update(beds).set({ status: "OCCUPIED" }).where(eq(beds.id, bedId));
 
-    // Create or update hallStudents entry
+    // Update merged uniStudents entry with hall allocation
     const [existingStudent] = await db
       .select()
-      .from(hallStudents)
-      .where(eq(hallStudents.userId, app.studentId))
+      .from(uniStudents)
+      .where(eq(uniStudents.id, app.studentId))
       .limit(1);
 
     if (existingStudent) {
       await db
-        .update(hallStudents)
+        .update(uniStudents)
         .set({
           hall: app.hall,
           roomId: bed.roomId,
+          isAllocated: true,
           status: "ACTIVE",
-          rollNumber,
         })
-        .where(eq(hallStudents.userId, app.studentId));
+        .where(eq(uniStudents.id, app.studentId));
     } else {
-      await db.insert(hallStudents).values({
-        id: randomUUID(),
-        userId: app.studentId,
-        rollNumber,
-        session: app.session,
-        hall: app.hall,
-        roomId: bed.roomId,
-        status: "ACTIVE",
-      });
+      throw new ApiError(404, "Student record not found");
     }
 
     res.status(201).json(

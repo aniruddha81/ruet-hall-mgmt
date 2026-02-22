@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
-import { hallStudents, users } from "../../db/models";
+import { uniStudents } from "../../db/models";
 import { mealPayments } from "../../db/models/dining.models";
 import {
   expenses,
@@ -27,9 +27,9 @@ export const createDue = asyncHandler(async (req: Request, res: Response) => {
 
   // Verify student exists
   const [user] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.id, studentId))
+    .select({ id: uniStudents.id })
+    .from(uniStudents)
+    .where(eq(uniStudents.id, studentId))
     .limit(1);
 
   if (!user) throw new ApiError(404, "Student not found");
@@ -195,9 +195,9 @@ export const getStudentLedger = asyncHandler(
     const { id } = req.params as { id: string };
 
     const [user] = await db
-      .select({ id: users.id, name: users.name })
-      .from(users)
-      .where(eq(users.id, id))
+      .select({ id: uniStudents.id, name: uniStudents.name })
+      .from(uniStudents)
+      .where(eq(uniStudents.id, id))
       .limit(1);
 
     if (!user) throw new ApiError(404, "Student not found");
@@ -281,8 +281,8 @@ export const getMealPayments = asyncHandler(
       .select({
         id: mealPayments.id,
         studentId: mealPayments.studentId,
-        studentName: users.name,
-        rollNumber: hallStudents.rollNumber,
+        studentName: uniStudents.name,
+        rollNumber: uniStudents.rollNumber,
         amount: mealPayments.amount,
         totalQuantity: mealPayments.totalQuantity,
         paymentMethod: mealPayments.paymentMethod,
@@ -292,8 +292,7 @@ export const getMealPayments = asyncHandler(
         refundedAt: mealPayments.refundedAt,
       })
       .from(mealPayments)
-      .innerJoin(users, eq(mealPayments.studentId, users.id))
-      .leftJoin(hallStudents, eq(users.id, hallStudents.userId))
+      .innerJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
       .where(whereClause)
       .orderBy(desc(mealPayments.paymentDate))
       .limit(limitNum)
@@ -337,9 +336,9 @@ export const getMealPaymentById = asyncHandler(
       .select({
         id: mealPayments.id,
         studentId: mealPayments.studentId,
-        studentName: users.name,
-        studentEmail: users.email,
-        rollNumber: hallStudents.rollNumber,
+        studentName: uniStudents.name,
+        studentEmail: uniStudents.email,
+        rollNumber: uniStudents.rollNumber,
         amount: mealPayments.amount,
         totalQuantity: mealPayments.totalQuantity,
         paymentMethod: mealPayments.paymentMethod,
@@ -349,8 +348,7 @@ export const getMealPaymentById = asyncHandler(
         refundedAt: mealPayments.refundedAt,
       })
       .from(mealPayments)
-      .innerJoin(users, eq(mealPayments.studentId, users.id))
-      .leftJoin(hallStudents, eq(users.id, hallStudents.userId))
+      .innerJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
       .where(eq(mealPayments.id, id))
       .limit(1);
 
@@ -387,7 +385,7 @@ export const getMealPaymentsReport = asyncHandler(
       conditions.push(
         sql`${mealPayments.paymentDate} <= CAST(${endDate} AS DATE)`
       );
-    if (hall) conditions.push(eq(hallStudents.hall, hall as Hall));
+    if (hall) conditions.push(eq(uniStudents.hall, hall as Hall));
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -399,8 +397,7 @@ export const getMealPaymentsReport = asyncHandler(
         totalTransactions: sql<number>`COUNT(${mealPayments.id})`,
       })
       .from(mealPayments)
-      .leftJoin(users, eq(mealPayments.studentId, users.id))
-      .leftJoin(hallStudents, eq(users.id, hallStudents.userId))
+      .leftJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
       .where(whereClause);
 
     const paymentMethodBreakdown = await db
@@ -410,8 +407,7 @@ export const getMealPaymentsReport = asyncHandler(
         totalAmount: sql<number>`COALESCE(SUM(${mealPayments.amount}), 0)`,
       })
       .from(mealPayments)
-      .leftJoin(users, eq(mealPayments.studentId, users.id))
-      .leftJoin(hallStudents, eq(users.id, hallStudents.userId))
+      .leftJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
       .where(whereClause)
       .groupBy(mealPayments.paymentMethod);
 

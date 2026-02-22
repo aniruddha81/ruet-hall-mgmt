@@ -12,15 +12,13 @@ import {
   DUE_TYPES,
   FINANCE_PAYMENT_METHODS,
 } from "../../types/enums";
-import { hallAdmins, users } from "./auth.models";
+import { hallAdmins, uniStudents } from "./auth.models";
 import { hallSQL_Enum, halls } from "./halls.models";
 
-export const dueTypeSQL_Enum = mysqlEnum("due_type", DUE_TYPES);
-export const dueStatusSQL_Enum = mysqlEnum("due_status", DUE_STATUSES);
-export const financePaymentMethodSQL_Enum = mysqlEnum(
-  "finance_payment_method",
-  FINANCE_PAYMENT_METHODS
-);
+export const dueTypeSQL_Enum = () => mysqlEnum("due_type", DUE_TYPES);
+export const dueStatusSQL_Enum = () => mysqlEnum("due_status", DUE_STATUSES);
+export const financePaymentMethodSQL_Enum = () =>
+  mysqlEnum("finance_payment_method", FINANCE_PAYMENT_METHODS);
 
 // ============================================
 // STUDENT DUES TABLE
@@ -32,17 +30,17 @@ export const studentDues = mysqlTable(
 
     studentId: varchar("student_id", { length: 36 })
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => uniStudents.id, { onDelete: "cascade" }),
 
-    hall: hallSQL_Enum
+    hall: hallSQL_Enum()
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
-    type: dueTypeSQL_Enum.notNull(),
+    type: dueTypeSQL_Enum().notNull(),
 
     amount: int("amount", { unsigned: true }).notNull(),
 
-    status: dueStatusSQL_Enum.notNull().default("UNPAID"),
+    status: dueStatusSQL_Enum().notNull().default("UNPAID"),
 
     paidAt: datetime("paid_at", { mode: "date" }),
 
@@ -73,9 +71,9 @@ export const payments = mysqlTable(
 
     studentId: varchar("student_id", { length: 36 })
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => uniStudents.id, { onDelete: "cascade" }),
 
-    hall: hallSQL_Enum
+    hall: hallSQL_Enum()
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
@@ -83,7 +81,7 @@ export const payments = mysqlTable(
 
     amount: int("amount", { unsigned: true }).notNull(),
 
-    method: financePaymentMethodSQL_Enum.notNull(),
+    method: financePaymentMethodSQL_Enum().notNull(),
 
     createdAt: datetime("created_at", { mode: "date" })
       .notNull()
@@ -103,7 +101,7 @@ export const expenses = mysqlTable(
   {
     id: varchar("id", { length: 36 }).primaryKey(),
 
-    hall: hallSQL_Enum
+    hall: hallSQL_Enum()
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
