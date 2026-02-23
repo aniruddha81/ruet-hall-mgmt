@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/contexts/AuthContext";
 import { LayoutProvider } from "@/contexts/LayoutContext";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
@@ -30,9 +31,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased pb-16 md:pb-0`}
       >
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <LayoutProvider>
-            {children}
-          </LayoutProvider>
+          <AuthProvider>
+            <LayoutProvider>{children}</LayoutProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

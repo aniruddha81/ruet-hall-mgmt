@@ -7,15 +7,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
 import {
+  ClipboardList,
   CreditCard,
-  FileText,
   HelpCircle,
   Home,
   LogOut,
   Pin,
   PinOff,
+  UtensilsCrossed,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,6 +33,7 @@ export default function Sidebar() {
     closeMobile,
   } = useLayout();
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   // Sidebar is expanded if pinned OR hovered (on desktop)
   const isExpanded = isSidebarPinned || isSidebarHovered;
@@ -42,14 +45,19 @@ export default function Sidebar() {
       icon: Home,
     },
     {
+      label: "Dining",
+      href: "/dashboard/dining",
+      icon: UtensilsCrossed,
+    },
+    {
+      label: "Admission",
+      href: "/dashboard/admission",
+      icon: ClipboardList,
+    },
+    {
       label: "Payments",
       href: "/dashboard#payments",
       icon: CreditCard,
-    },
-    {
-      label: "Notices",
-      href: "/dashboard#notices",
-      icon: FileText,
     },
     {
       label: "Support",
@@ -122,6 +130,7 @@ export default function Sidebar() {
           <div className="p-4 border-t border-sidebar-border">
             <Button
               variant="ghost"
+              onClick={logout}
               className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <LogOut className="mr-3 h-5 w-5" />
@@ -202,6 +211,7 @@ export default function Sidebar() {
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
+                  onClick={logout}
                   className={`w-full text-destructive hover:text-destructive hover:bg-destructive/10 ${
                     !isExpanded ? "justify-center px-3" : "justify-start"
                   }`}

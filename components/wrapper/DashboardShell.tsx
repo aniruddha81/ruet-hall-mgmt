@@ -16,12 +16,7 @@ export default function DashboardShell({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <Navbar
-        userName="Student Name"
-        userInitials="SN"
-        onMenuClick={openMobile}
-        showMenuOnDesktop={false}
-      />
+      <Navbar onMenuClick={openMobile} showMenuOnDesktop={false} />
       <Sidebar />
       <main
         className={`pt-16 min-h-screen transition-all duration-300 ${

@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Bell,
   HelpCircle,
@@ -31,20 +32,25 @@ import Link from "next/link";
 import { useState } from "react";
 
 interface NavbarProps {
-  userName?: string;
-  userInitials?: string;
   onMenuClick?: () => void;
   showMenuOnDesktop?: boolean;
 }
 
 export default function Navbar({
-  userName = "Mohammad Ahmed",
-  userInitials = "MA",
   onMenuClick,
   showMenuOnDesktop = true,
 }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuth();
+
+  const userName = user?.name ?? "Student";
+  const userInitials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   const handleMenuClick = () => {
     if (onMenuClick) {
@@ -195,7 +201,10 @@ export default function Navbar({
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="text-destructive focus:text-destructive cursor-pointer"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </DropdownMenuItem>
