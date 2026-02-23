@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Bell,
   LogOut,
@@ -30,17 +31,20 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 
 interface NavbarProps {
-  userName?: string;
-  userInitials?: string;
   onMenuClick?: () => void;
 }
 
-export default function Navbar({
-  userName = "Admin User",
-  userInitials = "AU",
-  onMenuClick,
-}: NavbarProps) {
+export default function Navbar({ onMenuClick }: NavbarProps) {
   const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuth();
+
+  const userName = user?.name ?? "Admin";
+  const userInitials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <TooltipProvider>
@@ -137,7 +141,10 @@ export default function Navbar({
                     Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive">
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="text-destructive"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Log out
                   </DropdownMenuItem>

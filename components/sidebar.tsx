@@ -7,19 +7,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
 import {
-  AlertTriangle,
   Building,
+  ClipboardList,
   CreditCard,
-  FileText,
   Home,
   LogOut,
-  Megaphone,
   Pin,
   PinOff,
   Settings,
-  Users,
+  UtensilsCrossed,
   Wrench,
   X,
 } from "lucide-react";
@@ -36,6 +35,7 @@ export default function Sidebar() {
     closeMobile,
   } = useLayout();
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   // Sidebar is expanded if pinned OR hovered (on desktop)
   const isExpanded = isSidebarPinned || isSidebarHovered;
@@ -47,39 +47,29 @@ export default function Sidebar() {
       icon: Home,
     },
     {
-      label: "Students",
-      href: "/dashboard/students",
-      icon: Users,
+      label: "Dining",
+      href: "/dashboard/dining",
+      icon: UtensilsCrossed,
     },
     {
-      label: "Rooms",
-      href: "/dashboard/rooms",
+      label: "Admissions",
+      href: "/dashboard/admissions",
+      icon: ClipboardList,
+    },
+    {
+      label: "Inventory",
+      href: "/dashboard/inventory",
       icon: Building,
     },
     {
-      label: "Payments",
-      href: "/dashboard/payments",
+      label: "Finance",
+      href: "/dashboard/finance",
       icon: CreditCard,
-    },
-    {
-      label: "Notices",
-      href: "/dashboard/notices",
-      icon: Megaphone,
     },
     {
       label: "Maintenance",
       href: "/dashboard/maintenance",
       icon: Wrench,
-    },
-    {
-      label: "Complaints",
-      href: "/dashboard/complaints",
-      icon: AlertTriangle,
-    },
-    {
-      label: "Reports",
-      href: "/dashboard/reports",
-      icon: FileText,
     },
     {
       label: "Settings",
@@ -150,6 +140,7 @@ export default function Sidebar() {
           <div className="px-3 mt-auto">
             <Button
               variant="ghost"
+              onClick={logout}
               className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <LogOut className="w-5 h-5" />
@@ -225,6 +216,7 @@ export default function Sidebar() {
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
+                onClick={logout}
                 className={`w-full gap-3 text-destructive hover:text-destructive hover:bg-destructive/10 ${
                   isExpanded ? "justify-start" : "justify-center"
                 }`}

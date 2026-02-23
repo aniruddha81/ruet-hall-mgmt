@@ -12,23 +12,42 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { getApiErrorMessage } from "@/lib/api";
+import { adminRegister } from "@/lib/services/auth.service";
+import type {
+  AcademicDepartment,
+  Hall,
+  OperationalUnit,
+  StaffRole,
+} from "@/lib/types";
+import {
+  ACADEMIC_DEPARTMENTS,
+  HALLS,
+  OPERATIONAL_UNITS,
+  STAFF_ROLES,
+} from "@/lib/types";
 import { Eye, EyeOff, Shield } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    employeeId: "",
-    department: "",
+    phone: "",
+    academicDepartment: "" as AcademicDepartment | "",
+    hall: "" as Hall | "",
+    designation: "" as StaffRole | "",
+    operationalUnit: "" as OperationalUnit | "",
     password: "",
     confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -41,26 +60,43 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match!");
       return;
     }
 
-    if (!acceptTerms) {
-      alert("Please accept the terms and conditions");
+    if (
+      !formData.hall ||
+      !formData.designation ||
+      !formData.operationalUnit ||
+      !formData.academicDepartment
+    ) {
+      setError("Please fill in all required fields");
       return;
     }
 
     setIsLoading(true);
 
-    // Add your signup logic here
-    console.log(formData);
-
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await adminRegister({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        academicDepartment: formData.academicDepartment as AcademicDepartment,
+        hall: formData.hall as Hall,
+        designation: formData.designation as StaffRole,
+        operationalUnit: formData.operationalUnit as OperationalUnit,
+        phone: formData.phone,
+      });
+      router.push("/login");
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -80,6 +116,12 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+                  {error}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input
@@ -108,32 +150,95 @@ export default function SignupPage() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="text"
+                  required
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="01XXXXXXXXX"
+                  className="h-11"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="employeeId">Employee ID</Label>
-                  <Input
-                    id="employeeId"
-                    name="employeeId"
-                    type="text"
+                  <Label htmlFor="academicDepartment">Department</Label>
+                  <select
+                    id="academicDepartment"
+                    name="academicDepartment"
                     required
-                    value={formData.employeeId}
+                    value={formData.academicDepartment}
                     onChange={handleChange}
-                    placeholder="EMP-XXXX"
-                    className="h-11"
-                  />
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Select</option>
+                    {ACADEMIC_DEPARTMENTS.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
-                  <Input
-                    id="department"
-                    name="department"
-                    type="text"
+                  <Label htmlFor="hall">Hall</Label>
+                  <select
+                    id="hall"
+                    name="hall"
                     required
-                    value={formData.department}
+                    value={formData.hall}
                     onChange={handleChange}
-                    placeholder="Hall Admin"
-                    className="h-11"
-                  />
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Select</option>
+                    {HALLS.map((h) => (
+                      <option key={h} value={h}>
+                        {h.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="designation">Designation</Label>
+                  <select
+                    id="designation"
+                    name="designation"
+                    required
+                    value={formData.designation}
+                    onChange={handleChange}
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Select</option>
+                    {STAFF_ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {r.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="operationalUnit">Unit</Label>
+                  <select
+                    id="operationalUnit"
+                    name="operationalUnit"
+                    required
+                    value={formData.operationalUnit}
+                    onChange={handleChange}
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Select</option>
+                    {OPERATIONAL_UNITS.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -193,35 +298,6 @@ export default function SignupPage() {
                     )}
                   </Button>
                 </div>
-              </div>
-
-              <div className="flex items-start gap-2">
-                <input
-                  id="terms"
-                  type="checkbox"
-                  checked={acceptTerms}
-                  onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <label
-                  htmlFor="terms"
-                  className="text-sm text-muted-foreground cursor-pointer"
-                >
-                  I agree to the{" "}
-                  <Link
-                    href="/terms"
-                    className="text-primary hover:text-primary/80 font-medium"
-                  >
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link
-                    href="/privacy"
-                    className="text-primary hover:text-primary/80 font-medium"
-                  >
-                    Admin Policy
-                  </Link>
-                </label>
               </div>
 
               <Button
