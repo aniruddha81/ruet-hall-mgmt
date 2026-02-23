@@ -311,7 +311,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/admission/applications",
+              "raw": "{{BASE_URL}}/api/v1/admission/applications?hall=ZIA_HALL&status=PENDING&page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -324,23 +324,19 @@
               "query": [
                 {
                   "key": "hall",
-                  "value": "ZIA_HALL",
-                  "disabled": true
+                  "value": "ZIA_HALL"
                 },
                 {
                   "key": "status",
-                  "value": "PENDING",
-                  "disabled": true
+                  "value": "PENDING"
                 },
                 {
                   "key": "page",
-                  "value": "1",
-                  "disabled": true
+                  "value": "1"
                 },
                 {
                   "key": "limit",
-                  "value": "20",
-                  "disabled": true
+                  "value": "20"
                 }
               ]
             }
@@ -388,7 +384,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "application-uuid-here"
+                  "value": "1cdaddcd-419c-45e6-a1eb-4a813a445a5d"
                 }
               ]
             }
@@ -414,7 +410,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"applicationId\": \"app-uuid-here\",\n  \"bedId\": \"bed-uuid-here\",\n  \"rollNumber\": \"2103456\"\n}",
+              "raw": "{\n  \"applicationId\": \"1cdaddcd-419c-45e6-a1eb-4a813a445a5d\",\n  \"bedId\": \"061e5a83-a0cf-44d9-a0ed-0f8c8aed885a\",\n  \"rollNumber\": \"2103456\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

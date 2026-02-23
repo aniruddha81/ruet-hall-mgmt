@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { db } from ".";
-import { halls as hallsTable, rooms } from "./models";
+import { beds, halls as hallsTable, rooms } from "./models";
 
 async function seed() {
   // hall insertion
@@ -73,6 +73,42 @@ async function seed() {
 
   for (const room of roomsData) {
     await db.insert(rooms).values(room);
+  }
+
+  // Fetch all rooms already seeded in the DB
+  const allRooms = await db
+    .select({
+      id: rooms.id,
+      hall: rooms.hall,
+      capacity: rooms.capacity,
+      roomNumber: rooms.roomNumber,
+    })
+    .from(rooms);
+
+  if (allRooms.length === 0) {
+    console.warn("No rooms found in DB. Run the main seed script first.");
+    process.exit(1);
+  }
+
+  console.log(`Found ${allRooms.length} rooms. Seeding beds...`);
+
+  const BED_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+  let totalInserted = 0;
+
+  for (const room of allRooms) {
+    const labels = BED_LABELS.slice(0, room.capacity);
+
+    for (const label of labels) {
+      await db.insert(beds).values({
+        id: randomUUID(),
+        hall: room.hall,
+        roomId: room.id,
+        bedLabel: label,
+        status: "AVAILABLE",
+      });
+      totalInserted++;
+    }
   }
 }
 

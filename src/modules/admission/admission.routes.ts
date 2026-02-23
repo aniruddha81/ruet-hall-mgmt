@@ -49,7 +49,7 @@ admissionRouter.get(
 admissionRouter.get(
   "/applications",
   authenticateToken,
-  authorizeRoles("PROVOST", "ASST_INVENTORY"),
+  authorizeRoles("ASST_INVENTORY"),
   validateRequest(listApplicationsSchema),
   getApplications
 );
@@ -58,7 +58,7 @@ admissionRouter.get(
 admissionRouter.patch(
   "/review/:id/",
   authenticateToken,
-  authorizeRoles("PROVOST"),
+  authorizeRoles("ASST_INVENTORY"),
   validateRequest(reviewApplicationSchema),
   reviewApplication
 );
@@ -67,7 +67,7 @@ admissionRouter.patch(
 admissionRouter.post(
   "/allocate",
   authenticateToken,
-  authorizeRoles("PROVOST"),
+  authorizeRoles("ASST_INVENTORY"),
   validateRequest(allocateSeatSchema),
   allocateSeat
 );

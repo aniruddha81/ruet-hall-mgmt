@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { ZodError, ZodType } from "zod";
 import { ApiError } from "../utils/ApiError";
 
@@ -12,12 +12,11 @@ type ValidationSchemas = Partial<{
 
 type RequestKey = keyof ValidationSchemas;
 
-
 /** * Middleware to validate incoming requests against provided Zod schemas
  * - Validates body, params, query, cookies, and headers based on the schemas defined in the route
- * - On validation failure, responds with a 400 status and detailed error messages  
+ * - On validation failure, responds with a 400 status and detailed error messages
  * - On success, attaches the validated data back to the request object for downstream handlers
-*/
+ */
 
 export const validateRequest =
   (schemas: ValidationSchemas) =>
@@ -35,8 +34,12 @@ export const validateRequest =
           return next(formatZodError(result.error));
         }
 
-        // Safe overwrite of validated data
-        (req as any)[key] = result.data;
+        // Safe overwrite of validated data (req.query and req.params are readonly)
+        Object.defineProperty(req, key, {
+          value: result.data,
+          writable: true,
+          configurable: true,
+        });
       }
 
       next();

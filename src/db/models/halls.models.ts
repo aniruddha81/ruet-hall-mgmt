@@ -51,7 +51,7 @@ export const rooms = mysqlTable(
 );
 
 export const halls = mysqlTable("halls", {
-  name: hallSQL_Enum().notNull().primaryKey().unique(),
+  name: hallSQL_Enum().primaryKey().unique(),
 
   address: text("address"),
 

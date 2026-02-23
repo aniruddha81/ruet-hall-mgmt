@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "3ed5a134-f030-4255-a7b7-520cfccd4d32",
+  "id": "84fe42e7-0676-4df6-abfc-19cb34b20367",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "seat_allocations": {

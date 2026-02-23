@@ -27,8 +27,8 @@ const options: CookieOptions = {
   sameSite: "strict",
 };
 
-const studentCookiePath = "/api/v1/auth";
-const adminCookiePath = "/api/v1/auth";
+const studentCookiePath = "/api";
+const adminCookiePath = "/api";
 
 /**
  * POST /api/v1/auth/register
@@ -405,9 +405,6 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
             role: user.designation,
             academicDepartment: user.academicDepartment,
             phone: user.phone,
-          },
-          admin: {
-            id: user.id,
             hall: user.hall,
             designation: user.designation,
             operationalUnit: user.operationalUnit,
