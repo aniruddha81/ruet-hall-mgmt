@@ -38,10 +38,29 @@ bun dev
    bun db:generate
    bun db:migrate
    ```
-3. Seed initial data (halls, rooms):
+   Or combined:
+   ```bash
+   bun db
+   ```
+3. Seed initial data (halls & rooms):
    ```bash
    bun db:seed
    ```
+4. Seed beds (run after `db:seed`):
+   ```bash
+   bun src/db/seedBeds.ts
+   ```
+
+## Authentication
+
+All protected routes require a JWT `accessToken`. The token is:
+- Returned in the **response body** (`data.accessToken`) on login/register
+- Also set as an **HTTP-only cookie** (`accessToken`) with path `/`
+
+For Postman / API clients, use:
+```
+Authorization: Bearer <accessToken>
+```
 
 ## Making Code Changes
 
@@ -64,15 +83,17 @@ bun dev
    - Validate all requests with `validateRequest` middleware.
    - Use enums from `src/types/enums.ts` and SQL enums as per the model file conventions.
 
-4. **Test your changes:**
+4. **Drizzle defaults:** Always explicitly pass enum/status fields in `.insert()` calls — do not rely on Drizzle `.default()` alone, as the DB column may not have a DEFAULT set.
+
+5. **Test your changes:**
    - Use the Postman collections in `/postman/collections/` to test all endpoints.
    - Ensure all validation and error handling works as expected.
 
-5. **Formatting and Linting:**
+6. **Formatting and Linting:**
    - Format your code with Prettier before committing.
    - Follow the project's `.prettierrc` settings.
 
-6. **Contributing:**
+7. **Contributing:**
    - Write clear, descriptive commit messages.
    - Document any new endpoints or changes in `PROJECT_DOCS.txt` if they affect the architecture or API.
 

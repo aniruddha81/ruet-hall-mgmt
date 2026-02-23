@@ -376,45 +376,70 @@ FINANCE Module:
 ────────────────────────────────────────────────────────────────────────────────
 
   /auth
-    POST   /register              - User registration
-    POST   /login                 - User login (get JWT)
-    POST   /refresh               - Refresh access token
-    POST   /logout                - Invalidate token
+    POST   /register                      - Student registration (returns accessToken)
+    POST   /login                         - Student login (returns accessToken)
+    POST   /admin/register                - Admin registration (returns accessToken)
+    POST   /admin/login                   - Admin login (returns accessToken)
+    POST   /renew-access-token            - Renew access token via refresh cookie
+    POST   /logout                        - Invalidate current session [auth required]
+    POST   /logout-all                    - Invalidate all sessions [auth required]
 
   /dining
-    GET    /tomorrow-menus        - Get tomorrow's menus
-    POST   /book-token            - Student books meal token
-    GET    /my-bookings           - View student's bookings
-    POST   /menu                  - Admin: create menu
-    GET    /menus                 - Admin: list menus
-    PATCH  /menu/:id              - Admin: update menu
+    --- STUDENT ---
+    GET    /tomorrow-menus                - Get tomorrow's menus for student's hall
+    POST   /book-tokens                   - Book meal tokens for tomorrow
+    GET    /my-active-tokens              - View active (cancellable) tokens
+    PATCH  /cancel-token/:tokenId         - Cancel a meal token before midnight
+    GET    /token-history                 - Full token purchase history (paginated)
+    GET    /token/:tokenId                - Single token details
+    POST   /payment/process               - Process payment for booked tokens
+    GET    /payment/:paymentId            - Get payment details
+    POST   /payment/:paymentId/refund     - Request refund for cancelled tokens
+    --- DINING_MANAGER ---
+    POST   /menu/create                   - Create tomorrow's menu
+    PATCH  /menu/:menuId/update           - Update tomorrow's menu
+    DELETE /menu/:menuId                  - Delete tomorrow's menu (no bookings only)
+    GET    /menus/tomorrow                - List tomorrow's menus
+    GET    /menus/today                   - List today's menus
+    GET    /bookings/menu/:menuId         - All bookings for a menu
+    GET    /bookings/tomorrow             - All active bookings for tomorrow
+    PATCH  /tokens/mark-consumed          - Mark tokens consumed during service
+    GET    /report/daily                  - Daily consumption report
+    GET    /report/monthly                - Monthly summary report
 
   /admission
-    POST   /apply                 - Student applies for seat
-    GET    /my-status             - Student views application status
-    GET    /applications          - Admin: list applications
-    PATCH  /:id/review            - Admin: review application
-    POST   /allocate              - Admin: allocate bed to student
+    --- STUDENT ---
+    POST   /apply                         - Apply for a hall seat
+    GET    /my-status                     - View own application status
+    --- PROVOST ---
+    GET    /applications                  - List all applications (filterable)
+    PATCH  /review/:id                    - Review application (approve/reject/waitlist)
+    POST   /allocate                      - Allocate bed to approved student
 
   /inventory
-    GET    /rooms                 - List rooms
-    POST   /beds                  - Admin: create beds
-    GET    /beds                  - List beds
-    POST   /assets                - Admin: create asset
-    POST   /damage                - Report asset damage
-    PATCH  /damage/:id/verify     - Admin: verify damage report
+    --- ASST_INVENTORY ---
+    GET    /rooms                         - List rooms (filterable by hall/status)
+    POST   /beds                          - Create beds for a room
+    GET    /beds                          - List beds (filterable by hall/room/status)
+    POST   /assets                        - Create a trackable asset
+    PATCH  /damage/:id/verify             - Verify damage report and assign fine
+    --- STUDENT ---
+    POST   /damage                        - Report asset damage
 
   /finance
-    POST   /dues                  - Admin: create due
-    PATCH  /dues/:id/pay          - Admin: mark due as paid
-    POST   /expense               - Admin: record expense
-    GET    /expenses              - Admin: list expenses
-    GET    /student/:id/ledger    - Get student financial ledger
+    --- ASST_FINANCE ---
+    POST   /dues                          - Create a due for a student
+    PATCH  /dues/pay/:id                  - Mark a due as paid
+    POST   /expense                       - Record an expense
+    --- ASST_FINANCE | FINANCE_SECTION_OFFICER ---
+    GET    /expenses                      - List expenses (filterable)
+    GET    /student/ledger/:id            - Get student financial ledger
+    GET    /meal-payments                 - List all meal payments
+    GET    /meal-payments/report          - Meal payments summary report
+    GET    /meal-payment/:id              - Single meal payment details
 
-  /profile (placeholder)
-    GET    /me                    - Get own profile
-    PATCH  /me                    - Update own profile
-    GET    /:id                   - Admin: get user profile
+  /profile
+    POST   /upload-image                  - Upload avatar image [all roles]
 
 
 ================================================================================
@@ -429,15 +454,18 @@ FINANCE Module:
   • Access Token: Short-lived (15 min typically)
   • Refresh Token: Long-lived (7 days), stored in HTTP-only cookie
 
-  Response on successful login:
+  Response on successful login/register:
     {
       "statusCode": 200,
       "data": {
-        "accessToken": "eyJhbGc...",
-        "user": { "id", "email", "role", ... }
+        "accessToken": "eyJhbGc...",   // ← Use this as Bearer token
+        "student_data": { ... }         // or "user" for admin endpoints
       },
-      "message": "Login successful"
+      "message": "User logged in successfully"
     }
+
+  NOTE: accessToken is also set as an httpOnly cookie with path "/"
+  so it is automatically sent with all subsequent requests from browsers.
 
 ## Authorization Levels
 ────────────────────────────────────────────────────────────────────────────────
@@ -711,20 +739,24 @@ FINANCE Module:
   4. Run migrations:
        $ bun db:migrate
 
-  5. Seed initial data (rooms, halls):
+  5. Seed initial data (halls & rooms):
        $ bun db:seed
 
-  6. Start development server:
+  6. Seed beds (requires step 5 first):
+       $ bun src/db/seedBeds.ts
+
+  7. Start development server:
        $ bun dev
 
-  7. Server runs on: http://localhost:5000/api/v1
+  8. Server runs on: http://localhost:8000/api/v1
 
 ## Database Commands
 ────────────────────────────────────────────────────────────────────────────────
   $ bun db:generate              # Generate migration from schema changes
   $ bun db:migrate               # Apply pending migrations
-  $ bun db:both                  # Generate + migrate (combined)
-  $ bun db:seed                  # Seed initial data
+  $ bun db                       # Generate + migrate (combined)
+  $ bun db:seed                  # Seed halls & rooms
+  $ bun src/db/seedBeds.ts       # Seed beds (run after db:seed)
 
 
 ================================================================================
@@ -853,6 +885,15 @@ FINANCE Module:
   • All responses MUST use ApiResponse class
   • All errors MUST use ApiError class
   • All routes MUST include Zod validation via validateRequest()
+  • Drizzle .default() values: ALWAYS explicitly pass enum/status fields in
+    .insert() calls (e.g., status: "REPORTED"). Do not rely on Drizzle's
+    .default() alone — if the DB column has no DEFAULT in MySQL, the insert
+    will fail with a constraint error.
+  • req.query / req.params are readonly in Express — validateRequest uses
+    Object.defineProperty() to safely overwrite with validated Zod output.
+  • Cookie path is set to "/" so accessToken cookie is sent with ALL routes,
+    not just /api/v1/auth/* routes.
+  • Seeding order: db:seed (halls + rooms) → seedBeds.ts (beds)
 
 ## Enum Usage
 ────────────────────────────────────────────────────────────────────────────────
@@ -889,5 +930,5 @@ FINANCE Module:
 END OF DOCUMENTATION
 ================================================================================
 
-Last Updated: February 16, 2026
+Last Updated: February 23, 2026
 For questions or updates, refer to database models and controller implementations.
