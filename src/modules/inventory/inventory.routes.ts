@@ -30,7 +30,7 @@ const inventoryRouter = Router();
 inventoryRouter.get(
   "/rooms",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY", "PROVOST"),
+  authorizeRoles("ASST_INVENTORY"),
   validateRequest(listRoomsSchema),
   getRooms
 );
@@ -38,7 +38,7 @@ inventoryRouter.get(
 inventoryRouter.post(
   "/beds",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY", "PROVOST"),
+  authorizeRoles("ASST_INVENTORY"),
   validateRequest(createBedsSchema),
   createBeds
 );
@@ -46,7 +46,7 @@ inventoryRouter.post(
 inventoryRouter.get(
   "/beds",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY", "PROVOST"),
+  authorizeRoles("ASST_INVENTORY"),
   validateRequest(listBedsSchema),
   getBeds
 );
@@ -58,7 +58,7 @@ inventoryRouter.get(
 inventoryRouter.post(
   "/assets",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY", "PROVOST"),
+  authorizeRoles("ASST_INVENTORY"),
   validateRequest(createAssetSchema),
   createAsset
 );
@@ -70,7 +70,7 @@ inventoryRouter.post(
 inventoryRouter.post(
   "/damage",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY", "PROVOST"),
+  authorizeRoles("STUDENT"),
   validateRequest(reportDamageSchema),
   reportDamage
 );
@@ -78,7 +78,7 @@ inventoryRouter.post(
 inventoryRouter.patch(
   "/damage/:id/verify",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY", "PROVOST"),
+  authorizeRoles("ASST_INVENTORY"),
   validateRequest(verifyDamageSchema),
   verifyDamage
 );

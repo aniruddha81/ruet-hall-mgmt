@@ -509,8 +509,10 @@ export const createTomorrowMenu = asyncHandler(
         );
     }
 
+    const id = randomUUID();
+
     await db.insert(mealMenus).values({
-      id: randomUUID(),
+      id,
       hall: hall,
       mealType,
       menuDescription,
@@ -523,6 +525,7 @@ export const createTomorrowMenu = asyncHandler(
       new ApiResponse(
         201,
         {
+          menuId: id,
           menuDescription,
           price,
           totalTokens,

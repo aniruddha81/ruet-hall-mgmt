@@ -152,7 +152,7 @@ export const createAsset = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/inventory/damage
- * Student/admin reports asset damage
+ * Student reports asset damage
  */
 export const reportDamage = asyncHandler(
   async (req: Request, res: Response) => {

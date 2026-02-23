@@ -451,7 +451,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/inventory/rooms",
+              "raw": "{{BASE_URL}}/api/v1/inventory/rooms?hall=ZIA_HALL&status=AVAILABLE",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -464,13 +464,11 @@
               "query": [
                 {
                   "key": "hall",
-                  "value": "ZIA_HALL",
-                  "disabled": true
+                  "value": "ZIA_HALL"
                 },
                 {
                   "key": "status",
-                  "value": "AVAILABLE",
-                  "disabled": true
+                  "value": "AVAILABLE"
                 }
               ]
             }
@@ -496,7 +494,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"hall\": \"ZIA_HALL\",\n  \"roomId\": \"room-uuid-here\",\n  \"bedLabels\": [\n    \"A\",\n    \"B\",\n    \"C\",\n    \"D\"\n  ]\n}",
+              "raw": "{\n  \"hall\": \"ZIA_HALL\",\n  \"roomId\": \"32d520cd-8a5a-43ba-8267-902d99b125f1\",\n  \"bedLabels\": [\n    \"A\",\n    \"B\",\n    \"C\",\n    \"D\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -531,7 +529,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/inventory/beds",
+              "raw": "{{BASE_URL}}/api/v1/inventory/beds?hall=ZIA_HALL&roomId=32d520cd-8a5a-43ba-8267-902d99b125f1&status=AVAILABLE",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -545,17 +543,17 @@
                 {
                   "key": "hall",
                   "value": "ZIA_HALL",
-                  "disabled": true
+                  "uuid": "34836a2e-8d51-46c9-9fa3-08f245abc621"
                 },
                 {
                   "key": "roomId",
-                  "value": "room-uuid-here",
-                  "disabled": true
+                  "value": "32d520cd-8a5a-43ba-8267-902d99b125f1",
+                  "uuid": "322eb234-ab06-445a-a530-f383cc10f72a"
                 },
                 {
                   "key": "status",
                   "value": "AVAILABLE",
-                  "disabled": true
+                  "uuid": "a599a1f8-5e05-4af1-b25e-cb3f70027de2"
                 }
               ]
             }
@@ -622,7 +620,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"assetId\": \"asset-uuid-here\",\n  \"hall\": \"ZIA_HALL\",\n  \"description\": \"The desk lamp is broken, unable to switch on\"\n}",
+              "raw": "{\n  \"assetId\": \"9513f5a2-7e1c-4f0e-8a88-c7589413acf5\",\n  \"hall\": \"ZIA_HALL\",\n  \"description\": \"The desk lamp is broken, unable to switch on\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -686,7 +684,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "damage-report-uuid-here"
+                  "value": "96b0eb96-fcce-4021-bc0b-af1ba20ed794"
                 }
               ]
             }
@@ -751,7 +749,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"menuId\": \"menu-uuid-here\",\n  \"quantity\": 2,\n  \"paymentMethod\": \"BKASH\",\n  \"hall\": \"ZIA_HALL\"\n}",
+              "raw": "{\n  \"menuId\": \"2ef998c9-67f9-4795-876c-0c7825214655\",\n  \"quantity\": 2,\n  \"paymentMethod\": \"BKASH\",\n  \"hall\": \"ZIA_HALL\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -827,7 +825,7 @@
               "variable": [
                 {
                   "key": "tokenId",
-                  "value": "token-uuid-here"
+                  "value": "d9281ed0-4151-4af0-8607-30b4b2a93553"
                 }
               ]
             }
@@ -847,7 +845,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/token-history",
+              "raw": "{{BASE_URL}}/api/v1/dining/token-history?page=1&limit=10&status=ACTIVE",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -860,18 +858,15 @@
               "query": [
                 {
                   "key": "page",
-                  "value": "1",
-                  "disabled": true
+                  "value": "1"
                 },
                 {
                   "key": "limit",
-                  "value": "10",
-                  "disabled": true
+                  "value": "10"
                 },
                 {
                   "key": "status",
-                  "value": "ACTIVE",
-                  "disabled": true
+                  "value": "ACTIVE"
                 }
               ]
             }
@@ -905,7 +900,7 @@
               "variable": [
                 {
                   "key": "tokenId",
-                  "value": "token-uuid-here"
+                  "value": "d9281ed0-4151-4af0-8607-30b4b2a93553"
                 }
               ]
             }
@@ -931,7 +926,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"mealType\": \"LUNCH\",\n  \"menuDescription\": \"Rice, Chicken Curry, Dal, Salad\",\n  \"price\": 50,\n  \"totalTokens\": 200\n}",
+              "raw": "{\n  \"mealType\": \"DINNER\",\n  \"menuDescription\": \"Rice, Chicken Curry, Dal, Salad\",\n  \"price\": 50,\n  \"totalTokens\": 200\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -996,7 +991,7 @@
               "variable": [
                 {
                   "key": "menuId",
-                  "value": "menu-uuid-here"
+                  "value": "ecd18e24-14b2-43c4-88a8-705f0e8b6e77"
                 }
               ]
             }
@@ -1030,7 +1025,7 @@
               "variable": [
                 {
                   "key": "menuId",
-                  "value": "menu-uuid-here"
+                  "value": "ecd18e24-14b2-43c4-88a8-705f0e8b6e77"
                 }
               ]
             }
@@ -1133,7 +1128,7 @@
               "variable": [
                 {
                   "key": "menuId",
-                  "value": "menu-uuid-here"
+                  "value": "2ef998c9-67f9-4795-876c-0c7825214655"
                 }
               ]
             }
@@ -1223,7 +1218,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/report/daily",
+              "raw": "{{BASE_URL}}/api/v1/dining/report/daily?date=2026-02-24",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1237,8 +1232,8 @@
               "query": [
                 {
                   "key": "date",
-                  "value": "2024-02-20",
-                  "disabled": true
+                  "value": "2026-02-24",
+                  "uuid": "ce5904a5-4906-499e-87f0-5621f4a6d39e"
                 }
               ]
             }
@@ -1258,7 +1253,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/report/monthly?month=2&year=2024",
+              "raw": "{{BASE_URL}}/api/v1/dining/report/monthly?month=2&year=2026",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1272,11 +1267,13 @@
               "query": [
                 {
                   "key": "month",
-                  "value": "2"
+                  "value": "2",
+                  "uuid": "e1763c30-dc36-44b8-8951-4f79128df7b5"
                 },
                 {
                   "key": "year",
-                  "value": "2024"
+                  "value": "2026",
+                  "uuid": "3ea2b5ca-935d-4239-aa1a-25f20fd95249"
                 }
               ]
             }
