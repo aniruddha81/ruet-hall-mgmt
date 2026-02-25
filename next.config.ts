@@ -4,8 +4,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/:path*",
-        destination: `http://localhost:${process.env.BACKEND_PORT}/:path*`,
+        source: "/api/:path*",
+        destination: `${process.env.BACKEND_URL}/api/:path*`,
       },
     ];
   },
