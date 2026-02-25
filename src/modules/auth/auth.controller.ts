@@ -1,8 +1,7 @@
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 import { and, desc, eq } from "drizzle-orm";
-import type { CookieOptions, Request, Response } from "express";
-import { NODE_ENV } from "../../Constants.ts";
+import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
 import {
   hallAdmins,
@@ -12,23 +11,14 @@ import {
 import { ApiError } from "../../utils/ApiError.ts";
 import { ApiResponse } from "../../utils/ApiResponse.ts";
 import { asyncHandler } from "../../utils/asyncHandler.ts";
-import { createJti, hashToken } from "../../utils/helpers.ts";
+import { hashToken } from "../../utils/helpers.ts";
 import type { AccessTokenPayload, RefreshTokenPayload } from "./auth.d.ts";
 import {
-  getRefreshTokenExpiry,
+  issueAuthTokenAndSetCookies,
+  options,
   signAccessToken,
-  signRefreshToken,
   verifyRefreshToken,
 } from "./auth.service.ts";
-
-const options: CookieOptions = {
-  httpOnly: true,
-  secure: NODE_ENV === "production",
-  sameSite: "strict",
-};
-
-const studentCookiePath = "/api";
-const adminCookiePath = "/api";
 
 /**
  * POST /api/v1/auth/register
@@ -88,44 +78,25 @@ export const studentRegister = asyncHandler(
       role: "STUDENT",
     };
 
-    const jti = createJti();
-    const refreshToken = signRefreshToken({ ...tokenPayload, jti });
-
-    await db.insert(refreshTokens).values({
-      id: randomUUID(),
-      jti,
-      userId: newUser.id,
-      tokenHash: hashToken(refreshToken),
-      ip: req.ip as string,
-      userAgent: req.headers["user-agent"] || "",
-      expiresAt: getRefreshTokenExpiry(),
-    });
-
-    return res
-      .status(201)
-      .cookie("accessToken", signAccessToken(tokenPayload), {
-        ...options,
-        maxAge: 15 * 60 * 1000,
-        path: studentCookiePath,
+    return (
+      await issueAuthTokenAndSetCookies({
+        req,
+        res,
+        tokenPayload,
       })
-      .cookie("refreshToken", refreshToken, {
-        ...options,
-        maxAge: 10 * 24 * 60 * 60 * 1000,
-        path: studentCookiePath,
-      })
-      .json(
-        new ApiResponse(
-          201,
-          {
-            user: {
-              id: newUser.id,
-              email: newUser.email,
-              name: newUser.name,
-            },
+    ).json(
+      new ApiResponse(
+        201,
+        {
+          user: {
+            id: newUser.id,
+            email: newUser.email,
+            name: newUser.name,
           },
-          "User registered successfully"
-        )
-      );
+        },
+        "User registered successfully"
+      )
+    );
   }
 );
 
@@ -175,52 +146,33 @@ export const studentLogin = asyncHandler(
         .where(eq(refreshTokens.id, oldestToken.id));
     }
 
-    const jti = createJti();
-    const refreshToken = signRefreshToken({ ...tokenPayload, jti });
-
-    await db.insert(refreshTokens).values({
-      id: randomUUID(),
-      jti,
-      userId: user.id,
-      tokenHash: hashToken(refreshToken),
-      ip: String(req.ip),
-      userAgent: req.headers["user-agent"] || "",
-      expiresAt: getRefreshTokenExpiry(),
-    });
-
-    return res
-      .status(200)
-      .cookie("accessToken", signAccessToken(tokenPayload), {
-        ...options,
-        maxAge: 15 * 60 * 1000,
-        path: studentCookiePath,
+    return (
+      await issueAuthTokenAndSetCookies({
+        req,
+        res,
+        tokenPayload,
       })
-      .cookie("refreshToken", refreshToken, {
-        ...options,
-        maxAge: 10 * 24 * 60 * 60 * 1000,
-        path: studentCookiePath,
-      })
-      .json(
-        new ApiResponse(
-          200,
-          {
-            student_data: {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              phone: user.phone,
-              academicDepartment: user.academicDepartment,
-              rollNumber: user.rollNumber,
-              session: user.session,
-              hall: user.hall,
-              roomId: user.roomId,
-              status: user.status,
-              isAllocated: user.isAllocated,
-            },
+    ).json(
+      new ApiResponse(
+        200,
+        {
+          student_data: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            phone: user.phone,
+            academicDepartment: user.academicDepartment,
+            rollNumber: user.rollNumber,
+            session: user.session,
+            hall: user.hall,
+            roomId: user.roomId,
+            status: user.status,
+            isAllocated: user.isAllocated,
           },
-          "User logged in successfully"
-        )
-      );
+        },
+        "User logged in successfully"
+      )
+    );
   }
 );
 
@@ -284,43 +236,48 @@ export const adminRegister = asyncHandler(
       role: newUser.designation,
     };
 
-    const jti = createJti();
-    const refreshToken = signRefreshToken({ ...tokenPayload, jti });
+    res.status(201).json(
+      new ApiResponse(
+        201,
+        {
+          user: tokenPayload,
+        },
+        "Admin registration pending"
+      )
+    );
+  }
+);
 
-    await db.insert(refreshTokens).values({
-      id: randomUUID(),
-      jti,
-      userId: newUser.id,
-      tokenHash: hashToken(refreshToken),
-      ip: req.ip as string,
-      userAgent: req.headers["user-agent"] || "",
-      expiresAt: getRefreshTokenExpiry(),
-    });
+export const adminApproval = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { adminApplicationId, status } = req.body;
 
-    return res
-      .status(201)
-      .cookie("accessToken", signAccessToken(tokenPayload), {
-        ...options,
-        maxAge: 15 * 60 * 1000,
-        path: adminCookiePath,
-      })
-      .cookie("refreshToken", refreshToken, {
-        ...options,
-        maxAge: 10 * 24 * 60 * 60 * 1000,
-        path: adminCookiePath,
-      })
+    const { userId } = req.user!;
+
+    const [isAdmin] = await db
+      .select()
+      .from(hallAdmins)
+      .where(
+        and(eq(hallAdmins.id, userId), eq(hallAdmins.designation, "PROVOST"))
+      )
+      .limit(1);
+
+    if (!isAdmin) {
+      throw new ApiError(403, "Only provosts can approve admin applications");
+    }
+
+    await db
+      .update(hallAdmins)
+      .set({ hallAdminStatus: status })
+      .where(eq(hallAdmins.id, adminApplicationId));
+
+    res
+      .status(200)
       .json(
         new ApiResponse(
-          201,
-          {
-            user: {
-              id: newUser.id,
-              email: newUser.email,
-              name: newUser.name,
-              role: newUser.designation,
-            },
-          },
-          "Admin registered successfully"
+          200,
+          { adminApplicationId, status },
+          "Admin approval status updated"
         )
       );
   }
@@ -348,6 +305,13 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(403, "Admin account is deactivated");
   }
 
+  if (user.hallAdminStatus !== "APPROVED") {
+    throw new ApiError(
+      403,
+      `Admin application is ${user.hallAdminStatus.toLowerCase()}`
+    );
+  }
+
   const tokenPayload: AccessTokenPayload = {
     userId: user.id,
     email: user.email,
@@ -369,52 +333,33 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
     await db.delete(refreshTokens).where(eq(refreshTokens.id, oldestToken.id));
   }
 
-  const jti = createJti();
-  const refreshToken = signRefreshToken({ ...tokenPayload, jti });
-
-  await db.insert(refreshTokens).values({
-    id: randomUUID(),
-    jti,
-    userId: user.id,
-    tokenHash: hashToken(refreshToken),
-    ip: String(req.ip),
-    userAgent: req.headers["user-agent"] || "",
-    expiresAt: getRefreshTokenExpiry(),
-  });
-
-  return res
-    .status(200)
-    .cookie("accessToken", signAccessToken(tokenPayload), {
-      ...options,
-      maxAge: 15 * 60 * 1000,
-      path: adminCookiePath,
+  return (
+    await issueAuthTokenAndSetCookies({
+      req,
+      res,
+      tokenPayload,
     })
-    .cookie("refreshToken", refreshToken, {
-      ...options,
-      maxAge: 10 * 24 * 60 * 60 * 1000,
-      path: adminCookiePath,
-    })
-    .json(
-      new ApiResponse(
-        200,
-        {
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.designation,
-            academicDepartment: user.academicDepartment,
-            phone: user.phone,
-            hall: user.hall,
-            designation: user.designation,
-            operationalUnit: user.operationalUnit,
-            reportingToId: user.reportingToId,
-            isActive: user.isActive,
-          },
+  ).json(
+    new ApiResponse(
+      200,
+      {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.designation,
+          academicDepartment: user.academicDepartment,
+          phone: user.phone,
+          hall: user.hall,
+          designation: user.designation,
+          operationalUnit: user.operationalUnit,
+          reportingToId: user.reportingToId,
+          isActive: user.isActive,
         },
-        "Admin logged in successfully"
-      )
-    );
+      },
+      "Admin logged in successfully"
+    )
+  );
 });
 
 /**
@@ -470,7 +415,7 @@ export const renewAccessToken = asyncHandler(
       .cookie("accessToken", newAccessToken, {
         ...options,
         maxAge: 15 * 60 * 1000,
-        path: decoded.role === "STUDENT" ? studentCookiePath : adminCookiePath,
+        path: "/api",
       })
       .json(
         new ApiResponse(
@@ -488,7 +433,6 @@ export const renewAccessToken = asyncHandler(
  */
 export const logout = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
-  const user = req.user;
 
   if (!refreshToken) {
     throw new ApiError(400, "Refresh token is required");
@@ -504,11 +448,11 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .clearCookie("accessToken", {
       ...options,
-      path: user?.role === "STUDENT" ? studentCookiePath : adminCookiePath,
+      path: "/api",
     })
     .clearCookie("refreshToken", {
       ...options,
-      path: user?.role === "STUDENT" ? studentCookiePath : adminCookiePath,
+      path: "/api",
     })
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
@@ -519,7 +463,6 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
  */
 export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
-  const user = req.user;
 
   if (!userId) {
     throw new ApiError(401, "User not authenticated");
@@ -531,11 +474,11 @@ export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .clearCookie("accessToken", {
       ...options,
-      path: user?.role === "STUDENT" ? studentCookiePath : adminCookiePath,
+      path: "/api",
     })
     .clearCookie("refreshToken", {
       ...options,
-      path: user?.role === "STUDENT" ? studentCookiePath : adminCookiePath,
+      path: "/api",
     })
     .json(
       new ApiResponse(200, null, "Logged out from all devices successfully")

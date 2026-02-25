@@ -1,7 +1,11 @@
 import { Router } from "express";
-import { authenticateToken } from "../../middlewares/auth.middleware.ts";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "../../middlewares/auth.middleware.ts";
 import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
+  adminApproval,
   adminLogin,
   adminRegister,
   logout,
@@ -11,6 +15,7 @@ import {
   studentRegister,
 } from "./auth.controller.ts";
 import {
+  adminApprovalSchema,
   adminLoginSchema,
   adminRegisterSchema,
   refreshTokenCookieSchema,
@@ -35,8 +40,14 @@ authRouter.post(
   validateRequest(adminRegisterSchema),
   adminRegister
 );
+authRouter.patch(
+  "/admin/approve",
+  authenticateToken,
+  authorizeRoles(),
+  validateRequest(adminApprovalSchema),
+  adminApproval
+);
 authRouter.post("/admin/login", validateRequest(adminLoginSchema), adminLogin);
-
 
 // common routes
 authRouter.post(

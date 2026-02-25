@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   ACADEMIC_DEPARTMENTS,
+  HALL_ADMIN_STATUSES,
   HALLS,
   OPERATIONAL_UNITS,
   STAFF_ROLES,
@@ -72,6 +73,13 @@ const adminRegisterSchema = {
     }),
 };
 
+const adminApprovalSchema = {
+  body: z.object({
+    adminApplicationId: z.uuid("Invalid application ID"),
+    status: z.enum(HALL_ADMIN_STATUSES),
+  }),
+};
+
 const adminLoginSchema = {
   body: z.object({
     email: z.email("Invalid email address"),
@@ -89,6 +97,7 @@ const refreshTokenCookieSchema = {
 };
 
 export {
+  adminApprovalSchema,
   adminLoginSchema,
   adminRegisterSchema,
   refreshTokenCookieSchema,

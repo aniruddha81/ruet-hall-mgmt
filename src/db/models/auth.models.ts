@@ -11,28 +11,24 @@ import {
 } from "drizzle-orm/mysql-core";
 import {
   ACADEMIC_DEPARTMENTS,
+  HALL_ADMIN_STATUSES,
   OPERATIONAL_UNITS,
   STAFF_ROLES,
   STUDENT_STATUSES,
 } from "../../types/enums";
 import { hallSQL_Enum, halls, rooms } from "./halls.models";
 
-export const studentStatusSQL_Enum = () => mysqlEnum(
-  "student_status",
-  STUDENT_STATUSES
-);
-export const adminDesignationSQL_Enum = () => mysqlEnum(
-  "admin_designation",
-  STAFF_ROLES
-);
-export const operationalUnitSQL_Enum = () => mysqlEnum(
-  "operational_unit",
-  OPERATIONAL_UNITS
-);
-export const academicDepartmentsSQL_Enum = () => mysqlEnum(
-  "academic_department",
-  ACADEMIC_DEPARTMENTS
-);
+export const studentStatusSQL_Enum = () =>
+  mysqlEnum("student_status", STUDENT_STATUSES);
+export const adminDesignationSQL_Enum = () =>
+  mysqlEnum("admin_designation", STAFF_ROLES);
+export const operationalUnitSQL_Enum = () =>
+  mysqlEnum("operational_unit", OPERATIONAL_UNITS);
+export const academicDepartmentsSQL_Enum = () =>
+  mysqlEnum("academic_department", ACADEMIC_DEPARTMENTS);
+
+export const hallAdminStatusSQL_Enum = () =>
+  mysqlEnum("hall_admin_status", HALL_ADMIN_STATUSES);
 
 export const refreshTokens = mysqlTable(
   "refresh_tokens",
@@ -136,6 +132,8 @@ export const hallAdmins = mysqlTable(
     reportingToId: varchar("reporting_to_id", { length: 36 }).references(
       (): AnyMySqlColumn => hallAdmins.id
     ),
+
+    hallAdminStatus: hallAdminStatusSQL_Enum().notNull().default("PENDING"),
 
     isActive: boolean("is_active").notNull().default(true),
 

@@ -82,6 +82,8 @@ export const SEAT_APPLICATION_STATUSES = [
   "WAITLIST",
 ] as const;
 
+export const HALL_ADMIN_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+
 // for inventory module
 export const BED_STATUSES = ["AVAILABLE", "OCCUPIED", "MAINTENANCE"] as const;
 export const ASSET_CONDITIONS = ["GOOD", "FAIR", "POOR", "DAMAGED"] as const;
@@ -109,3 +111,4 @@ export type DueStatus = (typeof DUE_STATUSES)[number];
 export type FinancePaymentMethod = (typeof FINANCE_PAYMENT_METHODS)[number];
 export type MealType = (typeof MEAL_TYPES)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export type HallAdminStatus = (typeof HALL_ADMIN_STATUSES)[number];
