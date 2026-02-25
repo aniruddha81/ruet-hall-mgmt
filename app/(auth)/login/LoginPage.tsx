@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -44,10 +44,14 @@ export default function LoginPage() {
         <Card className="shadow-xl border-border/50">
           <CardHeader className="space-y-1 text-center">
             <div className="mx-auto mb-4 w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-primary-foreground font-bold text-xl">R</span>
+              <span className="text-primary-foreground font-bold text-xl">
+                R
+              </span>
             </div>
             <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription>Sign in to your RUET Hall Management account</CardDescription>
+            <CardDescription>
+              Sign in to your RUET Hall Management account
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -59,22 +63,44 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" className="h-11" />
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="h-11"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" className="h-11" />
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="h-11"
+                />
               </div>
 
-              <Button type="submit" disabled={isLoading} className="w-full h-11 text-base">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-11 text-base"
+              >
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
 
             <div className="relative my-6">
               <Separator />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground uppercase">Student Portal</span>
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground uppercase">
+                Student Portal
+              </span>
             </div>
 
             <p className="text-center text-sm text-muted-foreground">
@@ -84,7 +110,12 @@ export default function LoginPage() {
           <CardFooter className="justify-center">
             <p className="text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-primary hover:text-primary/80 font-semibold transition-colors">Sign up</Link>
+              <Link
+                href="/signup"
+                className="text-primary hover:text-primary/80 font-semibold transition-colors"
+              >
+                Sign up
+              </Link>
             </p>
           </CardFooter>
         </Card>

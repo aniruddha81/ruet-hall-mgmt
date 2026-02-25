@@ -35,7 +35,7 @@ export default function AdmissionPage() {
     fetchStatus();
   }, []);
 
-  const handleApply = async (e: React.FormEvent) => {
+  const handleApply = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user || !user.hall) {
       setError(
