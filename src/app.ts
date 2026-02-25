@@ -2,14 +2,13 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
-import { CORS_ORIGIN } from "./Constants.ts";
 import { handleError } from "./middlewares/errorHandling.middleware.ts";
 
 const app = express();
 
 app.use(
   cors({
-    origin: CORS_ORIGIN,
+    origin: ["http://localhost:3000", "https://your-frontend.com"],
     credentials: true,
   })
 );
@@ -29,12 +28,12 @@ import inventoryRouter from "./modules/inventory/inventory.routes.ts";
 import profileRouter from "./modules/profile/profile.route.ts";
 
 //routes declaration
-app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/profile", profileRouter);
-app.use("/api/v1/dining", diningRouter);
-app.use("/api/v1/admission", admissionRouter);
-app.use("/api/v1/inventory", inventoryRouter);
-app.use("/api/v1/finance", financeRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/profile", profileRouter);
+app.use("/api/dining", diningRouter);
+app.use("/api/admission", admissionRouter);
+app.use("/api/inventory", inventoryRouter);
+app.use("/api/finance", financeRouter);
 
 // Error handling middleware
 app.use(handleError);
