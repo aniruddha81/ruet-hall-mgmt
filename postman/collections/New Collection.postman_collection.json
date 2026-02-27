@@ -31,13 +31,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/auth/register",
+              "raw": "{{BASE_URL}}/api/auth/register",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "auth",
                 "register"
               ]
@@ -59,7 +58,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePass123!\"\n}",
+              "raw": "{\n    \"email\": \"ar.roy564@gmail.com\",\n    \"password\": \"p;0c0K)Tw2JP\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -67,13 +66,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/auth/login",
+              "raw": "{{BASE_URL}}/api/auth/login",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "auth",
                 "login"
               ]
@@ -95,7 +93,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"AdminPass123!\",\n  \"confirmPassword\": \"AdminPass123!\",\n  \"academicDepartment\": \"CSE\",\n  \"hall\": \"ZIA_HALL\",\n  \"designation\": \"PROVOST\",\n  \"operationalUnit\": \"ALL\",\n  \"phone\": \"+8801712345678\"\n}",
+              "raw": "{\n  \"name\": \"Mahendra Singh Dhoni\",\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"AdminPass123!\",\n  \"confirmPassword\": \"AdminPass123!\",\n  \"academicDepartment\": \"CSE\",\n  \"hall\": \"ZIA_HALL\",\n  \"designation\": \"PROVOST\",\n  \"operationalUnit\": \"ALL\",\n  \"phone\": \"+8801712345678\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -103,13 +101,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/auth/admin/register",
+              "raw": "{{BASE_URL}}/api/auth/admin/register",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "auth",
                 "admin",
                 "register"
@@ -132,7 +129,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"AdminPass123!\"\n}",
+              "raw": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"AdminPass123!\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -140,13 +137,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/auth/admin/login",
+              "raw": "{{BASE_URL}}/api/auth/admin/login",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "auth",
                 "admin",
                 "login"
@@ -162,13 +158,12 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/auth/renew-access-token",
+              "raw": "{{BASE_URL}}/api/auth/renew-access-token",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "auth",
                 "renew-access-token"
               ]
@@ -183,13 +178,12 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/auth/logout",
+              "raw": "{{BASE_URL}}/api/auth/logout",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "auth",
                 "logout"
               ]
@@ -210,15 +204,44 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/auth/logout-all",
+              "raw": "{{BASE_URL}}/api/auth/logout-all",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "auth",
                 "logout-all"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "id": "c21269ba-2f11-4083-9bc5-b0668e65ad66",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"adminApplicationId\": \"\",\r\n    \"status\": \"PENDING\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/admin/approve",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "approve"
               ]
             }
           },
@@ -257,13 +280,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/admission/apply",
+              "raw": "{{BASE_URL}}/api/admission/apply",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "admission",
                 "apply"
               ]
@@ -284,13 +306,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/admission/my-status",
+              "raw": "{{BASE_URL}}/api/admission/my-status",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "admission",
                 "my-status"
               ]
@@ -311,32 +332,35 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/admission/applications?hall=ZIA_HALL&status=PENDING&page=1&limit=20",
+              "raw": "{{BASE_URL}}/api/admission/applications?hall=ZIA_HALL&status=PENDING&page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "admission",
                 "applications"
               ],
               "query": [
                 {
                   "key": "hall",
-                  "value": "ZIA_HALL"
+                  "value": "ZIA_HALL",
+                  "uuid": "4b225272-c1f6-4719-b609-9afc4c3767f2"
                 },
                 {
                   "key": "status",
-                  "value": "PENDING"
+                  "value": "PENDING",
+                  "uuid": "9372f3eb-746e-49c1-ad6d-edf61b8fe894"
                 },
                 {
                   "key": "page",
-                  "value": "1"
+                  "value": "1",
+                  "uuid": "fab66f15-eaf6-4f1b-9981-53ef1df4d4bd"
                 },
                 {
                   "key": "limit",
-                  "value": "20"
+                  "value": "20",
+                  "uuid": "a1ddadad-2ace-4b01-8a19-b456eb5a263f"
                 }
               ]
             }
@@ -370,13 +394,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/admission/review/:id",
+              "raw": "{{BASE_URL}}/api/admission/review/:id",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "admission",
                 "review",
                 ":id"
@@ -418,13 +441,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/admission/allocate",
+              "raw": "{{BASE_URL}}/api/admission/allocate",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "admission",
                 "allocate"
               ]
@@ -451,24 +473,25 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/inventory/rooms?hall=ZIA_HALL&status=AVAILABLE",
+              "raw": "{{BASE_URL}}/api/inventory/rooms?hall=ZIA_HALL&status=AVAILABLE",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "inventory",
                 "rooms"
               ],
               "query": [
                 {
                   "key": "hall",
-                  "value": "ZIA_HALL"
+                  "value": "ZIA_HALL",
+                  "uuid": "c7798b9a-5f05-4c1c-b49c-2716f3f86534"
                 },
                 {
                   "key": "status",
-                  "value": "AVAILABLE"
+                  "value": "AVAILABLE",
+                  "uuid": "7d5588cc-01fd-4056-9976-af202988471e"
                 }
               ]
             }
@@ -502,13 +525,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/inventory/beds",
+              "raw": "{{BASE_URL}}/api/inventory/beds",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "inventory",
                 "beds"
               ]
@@ -529,13 +551,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/inventory/beds?hall=ZIA_HALL&roomId=32d520cd-8a5a-43ba-8267-902d99b125f1&status=AVAILABLE",
+              "raw": "{{BASE_URL}}/api/inventory/beds?hall=ZIA_HALL&roomId=32d520cd-8a5a-43ba-8267-902d99b125f1&status=AVAILABLE",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "inventory",
                 "beds"
               ],
@@ -587,13 +608,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/inventory/assets",
+              "raw": "{{BASE_URL}}/api/inventory/assets",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "inventory",
                 "assets"
               ]
@@ -628,13 +648,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/inventory/damage",
+              "raw": "{{BASE_URL}}/api/inventory/damage",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "inventory",
                 "damage"
               ]
@@ -669,13 +688,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/inventory/damage/:id/verify",
+              "raw": "{{BASE_URL}}/api/inventory/damage/:id/verify",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "inventory",
                 "damage",
                 ":id",
@@ -710,21 +728,14 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/tomorrow-menus?hall=ZIA_HALL",
+              "raw": "{{BASE_URL}}/api/dining/tomorrow-menus",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "tomorrow-menus"
-              ],
-              "query": [
-                {
-                  "key": "hall",
-                  "value": "ZIA_HALL"
-                }
               ]
             }
           },
@@ -757,13 +768,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/book-tokens",
+              "raw": "{{BASE_URL}}/api/dining/book-tokens",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "book-tokens"
               ]
@@ -784,13 +794,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/my-active-tokens",
+              "raw": "{{BASE_URL}}/api/dining/my-active-tokens",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "my-active-tokens"
               ]
@@ -811,13 +820,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/cancel-token/:tokenId",
+              "raw": "{{BASE_URL}}/api/dining/cancel-token/:tokenId",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "cancel-token",
                 ":tokenId"
@@ -845,28 +853,30 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/token-history?page=1&limit=10&status=ACTIVE",
+              "raw": "{{BASE_URL}}/api/dining/token-history?page=1&limit=10&status=ACTIVE",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "token-history"
               ],
               "query": [
                 {
                   "key": "page",
-                  "value": "1"
+                  "value": "1",
+                  "uuid": "2b37ce82-9073-4ba4-bcdb-c38e7ba95432"
                 },
                 {
                   "key": "limit",
-                  "value": "10"
+                  "value": "10",
+                  "uuid": "d3d892b6-71d8-44c4-9193-e8f5fdbf9fa1"
                 },
                 {
                   "key": "status",
-                  "value": "ACTIVE"
+                  "value": "ACTIVE",
+                  "uuid": "0cefcbf4-6f8b-47fd-bac4-3b275d9f4d9f"
                 }
               ]
             }
@@ -886,13 +896,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/token/:tokenId",
+              "raw": "{{BASE_URL}}/api/dining/token/:tokenId",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "token",
                 ":tokenId"
@@ -934,13 +943,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/menu/create",
+              "raw": "{{BASE_URL}}/api/dining/menu/create",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "menu",
                 "create"
@@ -976,13 +984,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/menu/:menuId/update",
+              "raw": "{{BASE_URL}}/api/dining/menu/:menuId/update",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "menu",
                 ":menuId",
@@ -1011,13 +1018,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/menu/:menuId",
+              "raw": "{{BASE_URL}}/api/dining/menu/:menuId",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "menu",
                 ":menuId"
@@ -1045,13 +1051,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/menus/tomorrow",
+              "raw": "{{BASE_URL}}/api/dining/menus/tomorrow",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "menus",
                 "tomorrow"
@@ -1073,13 +1078,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/menus/today",
+              "raw": "{{BASE_URL}}/api/dining/menus/today",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "menus",
                 "today"
@@ -1101,13 +1105,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/bookings/menu/:menuId",
+              "raw": "{{BASE_URL}}/api/dining/bookings/menu/:menuId",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "bookings",
                 "menu",
@@ -1148,13 +1151,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/bookings/tomorrow",
+              "raw": "{{BASE_URL}}/api/dining/bookings/tomorrow",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "bookings",
                 "tomorrow"
@@ -1190,13 +1192,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/tokens/mark-consumed",
+              "raw": "{{BASE_URL}}/api/dining/tokens/mark-consumed",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "tokens",
                 "mark-consumed"
@@ -1218,13 +1219,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/report/daily?date=2026-02-24",
+              "raw": "{{BASE_URL}}/api/dining/report/daily?date=2026-02-24",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "report",
                 "daily"
@@ -1253,13 +1253,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/report/monthly?month=2&year=2026",
+              "raw": "{{BASE_URL}}/api/dining/report/monthly?month=2&year=2026",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "report",
                 "monthly"
@@ -1307,13 +1306,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/payment/process",
+              "raw": "{{BASE_URL}}/api/dining/payment/process",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "payment",
                 "process"
@@ -1335,13 +1333,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/payment/:paymentId",
+              "raw": "{{BASE_URL}}/api/dining/payment/:paymentId",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "dining",
                 "payment",
                 ":paymentId"
@@ -1383,13 +1380,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/dining/payment/:paymentId/refund",
+              "raw": "{{BASE_URL}}/ap/dining/payment/:paymentId/refund",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
-                "api",
-                "v1",
+                "ap",
                 "dining",
                 "payment",
                 ":paymentId",
@@ -1438,13 +1434,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/finance/dues",
+              "raw": "{{BASE_URL}}/api/finance/dues",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "finance",
                 "dues"
               ]
@@ -1479,13 +1474,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/finance/dues/pay/:id",
+              "raw": "{{BASE_URL}}/api/finance/dues/pay/:id",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "finance",
                 "dues",
                 "pay",
@@ -1528,13 +1522,12 @@
               }
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/finance/expense",
+              "raw": "{{BASE_URL}}/api/finance/expense",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "finance",
                 "expense"
               ]
@@ -1555,13 +1548,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/finance/expenses",
+              "raw": "{{BASE_URL}}/api/finance/expenses",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "finance",
                 "expenses"
               ],
@@ -1599,13 +1591,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/finance/student/ledger/:id",
+              "raw": "{{BASE_URL}}/api/finance/student/ledger/:id",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "finance",
                 "student",
                 "ledger",
@@ -1634,13 +1625,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/finance/meal-payments",
+              "raw": "{{BASE_URL}}/api/finance/meal-payments",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "finance",
                 "meal-payments"
               ],
@@ -1673,13 +1663,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/finance/meal-payment/:id",
+              "raw": "{{BASE_URL}}/api/finance/meal-payment/:id",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "finance",
                 "meal-payment",
                 ":id"
@@ -1707,13 +1696,12 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/finance/meal-payments/report",
+              "raw": "{{BASE_URL}}/api/finance/meal-payments/report",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "finance",
                 "meal-payments",
                 "report"
@@ -1763,13 +1751,12 @@
               ]
             },
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/profile/upload-image",
+              "raw": "{{BASE_URL}}/api/profile/upload-image",
               "host": [
                 "{{BASE_URL}}"
               ],
               "path": [
                 "api",
-                "v1",
                 "profile",
                 "upload-image"
               ]

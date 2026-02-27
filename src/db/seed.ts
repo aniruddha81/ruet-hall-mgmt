@@ -1,6 +1,8 @@
+import bcrypt from "bcrypt";
+import { randomUUIDv7 } from "bun";
 import { randomUUID } from "crypto";
 import { db } from ".";
-import { beds, halls as hallsTable, rooms } from "./models";
+import { beds, hallAdmins, halls as hallsTable, rooms } from "./models";
 
 async function seed() {
   // hall insertion
@@ -110,6 +112,21 @@ async function seed() {
       totalInserted++;
     }
   }
+
+  const pass = await bcrypt.hash("AdminPass123!", 10);
+  await db.insert(hallAdmins).values({
+    id: randomUUIDv7(),
+    email: "admin@gmail.com",
+    name: "Mahendra Singh Dhoni",
+    passwordHash: pass,
+    academicDepartment: "CSE",
+    hall: "ZIA_HALL",
+    designation: "PROVOST",
+    operationalUnit: "ALL",
+    phone: "+8801712345678",
+    hallAdminStatus: "APPROVED",
+    isActive: true,
+  });
 }
 
 try {

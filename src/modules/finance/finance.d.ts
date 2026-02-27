@@ -5,7 +5,6 @@ type CreateMealPaymentParams = {
   amount: number;
   totalQuantity: number;
   paymentMethod: PaymentMethod;
-  transactionId?: string;
 };
 
 type MealPaymentResult = {

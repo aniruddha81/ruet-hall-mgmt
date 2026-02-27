@@ -40,7 +40,6 @@ import {
   getPaymentDetailsSchema,
   getTokenByIdSchema,
   getTokenHistorySchema,
-  getTomorrowMenusSchema,
   markTokensConsumedSchema,
   processPaymentSchema,
   processRefundSchema,
@@ -59,7 +58,6 @@ diningRouter.get(
   "/tomorrow-menus",
   authenticateToken,
   authorizeRoles("STUDENT"),
-  validateRequest(getTomorrowMenusSchema),
   getTomorrowMenus
 );
 

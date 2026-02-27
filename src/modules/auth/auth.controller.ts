@@ -283,6 +283,38 @@ export const adminApproval = asyncHandler(
   }
 );
 
+export const adminApplications = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { userId } = req.user!;
+    const [isAdmin] = await db
+      .select()
+      .from(hallAdmins)
+      .where(
+        and(eq(hallAdmins.id, userId), eq(hallAdmins.designation, "PROVOST"))
+      )
+      .limit(1);
+
+    if (!isAdmin) {
+      throw new ApiError(403, "Only provosts can view admin applications");
+    }
+
+    const applications = await db
+      .select()
+      .from(hallAdmins)
+      .where(eq(hallAdmins.hallAdminStatus, "PENDING"));
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { applications },
+          "Admin applications retrieved successfully"
+        )
+      );
+  }
+);
+
 export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 

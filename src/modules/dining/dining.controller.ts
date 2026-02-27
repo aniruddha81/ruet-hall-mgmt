@@ -34,34 +34,18 @@ import { createMealPayment } from "../finance/finance.service";
  */
 export const getTomorrowMenus = asyncHandler(
   async (req: Request, res: Response) => {
-    const hall = req.query.hall as Hall;
-
     const tomorrowDate = toDateString(
       new Date(Date.now() + 24 * 60 * 60 * 1000)
     );
 
     const menus = await db
-      .select({
-        id: mealMenus.id,
-        mealType: mealMenus.mealType,
-        menuDescription: mealMenus.menuDescription,
-        price: mealMenus.price,
-        totalTokens: mealMenus.totalTokens,
-        bookedTokens: mealMenus.bookedTokens,
-        availableTokens: mealMenus.availableTokens,
-        mealDate: mealMenus.mealDate,
-      })
+      .select()
       .from(mealMenus)
-      .where(
-        and(
-          eq(mealMenus.hall, hall),
-          sql`${mealMenus.mealDate} = CAST(${tomorrowDate} AS DATE)`
-        )
-      );
+      .where(sql`${mealMenus.mealDate} = CAST(${tomorrowDate} AS DATE)`);
 
     const response = {
-      lunch: menus.find((m) => m.mealType === "LUNCH") || null,
-      dinner: menus.find((m) => m.mealType === "DINNER") || null,
+      lunch: menus.filter((m) => m.mealType === "LUNCH") || null,
+      dinner: menus.filter((m) => m.mealType === "DINNER") || null,
     };
 
     res
@@ -99,15 +83,11 @@ export const bookMealTokens = asyncHandler(
     const [menu] = await db
       .select()
       .from(mealMenus)
-      .where(eq(mealMenus.id, menuId))
+      .where(and(eq(mealMenus.id, menuId), eq(mealMenus.hall, hall)))
       .limit(1);
 
     if (!menu) {
       throw new ApiError(404, "Menu not found");
-    }
-
-    if (menu.hall !== hall) {
-      throw new ApiError(403, "Cannot book tokens for a different hall's menu");
     }
 
     const tomorrowDate = toDateString(
@@ -138,24 +118,24 @@ export const bookMealTokens = asyncHandler(
 
     const tokenId = randomUUID();
 
-    // Create meal token record
-    await db.insert(mealTokens).values({
-      id: tokenId,
-      studentId: user.id,
-      menuId: menu.id,
-      hall: menu.hall,
-      mealDate: menu.mealDate,
-      mealType: menu.mealType,
-      quantity,
-      totalAmount,
-      paymentId: payment.id,
-    });
+    await db.transaction(async (trx) => {
+      await trx.insert(mealTokens).values({
+        id: tokenId,
+        studentId: user.id,
+        menuId: menu.id,
+        hall: menu.hall,
+        mealDate: menu.mealDate,
+        mealType: menu.mealType,
+        quantity,
+        totalAmount,
+        paymentId: payment.id,
+      });
 
-    // Update booked tokens count
-    await db
-      .update(mealMenus)
-      .set({ bookedTokens: sql`${mealMenus.bookedTokens} + ${quantity}` })
-      .where(eq(mealMenus.id, menuId));
+      await trx
+        .update(mealMenus)
+        .set({ bookedTokens: sql`${mealMenus.bookedTokens} + ${quantity}` })
+        .where(eq(mealMenus.id, menuId));
+    });
 
     res.status(201).json(
       new ApiResponse(

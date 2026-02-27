@@ -13,3 +13,6 @@ export const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || "1d";
 export const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 export const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || "10d";
 export const NODE_ENV = process.env.NODE_ENV || "development";
+
+export const PAYMENT_SERVER_URL =
+  process.env.PAYMENT_SERVER_URL || "http://localhost:8080";

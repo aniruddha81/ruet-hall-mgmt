@@ -5,6 +5,7 @@ import {
 } from "../../middlewares/auth.middleware.ts";
 import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
+  adminApplications,
   adminApproval,
   adminLogin,
   adminRegister,
@@ -40,6 +41,7 @@ authRouter.post(
   validateRequest(adminRegisterSchema),
   adminRegister
 );
+
 authRouter.patch(
   "/admin/approve",
   authenticateToken,
@@ -47,6 +49,14 @@ authRouter.patch(
   validateRequest(adminApprovalSchema),
   adminApproval
 );
+
+authRouter.get(
+  "/admin/approve",
+  authenticateToken,
+  authorizeRoles(),
+  adminApplications
+);
+
 authRouter.post("/admin/login", validateRequest(adminLoginSchema), adminLogin);
 
 // common routes

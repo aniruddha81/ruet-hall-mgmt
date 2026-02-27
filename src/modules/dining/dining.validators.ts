@@ -5,12 +5,6 @@ import { HALLS, MEAL_TYPES, PAYMENT_METHODS, TOKEN_STATUSES } from "../../types/
 // STUDENT VALIDATORS
 // ==============================================================
 
-export const getTomorrowMenusSchema = {
-  query: z.object({
-    hall: z.enum(HALLS).describe("Name of the hall to get menus for"),
-  }),
-};
-
 /**
  * Validator for booking meal tokens
  * POST /api/v1/dining/book-tokens

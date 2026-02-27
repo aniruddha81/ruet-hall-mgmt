@@ -4,6 +4,7 @@ import { db } from "../../db";
 import { mealPayments } from "../../db/models/dining.models";
 import { ApiError } from "../../utils/ApiError";
 import type { CreateMealPaymentParams, MealPaymentResult } from "./finance";
+import { PAYMENT_SERVER_URL } from "../../Constants";
 
 /**
  * Creates a meal payment record
@@ -12,13 +13,7 @@ import type { CreateMealPaymentParams, MealPaymentResult } from "./finance";
 export async function createMealPayment(
   params: CreateMealPaymentParams
 ): Promise<MealPaymentResult> {
-  const {
-    studentId,
-    amount,
-    totalQuantity,
-    paymentMethod,
-    transactionId = `TXN-${Date.now()}-${randomUUID().slice(0, 8)}`,
-  } = params;
+  const { studentId, amount, totalQuantity, paymentMethod } = params;
 
   // Validate amount
   if (amount <= 0) {
@@ -30,17 +25,22 @@ export async function createMealPayment(
     throw new ApiError(400, "Total quantity must be greater than 0");
   }
 
-  // Check for duplicate transaction ID
-  if (transactionId) {
-    const [existingPayment] = await db
-      .select()
-      .from(mealPayments)
-      .where(eq(mealPayments.transactionId, transactionId))
-      .limit(1);
+  let result: { transactionId: string } | undefined = undefined;
 
-    if (existingPayment) {
-      throw new ApiError(409, "Transaction ID already exists");
-    }
+  if (paymentMethod !== "CASH") {
+    const response = await fetch(`${PAYMENT_SERVER_URL}/pay-api/meal-payment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ params }),
+    });
+
+    result = (await response.json()) as { transactionId: string };
+  } else {
+    result = {
+      transactionId: `TXN-${studentId}-${amount}-${totalQuantity}-CASH-${Date.now()}`,
+    };
   }
 
   const paymentId = randomUUID();
@@ -52,7 +52,7 @@ export async function createMealPayment(
     amount,
     totalQuantity,
     paymentMethod,
-    transactionId,
+    transactionId: result?.transactionId,
   });
 
   return {
@@ -61,8 +61,8 @@ export async function createMealPayment(
     amount,
     totalQuantity,
     paymentMethod,
-    transactionId,
-    paymentDate : new Date(),
+    transactionId: result?.transactionId,
+    paymentDate: new Date(),
   };
 }
 
