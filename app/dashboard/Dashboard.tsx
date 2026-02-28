@@ -51,11 +51,11 @@ export default function AdminDashboard() {
         ]);
 
         if (todayRes.status === "fulfilled")
-          setTodayMenus(todayRes.value.data?.data ?? []);
+          setTodayMenus(todayRes.value.data?.menus ?? []);
         if (tomorrowRes.status === "fulfilled")
-          setTomorrowMenus(tomorrowRes.value.data?.data ?? []);
+          setTomorrowMenus(tomorrowRes.value.data?.menus ?? []);
         if (appsRes.status === "fulfilled")
-          setPendingApplications(appsRes.value.data?.data?.applications ?? []);
+          setPendingApplications(appsRes.value.data?.applications ?? []);
       } catch (err) {
         setError(getApiErrorMessage(err));
       } finally {
@@ -195,13 +195,13 @@ export default function AdminDashboard() {
                       {menu.mealType?.replace(/_/g, " ")}
                     </TableCell>
                     <TableCell className="text-muted-foreground max-w-xs truncate">
-                      {menu.items}
+                      {menu.menuDescription}
                     </TableCell>
                     <TableCell className="font-semibold">
                       ৳{menu.price}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{menu.status}</Badge>
+                      <Badge variant="secondary">{menu.availableTokens}</Badge>
                     </TableCell>
                   </TableRow>
                 ))}
