@@ -13,9 +13,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("auth_token")?.value;
+  const accessToken = request.cookies.get("accessToken")?.value;
+  const refreshToken = request.cookies.get("refreshToken")?.value;
 
-  if (!token) {
+  if (!accessToken && !refreshToken) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  clearAuthData,
-  getStoredToken,
-  getStoredUser,
-  saveAuthData,
-} from "@/lib/auth";
+import { clearAuthData, getStoredUser, saveAuthData } from "@/lib/auth";
 import { logout as logoutApi, studentLogin } from "@/lib/services/auth.service";
 import type { StudentData } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -47,11 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Sync user to localStorage and set cookies
+  // Sync user to localStorage
   useEffect(() => {
     if (user) {
-      const token = getStoredToken();
-      saveAuthData(user, token || undefined);
+      saveAuthData(user);
     } else {
       clearAuthData();
     }
@@ -60,8 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const res = await studentLogin({ email, password });
     const studentData = res.data.student_data;
-    // In a real app, you'd get the token from the login response
-    // For now, we save the user data which triggers cookie setting
     setUser(studentData);
     router.push("/dashboard");
   };
