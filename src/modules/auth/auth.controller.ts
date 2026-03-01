@@ -447,7 +447,7 @@ export const renewAccessToken = asyncHandler(
       .cookie("accessToken", newAccessToken, {
         ...options,
         maxAge: 15 * 60 * 1000,
-        path: "/api",
+        path: "/",
       })
       .json(
         new ApiResponse(
@@ -480,11 +480,11 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .clearCookie("accessToken", {
       ...options,
-      path: "/api",
+      path: "/",
     })
     .clearCookie("refreshToken", {
       ...options,
-      path: "/api",
+      path: "/",
     })
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
@@ -506,11 +506,11 @@ export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .clearCookie("accessToken", {
       ...options,
-      path: "/api",
+      path: "/",
     })
     .clearCookie("refreshToken", {
       ...options,
-      path: "/api",
+      path: "/",
     })
     .json(
       new ApiResponse(200, null, "Logged out from all devices successfully")
