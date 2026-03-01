@@ -63,7 +63,7 @@ export const options: CookieOptions = {
 export const issueAuthTokenAndSetCookies = async ({
   req,
   res,
-  cookiePath = "/api",
+  cookiePath = "/",
   tokenPayload,
   accessMaxAge = 15 * 60 * 1000,
   refreshMaxAge = 10 * 24 * 60 * 60 * 1000,
