@@ -15,7 +15,9 @@ const PROTECTED_ROUTE_PREFIXES = ["/dashboard"];
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  const token = request.cookies.get("auth_token")?.value;
+  // The backend sets httpOnly refreshToken cookie (10 days) via the rewrite proxy.
+  // Its presence is the source of truth for "has an active session".
+  const refreshToken = request.cookies.get("refreshToken")?.value;
 
   const isPublicOnlyRoute = PUBLIC_ONLY_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + "/"),
@@ -25,13 +27,13 @@ export function proxy(request: NextRequest) {
     pathname.startsWith(route),
   );
 
-  // Logged-in admins should not be able to visit login/signup
-  if (token && isPublicOnlyRoute) {
+  // Authenticated admins should not access login/signup pages
+  if (refreshToken && isPublicOnlyRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   // Unauthenticated users cannot access protected routes
-  if (!token && isProtectedRoute) {
+  if (!refreshToken && isProtectedRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

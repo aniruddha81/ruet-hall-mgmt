@@ -1,6 +1,11 @@
 "use client";
 
-import { adminLogin, logout as logoutApi } from "@/lib/services/auth.service";
+import { clearAuthData, getStoredUser, saveAuthData } from "@/lib/auth";
+import {
+  adminLogin,
+  logout as logoutApi,
+  renewAccessToken,
+} from "@/lib/services/auth.service";
 import type { AdminData } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import {
@@ -23,59 +28,48 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_STORAGE_KEY = "ruet_admin_user";
-
-// --------------- cookie helpers (needed by middleware) ---------------
-async function setAuthCookie() {
-  try {
-    await fetch("/api/auth/set-cookie", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      // The cookie value is a simple presence marker; real security is
-      // enforced by the backend access-token / refresh-token cookies.
-      body: JSON.stringify({ token: "admin_authenticated" }),
-    });
-  } catch {
-    // Non-critical – middleware will redirect to login if missing
-  }
-}
-
-async function clearAuthCookie() {
-  try {
-    await fetch("/api/auth/clear-cookie", { method: "POST" });
-  } catch {
-    // Non-critical
-  }
-}
+/** Renew access token every 13 minutes (before the 15-minute expiry) */
+const TOKEN_RENEWAL_INTERVAL = 13 * 60 * 1000;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Restore user from localStorage on mount and re-sync the auth cookie
-  // so the middleware recognises the session across page refreshes.
+  // Restore user from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(USER_STORAGE_KEY);
-      if (stored) {
-        setUser(JSON.parse(stored));
-        // Re-set the cookie in case it expired or was cleared
-        setAuthCookie();
+      const storedUser = getStoredUser();
+      if (storedUser) {
+        setUser(storedUser);
+        // Immediately try to renew access token on page load
+        renewAccessToken().catch(() => {});
       }
     } catch {
-      localStorage.removeItem(USER_STORAGE_KEY);
+      clearAuthData();
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Sync user to localStorage
+  // Sync user to localStorage and manage proactive token renewal
   useEffect(() => {
     if (user) {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+      saveAuthData(user);
+
+      // Start proactive access-token renewal interval
+      const intervalId = setInterval(async () => {
+        try {
+          await renewAccessToken();
+        } catch {
+          // If renewal fails, the axios interceptor will handle 401s
+          // and redirect to login if the refresh token is also expired
+        }
+      }, TOKEN_RENEWAL_INTERVAL);
+
+      return () => clearInterval(intervalId);
     } else {
-      localStorage.removeItem(USER_STORAGE_KEY);
+      clearAuthData();
     }
   }, [user]);
 
@@ -84,8 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await adminLogin({ email, password });
       const adminData = res.data.user;
       setUser(adminData);
-      // Set auth_token cookie so the middleware can gate protected routes
-      await setAuthCookie();
       router.push("/dashboard");
     },
     [router],
@@ -97,9 +89,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Even if backend logout fails, clear local state
     }
+    // Clear httpOnly cookies on the frontend domain (all paths)
+    try {
+      await fetch("/api/auth/clear-cookies", { method: "POST" });
+    } catch {
+      // Non-critical
+    }
     setUser(null);
-    // Remove the auth_token cookie so middleware blocks protected routes
-    await clearAuthCookie();
     router.push("/login");
   }, [router]);
 

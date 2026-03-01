@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
 
 export default function Home() {
-  redirect("/login");
+  // Middleware handles auth gating:
+  // - authenticated → allowed to /dashboard
+  // - unauthenticated → redirected to /login
+  redirect("/dashboard");
 }
