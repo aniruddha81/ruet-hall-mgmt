@@ -96,8 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Non-critical
     }
     setUser(null);
-    router.push("/login");
-  }, [router]);
+    // Hard redirect ensures middleware re-evaluates with cleared cookies
+    window.location.href = "/login";
+  }, []);
 
   return (
     <AuthContext.Provider

@@ -1,38 +1,26 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 /**
  * POST /api/auth/clear-cookies
  *
  * Clears the backend-set httpOnly auth cookies from the frontend domain.
- * This is necessary because the backend logout endpoint clears cookies
- * with path "/api", but the initial login sets them with path "/".
- * Both paths must be cleared for the middleware to detect the logout.
+ * Uses explicit Set-Cookie headers with `expires` in the past to ensure
+ * the browser reliably removes the cookies at every path they may exist.
  */
 export async function POST() {
-  try {
-    const cookieStore = await cookies();
+  const expired = "Thu, 01 Jan 1970 00:00:00 GMT";
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const base = `; HttpOnly; SameSite=Strict${secure}; Expires=${expired}`;
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict" as const,
-      maxAge: 0,
-    };
+  const headers = new Headers();
 
-    // Clear cookies at path "/" (set during login/register)
-    cookieStore.set("accessToken", "", { ...cookieOptions, path: "/" });
-    cookieStore.set("refreshToken", "", { ...cookieOptions, path: "/" });
+  // Clear at path "/" (set during login/register)
+  headers.append("Set-Cookie", `accessToken=; Path=/${base}`);
+  headers.append("Set-Cookie", `refreshToken=; Path=/${base}`);
 
-    // Clear cookies at path "/api" (set during token renewal)
-    cookieStore.set("accessToken", "", { ...cookieOptions, path: "/api" });
-    cookieStore.set("refreshToken", "", { ...cookieOptions, path: "/api" });
+  // Clear at path "/api" (set during token renewal)
+  headers.append("Set-Cookie", `accessToken=; Path=/api${base}`);
+  headers.append("Set-Cookie", `refreshToken=; Path=/api${base}`);
 
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to clear cookies" },
-      { status: 500 },
-    );
-  }
+  return NextResponse.json({ success: true }, { headers });
 }
