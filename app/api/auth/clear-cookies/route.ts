@@ -18,9 +18,5 @@ export async function POST() {
   headers.append("Set-Cookie", `accessToken=; Path=/${base}`);
   headers.append("Set-Cookie", `refreshToken=; Path=/${base}`);
 
-  // Clear at path "/api" (set during token renewal)
-  headers.append("Set-Cookie", `accessToken=; Path=/api${base}`);
-  headers.append("Set-Cookie", `refreshToken=; Path=/api${base}`);
-
   return NextResponse.json({ success: true }, { headers });
 }
