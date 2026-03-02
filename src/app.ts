@@ -19,6 +19,11 @@ app.use(express.static("public"));
 app.use(cookieParser());
 app.use(morgan("dev"));
 
+if (process.env.NODE_ENV === "development") {
+  import("./utils/run-any-script.ts").then(() => {
+    console.log("Executed run-any-script.ts for development.");
+  });
+}
 //routes import
 import admissionRouter from "./modules/admission/admission.routes.ts";
 import authRouter from "./modules/auth/auth.routes.ts";

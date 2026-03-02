@@ -5,7 +5,7 @@ import { db } from ".";
 import { beds, hallAdmins, halls as hallsTable, rooms } from "./models";
 
 async function seed() {
-  // hall insertion
+  const pass = await bcrypt.hash("AdminPass123!", 10);
 
   const hallsData = [
     {
@@ -41,92 +41,65 @@ async function seed() {
       isActive: true,
     },
   ];
+  await db.insert(hallsTable).values(hallsData);
 
-  for (const hallData of hallsData) {
-    await db.insert(hallsTable).values(hallData);
-  }
-
-  // room insertion
-
-  const hallRoomConfig = [
-    { name: "ZIA_HALL" as const, totalRooms: 20, capacity: 4 },
-    { name: "SHAH_JALAL_HALL" as const, totalRooms: 30, capacity: 4 },
-    { name: "RASHID_HALL" as const, totalRooms: 25, capacity: 4 },
-    { name: "FARUKI_HALL" as const, totalRooms: 22, capacity: 4 },
-  ] as const;
-
-  const roomsData = [];
-
-  let roomNumberCount = 1;
-
-  for (const hall of hallRoomConfig) {
-    for (let i = 0; i < hall.totalRooms; i++) {
-      roomsData.push({
-        id: randomUUID(),
-        roomNumber: roomNumberCount++,
-        hall: hall.name,
-        capacity: hall.capacity,
-        currentOccupancy: 0,
-        status: "AVAILABLE" as const,
-      });
-    }
-    roomNumberCount = 1;
-  }
-
-  for (const room of roomsData) {
-    await db.insert(rooms).values(room);
-  }
-
-  // Fetch all rooms already seeded in the DB
-  const allRooms = await db
-    .select({
-      id: rooms.id,
-      hall: rooms.hall,
-      capacity: rooms.capacity,
-      roomNumber: rooms.roomNumber,
-    })
-    .from(rooms);
-
-  if (allRooms.length === 0) {
-    console.warn("No rooms found in DB. Run the main seed script first.");
-    process.exit(1);
-  }
-
-  console.log(`Found ${allRooms.length} rooms. Seeding beds...`);
+  const roomsData = hallsData.flatMap((hall) =>
+    Array.from({ length: hall.totalRooms }, (_, i) => ({
+      id: randomUUID(),
+      roomNumber: i + 1,
+      hall: hall.name,
+      capacity: 4 as const,
+      currentOccupancy: 0,
+      status: "AVAILABLE" as const,
+    }))
+  );
+  await db.insert(rooms).values(roomsData);
 
   const BED_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  const bedsData = roomsData.flatMap((room) =>
+    BED_LABELS.slice(0, room.capacity).map((label) => ({
+      id: randomUUID(),
+      hall: room.hall,
+      roomId: room.id,
+      bedLabel: label,
+      status: "AVAILABLE" as const,
+    }))
+  );
+  await db.insert(beds).values(bedsData);
 
-  let totalInserted = 0;
-
-  for (const room of allRooms) {
-    const labels = BED_LABELS.slice(0, room.capacity);
-
-    for (const label of labels) {
-      await db.insert(beds).values({
-        id: randomUUID(),
-        hall: room.hall,
-        roomId: room.id,
-        bedLabel: label,
-        status: "AVAILABLE",
-      });
-      totalInserted++;
-    }
-  }
-
-  const pass = await bcrypt.hash("AdminPass123!", 10);
-  await db.insert(hallAdmins).values({
+  const admins = [
+    {
+      email: "admin1@gmail.com",
+      name: "kuldip yadav",
+      hall: "ZIA_HALL" as const,
+    },
+    {
+      email: "admin2@gmail.com",
+      name: "Virat Kohli",
+      hall: "SHAH_JALAL_HALL" as const,
+    },
+    {
+      email: "admin3@gmail.com",
+      name: "Rohit Sharma",
+      hall: "RASHID_HALL" as const,
+    },
+    {
+      email: "admin4@gmail.com",
+      name: "KL Rahul",
+      hall: "FARUKI_HALL" as const,
+    },
+  ].map((admin) => ({
     id: randomUUIDv7(),
-    email: "admin@gmail.com",
-    name: "Mahendra Singh Dhoni",
+    ...admin,
     passwordHash: pass,
-    academicDepartment: "CSE",
-    hall: "ZIA_HALL",
-    designation: "PROVOST",
-    operationalUnit: "ALL",
+    academicDepartment: "CSE" as const,
+    designation: "PROVOST" as const,
+    operationalUnit: "ALL" as const,
     phone: "+8801712345678",
-    hallAdminStatus: "APPROVED",
+    hallAdminStatus: "APPROVED" as const,
     isActive: true,
-  });
+  }));
+  await db.insert(hallAdmins).values(admins);
 }
 
 try {
