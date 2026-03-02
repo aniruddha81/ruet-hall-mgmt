@@ -8,8 +8,8 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://your-frontend.com"],
-    credentials: true,
+    // origin: ["http://localhost:3000", "https://your-frontend.com"],
+    // credentials: true,
   })
 );
 
@@ -39,6 +39,10 @@ app.use("/api/dining", diningRouter);
 app.use("/api/admission", admissionRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/finance", financeRouter);
+
+app.get("/", (req, res) => {
+  res.send("Welcome to the University Management System API");
+});
 
 // Error handling middleware
 app.use(handleError);
