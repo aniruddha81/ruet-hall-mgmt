@@ -1,1 +1,0 @@
-ALTER TABLE `hall_admins` ADD `hall_admin_status` enum('PENDING','APPROVED','REJECTED') DEFAULT 'PENDING' NOT NULL;
