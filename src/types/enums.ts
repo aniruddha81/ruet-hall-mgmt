@@ -51,9 +51,11 @@ export const ACADEMIC_DEPARTMENTS = [
 
 export const HALLS = [
   "ZIA_HALL",
-  "SHAH_JALAL_HALL",
-  "RASHID_HALL",
-  "FARUKI_HALL",
+  "SELIM_HALL",
+  "HAMID_HALL",
+  "SHAHIDUL_HALL",
+  "TIN_SHED_HALL",
+  "FAZLUL_HUQ_HALL",
 ] as const;
 
 export const ROOM_STATUSES = [

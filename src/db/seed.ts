@@ -17,7 +17,7 @@ async function seed() {
       isActive: true,
     },
     {
-      name: "SHAH_JALAL_HALL" as const,
+      name: "SELIM_HALL" as const,
       address: "East Residential Zone",
       contactNumber: "01710000002",
       totalCapacity: 120,
@@ -25,7 +25,7 @@ async function seed() {
       isActive: true,
     },
     {
-      name: "RASHID_HALL" as const,
+      name: "HAMID_HALL" as const,
       address: "South Campus Road",
       contactNumber: "01710000003",
       totalCapacity: 100,
@@ -33,11 +33,27 @@ async function seed() {
       isActive: true,
     },
     {
-      name: "FARUKI_HALL" as const,
+      name: "SHAHIDUL_HALL" as const,
       address: "North Academic Area",
       contactNumber: "01710000004",
       totalCapacity: 90,
       totalRooms: 22,
+      isActive: true,
+    },
+    {
+      name: "TIN_SHED_HALL" as const,
+      address: "West Residential Zone",
+      contactNumber: "01710000005",
+      totalCapacity: 60,
+      totalRooms: 15,
+      isActive: true,
+    },
+    {
+      name: "FAZLUL_HUQ_HALL" as const,
+      address: "East Academic Area",
+      contactNumber: "01710000006",
+      totalCapacity: 80,
+      totalRooms: 20,
       isActive: true,
     },
   ];
@@ -76,17 +92,27 @@ async function seed() {
     {
       email: "admin2@gmail.com",
       name: "Virat Kohli",
-      hall: "SHAH_JALAL_HALL" as const,
+      hall: "SELIM_HALL" as const,
     },
     {
       email: "admin3@gmail.com",
       name: "Rohit Sharma",
-      hall: "RASHID_HALL" as const,
+      hall: "HAMID_HALL" as const,
     },
     {
       email: "admin4@gmail.com",
       name: "KL Rahul",
-      hall: "FARUKI_HALL" as const,
+      hall: "SHAHIDUL_HALL" as const,
+    },
+    {
+      email: "admin5@gmail.com",
+      name: "Suryakumar Yadav",
+      hall: "TIN_SHED_HALL" as const,
+    },
+    {
+      email: "admin6@gmail.com",
+      name: "Rishabh Pant",
+      hall: "FAZLUL_HUQ_HALL" as const,
     },
   ].map((admin) => ({
     id: randomUUIDv7(),
