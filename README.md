@@ -77,7 +77,7 @@ Authorization: Bearer <accessToken>
    - Register new routes in the module's `routes.ts` file and ensure they are included in `src/app.ts`.
 
 3. **Use the provided utilities and patterns:**
-   - Wrap all controller functions with `asyncHandler` (see `src/utils/asyncHandler.ts`).
+   - Use native async controller functions; Express 5 forwards thrown async errors automatically.
    - Use `ApiResponse` for all successful responses.
    - Use `ApiError` for all error handling.
    - Validate all requests with `validateRequest` middleware.

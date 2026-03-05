@@ -12,7 +12,6 @@ import {
 import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums";
 import { ApiError } from "../../utils/ApiError";
 import { ApiResponse } from "../../utils/ApiResponse";
-import { asyncHandler } from "../../utils/asyncHandler";
 
 // ========================
 // DUES
@@ -22,7 +21,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
  * POST /api/v1/finance/dues
  * Admin creates a due for a student
  */
-export const createDue = asyncHandler(async (req: Request, res: Response) => {
+export const createDue = async (req: Request, res: Response) => {
   const { studentId, hall, type, amount } = req.body;
 
   // Verify student exists
@@ -52,13 +51,13 @@ export const createDue = asyncHandler(async (req: Request, res: Response) => {
         "Due created successfully"
       )
     );
-});
+};
 
 /**
  * PATCH /api/v1/finance/dues/:id/pay
  * Admin marks a due as paid
  */
-export const payDue = asyncHandler(async (req: Request, res: Response) => {
+export const payDue = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const { method } = req.body;
 
@@ -98,7 +97,7 @@ export const payDue = asyncHandler(async (req: Request, res: Response) => {
         "Due paid successfully"
       )
     );
-});
+};
 
 // ========================
 // EXPENSES
@@ -108,33 +107,31 @@ export const payDue = asyncHandler(async (req: Request, res: Response) => {
  * POST /api/v1/finance/expense
  * Admin records an expense
  */
-export const createExpense = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { hall, title, amount, category } = req.body;
-    const approvedBy = req.user!.userId;
+export const createExpense = async (req: Request, res: Response) => {
+  const { hall, title, amount, category } = req.body;
+  const approvedBy = req.user!.userId;
 
-    const id = randomUUID();
-    await db
-      .insert(expenses)
-      .values({ id, hall, title, amount, category, approvedBy });
+  const id = randomUUID();
+  await db
+    .insert(expenses)
+    .values({ id, hall, title, amount, category, approvedBy });
 
-    res
-      .status(201)
-      .json(
-        new ApiResponse(
-          201,
-          { id, hall, title, amount, category },
-          "Expense recorded successfully"
-        )
-      );
-  }
-);
+  res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        { id, hall, title, amount, category },
+        "Expense recorded successfully"
+      )
+    );
+};
 
 /**
  * GET /api/v1/finance/expenses
  * List expenses with optional hall filter + pagination
  */
-export const getExpenses = asyncHandler(async (req: Request, res: Response) => {
+export const getExpenses = async (req: Request, res: Response) => {
   const hall = req.query.hall as Hall | undefined;
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 20;
@@ -180,7 +177,7 @@ export const getExpenses = asyncHandler(async (req: Request, res: Response) => {
       "Expenses retrieved successfully"
     )
   );
-});
+};
 
 // ========================
 // STUDENT LEDGER
@@ -190,62 +187,60 @@ export const getExpenses = asyncHandler(async (req: Request, res: Response) => {
  * GET /api/v1/finance/student/:id/ledger
  * Retrieve a student's full financial ledger (dues + payments + summary)
  */
-export const getStudentLedger = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params as { id: string };
+export const getStudentLedger = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
 
-    const [user] = await db
-      .select({ id: uniStudents.id, name: uniStudents.name })
-      .from(uniStudents)
-      .where(eq(uniStudents.id, id))
-      .limit(1);
+  const [user] = await db
+    .select({ id: uniStudents.id, name: uniStudents.name })
+    .from(uniStudents)
+    .where(eq(uniStudents.id, id))
+    .limit(1);
 
-    if (!user) throw new ApiError(404, "Student not found");
+  if (!user) throw new ApiError(404, "Student not found");
 
-    const dues = await db
-      .select({
-        id: studentDues.id,
-        type: studentDues.type,
-        amount: studentDues.amount,
-        status: studentDues.status,
-        paidAt: studentDues.paidAt,
-        createdAt: studentDues.createdAt,
-      })
-      .from(studentDues)
-      .where(eq(studentDues.studentId, id))
-      .orderBy(desc(studentDues.createdAt));
+  const dues = await db
+    .select({
+      id: studentDues.id,
+      type: studentDues.type,
+      amount: studentDues.amount,
+      status: studentDues.status,
+      paidAt: studentDues.paidAt,
+      createdAt: studentDues.createdAt,
+    })
+    .from(studentDues)
+    .where(eq(studentDues.studentId, id))
+    .orderBy(desc(studentDues.createdAt));
 
-    const studentPayments = await db
-      .select({
-        id: payments.id,
-        amount: payments.amount,
-        method: payments.method,
-        createdAt: payments.createdAt,
-      })
-      .from(payments)
-      .where(eq(payments.studentId, id))
-      .orderBy(desc(payments.createdAt));
+  const studentPayments = await db
+    .select({
+      id: payments.id,
+      amount: payments.amount,
+      method: payments.method,
+      createdAt: payments.createdAt,
+    })
+    .from(payments)
+    .where(eq(payments.studentId, id))
+    .orderBy(desc(payments.createdAt));
 
-    const totalDue = dues
-      .filter((d) => d.status === "UNPAID")
-      .reduce((sum, d) => sum + d.amount, 0);
+  const totalDue = dues
+    .filter((d) => d.status === "UNPAID")
+    .reduce((sum, d) => sum + d.amount, 0);
 
-    const totalPaid = studentPayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalPaid = studentPayments.reduce((sum, p) => sum + p.amount, 0);
 
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          student: user,
-          dues,
-          payments: studentPayments,
-          summary: { totalDue, totalPaid },
-        },
-        "Student ledger retrieved successfully"
-      )
-    );
-  }
-);
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        student: user,
+        dues,
+        payments: studentPayments,
+        summary: { totalDue, totalPaid },
+      },
+      "Student ledger retrieved successfully"
+    )
+  );
+};
 
 // ========================
 // MEAL PAYMENTS
@@ -255,183 +250,177 @@ export const getStudentLedger = asyncHandler(
  * GET /api/v1/finance/meal-payments
  * Get all meal payments with filters (for finance officers)
  */
-export const getMealPayments = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { studentId, startDate, endDate, page = 1, limit = 20 } = req.query;
+export const getMealPayments = async (req: Request, res: Response) => {
+  const { studentId, startDate, endDate, page = 1, limit = 20 } = req.query;
 
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
-    const offset = (pageNum - 1) * limitNum;
+  const pageNum = Number(page);
+  const limitNum = Number(limit);
+  const offset = (pageNum - 1) * limitNum;
 
-    const conditions = [];
-    if (studentId)
-      conditions.push(eq(mealPayments.studentId, studentId as string));
-    if (startDate)
-      conditions.push(
-        sql`${mealPayments.paymentDate} >= CAST(${startDate} AS DATE)`
-      );
-    if (endDate)
-      conditions.push(
-        sql`${mealPayments.paymentDate} <= CAST(${endDate} AS DATE)`
-      );
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const paymentsList = await db
-      .select({
-        id: mealPayments.id,
-        studentId: mealPayments.studentId,
-        studentName: uniStudents.name,
-        rollNumber: uniStudents.rollNumber,
-        amount: mealPayments.amount,
-        totalQuantity: mealPayments.totalQuantity,
-        paymentMethod: mealPayments.paymentMethod,
-        transactionId: mealPayments.transactionId,
-        paymentDate: mealPayments.paymentDate,
-        refundAmount: mealPayments.refundAmount,
-        refundedAt: mealPayments.refundedAt,
-      })
-      .from(mealPayments)
-      .innerJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
-      .where(whereClause)
-      .orderBy(desc(mealPayments.paymentDate))
-      .limit(limitNum)
-      .offset(offset);
-
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(mealPayments)
-      .where(whereClause);
-
-    const total = countResult?.count || 0;
-    const totalPages = Math.ceil(total / limitNum);
-
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          payments: paymentsList,
-          pagination: {
-            page: pageNum,
-            limit: limitNum,
-            total,
-            totalPages,
-          },
-        },
-        "Meal payments retrieved successfully"
-      )
+  const conditions = [];
+  if (studentId)
+    conditions.push(eq(mealPayments.studentId, studentId as string));
+  if (startDate)
+    conditions.push(
+      sql`${mealPayments.paymentDate} >= CAST(${startDate} AS DATE)`
     );
-  }
-);
+  if (endDate)
+    conditions.push(
+      sql`${mealPayments.paymentDate} <= CAST(${endDate} AS DATE)`
+    );
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const paymentsList = await db
+    .select({
+      id: mealPayments.id,
+      studentId: mealPayments.studentId,
+      studentName: uniStudents.name,
+      rollNumber: uniStudents.rollNumber,
+      amount: mealPayments.amount,
+      totalQuantity: mealPayments.totalQuantity,
+      paymentMethod: mealPayments.paymentMethod,
+      transactionId: mealPayments.transactionId,
+      paymentDate: mealPayments.paymentDate,
+      refundAmount: mealPayments.refundAmount,
+      refundedAt: mealPayments.refundedAt,
+    })
+    .from(mealPayments)
+    .innerJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
+    .where(whereClause)
+    .orderBy(desc(mealPayments.paymentDate))
+    .limit(limitNum)
+    .offset(offset);
+
+  const [countResult] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(mealPayments)
+    .where(whereClause);
+
+  const total = countResult?.count || 0;
+  const totalPages = Math.ceil(total / limitNum);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        payments: paymentsList,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages,
+        },
+      },
+      "Meal payments retrieved successfully"
+    )
+  );
+};
 
 /**
  * GET /api/v1/finance/meal-payment/:id
  * Get specific meal payment details
  */
-export const getMealPaymentById = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params as { id: string };
+export const getMealPaymentById = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
 
-    const [payment] = await db
-      .select({
-        id: mealPayments.id,
-        studentId: mealPayments.studentId,
-        studentName: uniStudents.name,
-        studentEmail: uniStudents.email,
-        rollNumber: uniStudents.rollNumber,
-        amount: mealPayments.amount,
-        totalQuantity: mealPayments.totalQuantity,
-        paymentMethod: mealPayments.paymentMethod,
-        transactionId: mealPayments.transactionId,
-        paymentDate: mealPayments.paymentDate,
-        refundAmount: mealPayments.refundAmount,
-        refundedAt: mealPayments.refundedAt,
-      })
-      .from(mealPayments)
-      .innerJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
-      .where(eq(mealPayments.id, id))
-      .limit(1);
+  const [payment] = await db
+    .select({
+      id: mealPayments.id,
+      studentId: mealPayments.studentId,
+      studentName: uniStudents.name,
+      studentEmail: uniStudents.email,
+      rollNumber: uniStudents.rollNumber,
+      amount: mealPayments.amount,
+      totalQuantity: mealPayments.totalQuantity,
+      paymentMethod: mealPayments.paymentMethod,
+      transactionId: mealPayments.transactionId,
+      paymentDate: mealPayments.paymentDate,
+      refundAmount: mealPayments.refundAmount,
+      refundedAt: mealPayments.refundedAt,
+    })
+    .from(mealPayments)
+    .innerJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
+    .where(eq(mealPayments.id, id))
+    .limit(1);
 
-    if (!payment) {
-      throw new ApiError(404, "Meal payment not found");
-    }
-
-    res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          payment,
-          "Meal payment details retrieved successfully"
-        )
-      );
+  if (!payment) {
+    throw new ApiError(404, "Meal payment not found");
   }
-);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        payment,
+        "Meal payment details retrieved successfully"
+      )
+    );
+};
 
 /**
  * GET /api/v1/finance/meal-payments/report
  * Generate meal payment revenue report
  */
-export const getMealPaymentsReport = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { startDate, endDate, hall } = req.query;
+export const getMealPaymentsReport = async (req: Request, res: Response) => {
+  const { startDate, endDate, hall } = req.query;
 
-    const conditions = [];
-    if (startDate)
-      conditions.push(
-        sql`${mealPayments.paymentDate} >= CAST(${startDate} AS DATE)`
-      );
-    if (endDate)
-      conditions.push(
-        sql`${mealPayments.paymentDate} <= CAST(${endDate} AS DATE)`
-      );
-    if (hall) conditions.push(eq(uniStudents.hall, hall as Hall));
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const [summary] = await db
-      .select({
-        totalRevenue: sql<number>`COALESCE(SUM(${mealPayments.amount}), 0)`,
-        totalRefunded: sql<number>`COALESCE(SUM(${mealPayments.refundAmount}), 0)`,
-        totalTokensSold: sql<number>`COALESCE(SUM(${mealPayments.totalQuantity}), 0)`,
-        totalTransactions: sql<number>`COUNT(${mealPayments.id})`,
-      })
-      .from(mealPayments)
-      .leftJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
-      .where(whereClause);
-
-    const paymentMethodBreakdown = await db
-      .select({
-        paymentMethod: mealPayments.paymentMethod,
-        count: sql<number>`COUNT(*)`,
-        totalAmount: sql<number>`COALESCE(SUM(${mealPayments.amount}), 0)`,
-      })
-      .from(mealPayments)
-      .leftJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
-      .where(whereClause)
-      .groupBy(mealPayments.paymentMethod);
-
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          summary: {
-            totalRevenue: Number(summary?.totalRevenue || 0),
-            totalRefunded: Number(summary?.totalRefunded || 0),
-            netRevenue:
-              Number(summary?.totalRevenue || 0) -
-              Number(summary?.totalRefunded || 0),
-            totalTokensSold: Number(summary?.totalTokensSold || 0),
-            totalTransactions: Number(summary?.totalTransactions || 0),
-          },
-          paymentMethodBreakdown: paymentMethodBreakdown.map((item) => ({
-            method: item.paymentMethod,
-            count: Number(item.count),
-            totalAmount: Number(item.totalAmount),
-          })),
-        },
-        "Meal payments report generated successfully"
-      )
+  const conditions = [];
+  if (startDate)
+    conditions.push(
+      sql`${mealPayments.paymentDate} >= CAST(${startDate} AS DATE)`
     );
-  }
-);
+  if (endDate)
+    conditions.push(
+      sql`${mealPayments.paymentDate} <= CAST(${endDate} AS DATE)`
+    );
+  if (hall) conditions.push(eq(uniStudents.hall, hall as Hall));
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [summary] = await db
+    .select({
+      totalRevenue: sql<number>`COALESCE(SUM(${mealPayments.amount}), 0)`,
+      totalRefunded: sql<number>`COALESCE(SUM(${mealPayments.refundAmount}), 0)`,
+      totalTokensSold: sql<number>`COALESCE(SUM(${mealPayments.totalQuantity}), 0)`,
+      totalTransactions: sql<number>`COUNT(${mealPayments.id})`,
+    })
+    .from(mealPayments)
+    .leftJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
+    .where(whereClause);
+
+  const paymentMethodBreakdown = await db
+    .select({
+      paymentMethod: mealPayments.paymentMethod,
+      count: sql<number>`COUNT(*)`,
+      totalAmount: sql<number>`COALESCE(SUM(${mealPayments.amount}), 0)`,
+    })
+    .from(mealPayments)
+    .leftJoin(uniStudents, eq(mealPayments.studentId, uniStudents.id))
+    .where(whereClause)
+    .groupBy(mealPayments.paymentMethod);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        summary: {
+          totalRevenue: Number(summary?.totalRevenue || 0),
+          totalRefunded: Number(summary?.totalRefunded || 0),
+          netRevenue:
+            Number(summary?.totalRevenue || 0) -
+            Number(summary?.totalRefunded || 0),
+          totalTokensSold: Number(summary?.totalTokensSold || 0),
+          totalTransactions: Number(summary?.totalTransactions || 0),
+        },
+        paymentMethodBreakdown: paymentMethodBreakdown.map((item) => ({
+          method: item.paymentMethod,
+          count: Number(item.count),
+          totalAmount: Number(item.totalAmount),
+        })),
+      },
+      "Meal payments report generated successfully"
+    )
+  );
+};

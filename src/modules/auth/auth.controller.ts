@@ -10,7 +10,6 @@ import {
 } from "../../db/models/index.ts";
 import { ApiError } from "../../utils/ApiError.ts";
 import { ApiResponse } from "../../utils/ApiResponse.ts";
-import { asyncHandler } from "../../utils/asyncHandler.ts";
 import { hashToken } from "../../utils/helpers.ts";
 import type { AccessTokenPayload, RefreshTokenPayload } from "./auth.d.ts";
 import {
@@ -24,298 +23,286 @@ import {
  * POST /api/v1/auth/register
  * Register a new student account
  */
-export const studentRegister = asyncHandler(
-  async (req: Request, res: Response) => {
-    const {
-      name,
-      email,
-      password,
-      rollNumber,
-      academicDepartment,
-      session,
-      phone,
-    } = req.body;
+export const studentRegister = async (req: Request, res: Response) => {
+  const {
+    name,
+    email,
+    password,
+    rollNumber,
+    academicDepartment,
+    session,
+    phone,
+  } = req.body;
 
-    const [existingUser] = await db
-      .select()
-      .from(uniStudents)
-      .where(eq(uniStudents.email, email))
-      .limit(1);
+  const [existingUser] = await db
+    .select()
+    .from(uniStudents)
+    .where(eq(uniStudents.email, email))
+    .limit(1);
 
-    if (existingUser) {
-      throw new ApiError(409, "User with this email already exists");
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const userId = randomUUID();
-
-    await db.insert(uniStudents).values({
-      id: userId,
-      email,
-      passwordHash,
-      name,
-      phone,
-      rollNumber: String(rollNumber),
-      academicDepartment,
-      session,
-      isAllocated: false,
-    });
-
-    const [newUser] = await db
-      .select()
-      .from(uniStudents)
-      .where(eq(uniStudents.email, email))
-      .limit(1);
-
-    if (!newUser) {
-      throw new ApiError(500, "Failed to create user");
-    }
-
-    const tokenPayload: AccessTokenPayload = {
-      userId: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-      role: "STUDENT",
-    };
-
-    return (
-      await issueAuthTokenAndSetCookies({
-        req,
-        res,
-        tokenPayload,
-      })
-    ).json(
-      new ApiResponse(
-        201,
-        {
-          user: {
-            id: newUser.id,
-            email: newUser.email,
-            name: newUser.name,
-          },
-        },
-        "User registered successfully"
-      )
-    );
+  if (existingUser) {
+    throw new ApiError(409, "User with this email already exists");
   }
-);
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const userId = randomUUID();
+
+  await db.insert(uniStudents).values({
+    id: userId,
+    email,
+    passwordHash,
+    name,
+    phone,
+    rollNumber: String(rollNumber),
+    academicDepartment,
+    session,
+    isAllocated: false,
+  });
+
+  const [newUser] = await db
+    .select()
+    .from(uniStudents)
+    .where(eq(uniStudents.email, email))
+    .limit(1);
+
+  if (!newUser) {
+    throw new ApiError(500, "Failed to create user");
+  }
+
+  const tokenPayload: AccessTokenPayload = {
+    userId: newUser.id,
+    email: newUser.email,
+    name: newUser.name,
+    role: "STUDENT",
+  };
+
+  return (
+    await issueAuthTokenAndSetCookies({
+      req,
+      res,
+      tokenPayload,
+    })
+  ).json(
+    new ApiResponse(
+      201,
+      {
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
+        },
+      },
+      "User registered successfully"
+    )
+  );
+};
 
 /**
  * POST /api/v1/auth/login
  * Login a student with email and password
  */
-export const studentLogin = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { email, password } = req.body;
+export const studentLogin = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
 
-    const [user] = await db
-      .select()
-      .from(uniStudents)
-      .where(eq(uniStudents.email, email))
-      .limit(1);
+  const [user] = await db
+    .select()
+    .from(uniStudents)
+    .where(eq(uniStudents.email, email))
+    .limit(1);
 
-    if (!user) {
-      throw new ApiError(401, "No user found with this email");
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) {
-      throw new ApiError(401, "Invalid password");
-    }
-
-    const tokenPayload: AccessTokenPayload = {
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role: "STUDENT",
-    };
-
-    const activeTokens = await db
-      .select()
-      .from(refreshTokens)
-      .where(eq(refreshTokens.userId, user.id))
-      .orderBy(desc(refreshTokens.createdAt));
-
-    if (activeTokens.length >= 2) {
-      const oldestToken = activeTokens.sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
-      )[0]!;
-
-      await db
-        .delete(refreshTokens)
-        .where(eq(refreshTokens.id, oldestToken.id));
-    }
-
-    return (
-      await issueAuthTokenAndSetCookies({
-        req,
-        res,
-        tokenPayload,
-      })
-    ).json(
-      new ApiResponse(
-        200,
-        {
-          student_data: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            phone: user.phone,
-            academicDepartment: user.academicDepartment,
-            rollNumber: user.rollNumber,
-            session: user.session,
-            hall: user.hall,
-            roomId: user.roomId,
-            status: user.status,
-            isAllocated: user.isAllocated,
-          },
-        },
-        "User logged in successfully"
-      )
-    );
+  if (!user) {
+    throw new ApiError(401, "No user found with this email");
   }
-);
+
+  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid password");
+  }
+
+  const tokenPayload: AccessTokenPayload = {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    role: "STUDENT",
+  };
+
+  const activeTokens = await db
+    .select()
+    .from(refreshTokens)
+    .where(eq(refreshTokens.userId, user.id))
+    .orderBy(desc(refreshTokens.createdAt));
+
+  if (activeTokens.length >= 2) {
+    const oldestToken = activeTokens.sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+    )[0]!;
+
+    await db.delete(refreshTokens).where(eq(refreshTokens.id, oldestToken.id));
+  }
+
+  return (
+    await issueAuthTokenAndSetCookies({
+      req,
+      res,
+      tokenPayload,
+    })
+  ).json(
+    new ApiResponse(
+      200,
+      {
+        student_data: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          phone: user.phone,
+          academicDepartment: user.academicDepartment,
+          rollNumber: user.rollNumber,
+          session: user.session,
+          hall: user.hall,
+          roomId: user.roomId,
+          status: user.status,
+          isAllocated: user.isAllocated,
+        },
+      },
+      "User logged in successfully"
+    )
+  );
+};
 
 /**
  * POST /api/v1/auth/admin/register
  * Register a new admin account with hall assignment
  */
-export const adminRegister = asyncHandler(
-  async (req: Request, res: Response) => {
-    const {
-      name,
-      email,
-      password,
-      academicDepartment,
-      hall,
-      designation,
-      operationalUnit,
-      phone,
-    } = req.body;
+export const adminRegister = async (req: Request, res: Response) => {
+  const {
+    name,
+    email,
+    password,
+    academicDepartment,
+    hall,
+    designation,
+    operationalUnit,
+    phone,
+  } = req.body;
 
-    const [existingUser] = await db
-      .select()
-      .from(hallAdmins)
-      .where(eq(hallAdmins.email, email))
-      .limit(1);
+  const [existingUser] = await db
+    .select()
+    .from(hallAdmins)
+    .where(eq(hallAdmins.email, email))
+    .limit(1);
 
-    if (existingUser) {
-      throw new ApiError(409, "User with this email already exists");
-    }
+  if (existingUser) {
+    throw new ApiError(409, "User with this email already exists");
+  }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const adminId = randomUUID();
+  const passwordHash = await bcrypt.hash(password, 10);
+  const adminId = randomUUID();
 
-    await db.insert(hallAdmins).values({
-      id: adminId,
-      email,
-      passwordHash,
-      name,
-      phone,
-      academicDepartment,
-      hall,
-      designation,
-      operationalUnit,
-      isActive: true,
-    });
+  await db.insert(hallAdmins).values({
+    id: adminId,
+    email,
+    passwordHash,
+    name,
+    phone,
+    academicDepartment,
+    hall,
+    designation,
+    operationalUnit,
+    isActive: true,
+  });
 
-    const [newUser] = await db
-      .select()
-      .from(hallAdmins)
-      .where(eq(hallAdmins.email, email))
-      .limit(1);
+  const [newUser] = await db
+    .select()
+    .from(hallAdmins)
+    .where(eq(hallAdmins.email, email))
+    .limit(1);
 
-    if (!newUser) {
-      throw new ApiError(500, "Failed to create user");
-    }
+  if (!newUser) {
+    throw new ApiError(500, "Failed to create user");
+  }
 
-    const tokenPayload: AccessTokenPayload = {
-      userId: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-      role: newUser.designation,
-    };
+  const tokenPayload: AccessTokenPayload = {
+    userId: newUser.id,
+    email: newUser.email,
+    name: newUser.name,
+    role: newUser.designation,
+  };
 
-    res.status(201).json(
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        user: tokenPayload,
+      },
+      "Admin registration pending"
+    )
+  );
+};
+
+export const adminApproval = async (req: Request, res: Response) => {
+  const { adminApplicationId, status } = req.body;
+
+  const { userId } = req.user!;
+
+  const [isAdmin] = await db
+    .select()
+    .from(hallAdmins)
+    .where(
+      and(eq(hallAdmins.id, userId), eq(hallAdmins.designation, "PROVOST"))
+    )
+    .limit(1);
+
+  if (!isAdmin) {
+    throw new ApiError(403, "Only provosts can approve admin applications");
+  }
+
+  await db
+    .update(hallAdmins)
+    .set({ hallAdminStatus: status })
+    .where(eq(hallAdmins.id, adminApplicationId));
+
+  res
+    .status(200)
+    .json(
       new ApiResponse(
-        201,
-        {
-          user: tokenPayload,
-        },
-        "Admin registration pending"
+        200,
+        { adminApplicationId, status },
+        "Admin approval status updated"
       )
     );
+};
+
+export const adminApplications = async (req: Request, res: Response) => {
+  const { userId } = req.user!;
+  const [isAdmin] = await db
+    .select()
+    .from(hallAdmins)
+    .where(
+      and(eq(hallAdmins.id, userId), eq(hallAdmins.designation, "PROVOST"))
+    )
+    .limit(1);
+
+  if (!isAdmin) {
+    throw new ApiError(403, "Only provosts can view admin applications");
   }
-);
 
-export const adminApproval = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { adminApplicationId, status } = req.body;
+  const applications = await db
+    .select()
+    .from(hallAdmins)
+    .where(eq(hallAdmins.hallAdminStatus, "PENDING"));
 
-    const { userId } = req.user!;
-
-    const [isAdmin] = await db
-      .select()
-      .from(hallAdmins)
-      .where(
-        and(eq(hallAdmins.id, userId), eq(hallAdmins.designation, "PROVOST"))
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { applications },
+        "Admin applications retrieved successfully"
       )
-      .limit(1);
+    );
+};
 
-    if (!isAdmin) {
-      throw new ApiError(403, "Only provosts can approve admin applications");
-    }
-
-    await db
-      .update(hallAdmins)
-      .set({ hallAdminStatus: status })
-      .where(eq(hallAdmins.id, adminApplicationId));
-
-    res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { adminApplicationId, status },
-          "Admin approval status updated"
-        )
-      );
-  }
-);
-
-export const adminApplications = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { userId } = req.user!;
-    const [isAdmin] = await db
-      .select()
-      .from(hallAdmins)
-      .where(
-        and(eq(hallAdmins.id, userId), eq(hallAdmins.designation, "PROVOST"))
-      )
-      .limit(1);
-
-    if (!isAdmin) {
-      throw new ApiError(403, "Only provosts can view admin applications");
-    }
-
-    const applications = await db
-      .select()
-      .from(hallAdmins)
-      .where(eq(hallAdmins.hallAdminStatus, "PENDING"));
-
-    res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { applications },
-          "Admin applications retrieved successfully"
-        )
-      );
-  }
-);
-
-export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
+export const adminLogin = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   const [user] = await db
@@ -392,78 +379,76 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
       "Admin logged in successfully"
     )
   );
-});
+};
 
 /**
  * POST /api/v1/auth/renew-access-token
  * Refresh access token using refresh token
  */
-export const renewAccessToken = asyncHandler(
-  async (req: Request, res: Response) => {
-    const incomingRefreshToken = req.cookies?.refreshToken;
-    if (!incomingRefreshToken) {
-      throw new ApiError(400, "Refresh token is required");
-    }
-
-    let decoded: RefreshTokenPayload;
-    try {
-      decoded = verifyRefreshToken(incomingRefreshToken);
-    } catch {
-      throw new ApiError(401, "Invalid or expired refresh token");
-    }
-
-    const tokenHash = hashToken(incomingRefreshToken);
-
-    const [tokenRecord] = await db
-      .select()
-      .from(refreshTokens)
-      .where(
-        and(
-          eq(refreshTokens.jti, decoded.jti),
-          eq(refreshTokens.tokenHash, tokenHash)
-        )
-      )
-      .limit(1);
-
-    if (!tokenRecord) {
-      throw new ApiError(401, "Refresh token not found");
-    }
-
-    if (tokenRecord.expiresAt < new Date()) {
-      throw new ApiError(401, "Refresh token has expired");
-    }
-
-    const tokenPayload: AccessTokenPayload = {
-      userId: decoded.userId,
-      email: decoded.email,
-      name: decoded.name,
-      role: decoded.role,
-    };
-
-    const newAccessToken = signAccessToken(tokenPayload);
-
-    return res
-      .status(200)
-      .cookie("accessToken", newAccessToken, {
-        ...options,
-        maxAge: 15 * 60 * 1000,
-        path: "/",
-      })
-      .json(
-        new ApiResponse(
-          200,
-          { accessToken: newAccessToken },
-          "Access token refreshed"
-        )
-      );
+export const renewAccessToken = async (req: Request, res: Response) => {
+  const incomingRefreshToken = req.cookies?.refreshToken;
+  if (!incomingRefreshToken) {
+    throw new ApiError(400, "Refresh token is required");
   }
-);
+
+  let decoded: RefreshTokenPayload;
+  try {
+    decoded = verifyRefreshToken(incomingRefreshToken);
+  } catch {
+    throw new ApiError(401, "Invalid or expired refresh token");
+  }
+
+  const tokenHash = hashToken(incomingRefreshToken);
+
+  const [tokenRecord] = await db
+    .select()
+    .from(refreshTokens)
+    .where(
+      and(
+        eq(refreshTokens.jti, decoded.jti),
+        eq(refreshTokens.tokenHash, tokenHash)
+      )
+    )
+    .limit(1);
+
+  if (!tokenRecord) {
+    throw new ApiError(401, "Refresh token not found");
+  }
+
+  if (tokenRecord.expiresAt < new Date()) {
+    throw new ApiError(401, "Refresh token has expired");
+  }
+
+  const tokenPayload: AccessTokenPayload = {
+    userId: decoded.userId,
+    email: decoded.email,
+    name: decoded.name,
+    role: decoded.role,
+  };
+
+  const newAccessToken = signAccessToken(tokenPayload);
+
+  return res
+    .status(200)
+    .cookie("accessToken", newAccessToken, {
+      ...options,
+      maxAge: 15 * 60 * 1000,
+      path: "/",
+    })
+    .json(
+      new ApiResponse(
+        200,
+        { accessToken: newAccessToken },
+        "Access token refreshed"
+      )
+    );
+};
 
 /**
  * POST /api/v1/auth/logout
  * Logout from current device only
  */
-export const logout = asyncHandler(async (req: Request, res: Response) => {
+export const logout = async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
@@ -487,13 +472,13 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
       path: "/",
     })
     .json(new ApiResponse(200, {}, "User logged out successfully"));
-});
+};
 
 /**
  * POST /api/v1/auth/logout-all
  * Logout from all devices (invalidate all refresh tokens)
  */
-export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
+export const logoutAll = async (req: Request, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
@@ -515,11 +500,10 @@ export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
     .json(
       new ApiResponse(200, null, "Logged out from all devices successfully")
     );
-});
+};
 
 /* 
-export const getActiveSessions = asyncHandler(
-  async (req: Request, res: Response) => {
+export const getActiveSessions = async (req: Request, res: Response) => {
     const userId = req.user?.userId;
 
     if (!userId) {
@@ -542,10 +526,9 @@ export const getActiveSessions = asyncHandler(
       .status(200)
       .json(new ApiResponse(200, { sessions }, "Active sessions retrieved"));
   }
-);
+;
 
-export const revokeSession = asyncHandler(
-  async (req: Request, res: Response) => {
+export const revokeSession = async (req: Request, res: Response) => {
     const userId = req.user?.userId;
     const sessionId = req.params.sessionId as string;
 
@@ -571,5 +554,5 @@ export const revokeSession = asyncHandler(
       .status(200)
       .json(new ApiResponse(200, null, "Session revoked successfully"));
   }
-);
+;
  */

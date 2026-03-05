@@ -12,7 +12,6 @@ import { beds } from "../../db/models/inventory.models";
 import type { Hall, SeatApplicationStatus } from "../../types/enums";
 import { ApiError } from "../../utils/ApiError";
 import { ApiResponse } from "../../utils/ApiResponse";
-import { asyncHandler } from "../../utils/asyncHandler";
 
 // ========================
 // STUDENT
@@ -22,73 +21,71 @@ import { asyncHandler } from "../../utils/asyncHandler";
  * POST /api/v1/admission/apply
  * Student submits a seat application for a hall
  */
-export const applyForSeat = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { userId: studentId, rollNumber } = req.user!;
+export const applyForSeat = async (req: Request, res: Response) => {
+  const { userId: studentId, rollNumber } = req.user!;
 
-    if (!rollNumber) {
-      throw new ApiError(400, "Roll number is required to apply for a seat");
-    }
-
-    const { hall, department, session } = req.body;
-
-    // Check if user already has a pending/approved application
-    const [existing] = await db
-      .select()
-      .from(seatApplications)
-      .where(
-        and(
-          eq(seatApplications.studentId, studentId),
-          sql`${seatApplications.status} IN ('PENDING', 'APPROVED')`
-        )
-      )
-      .limit(1);
-
-    if (existing) {
-      throw new ApiError(
-        409,
-        "You already have a pending or approved application"
-      );
-    }
-
-    // Check if already allocated in uniStudents
-    const [alreadyAllocated] = await db
-      .select()
-      .from(uniStudents)
-      .where(eq(uniStudents.id, studentId))
-      .limit(1);
-
-    if (alreadyAllocated?.isAllocated) {
-      throw new ApiError(409, "You already have a hall seat allocated");
-    }
-
-    const id = randomUUID();
-    await db.insert(seatApplications).values({
-      id,
-      studentId,
-      rollNumber,
-      hall,
-      department,
-      session,
-    });
-
-    res
-      .status(201)
-      .json(
-        new ApiResponse(
-          201,
-          { id, hall, department, session, status: "PENDING" },
-          "Application submitted successfully"
-        )
-      );
+  if (!rollNumber) {
+    throw new ApiError(400, "Roll number is required to apply for a seat");
   }
-);
+
+  const { hall, department, session } = req.body;
+
+  // Check if user already has a pending/approved application
+  const [existing] = await db
+    .select()
+    .from(seatApplications)
+    .where(
+      and(
+        eq(seatApplications.studentId, studentId),
+        sql`${seatApplications.status} IN ('PENDING', 'APPROVED')`
+      )
+    )
+    .limit(1);
+
+  if (existing) {
+    throw new ApiError(
+      409,
+      "You already have a pending or approved application"
+    );
+  }
+
+  // Check if already allocated in uniStudents
+  const [alreadyAllocated] = await db
+    .select()
+    .from(uniStudents)
+    .where(eq(uniStudents.id, studentId))
+    .limit(1);
+
+  if (alreadyAllocated?.isAllocated) {
+    throw new ApiError(409, "You already have a hall seat allocated");
+  }
+
+  const id = randomUUID();
+  await db.insert(seatApplications).values({
+    id,
+    studentId,
+    rollNumber,
+    hall,
+    department,
+    session,
+  });
+
+  res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        { id, hall, department, session, status: "PENDING" },
+        "Application submitted successfully"
+      )
+    );
+};
 
 /**
  * GET /api/v1/admission/my-status
  * Student views own application status history
  */
-export const getMyStatus = asyncHandler(async (req: Request, res: Response) => {
+export const getMyStatus = async (req: Request, res: Response) => {
   const studentId = req.user!.userId;
 
   const applications = await db
@@ -110,7 +107,7 @@ export const getMyStatus = asyncHandler(async (req: Request, res: Response) => {
     .json(
       new ApiResponse(200, applications, "Applications retrieved successfully")
     );
-});
+};
 
 // ========================
 // ADMIN
@@ -120,203 +117,189 @@ export const getMyStatus = asyncHandler(async (req: Request, res: Response) => {
  * GET /api/v1/admission/applications
  * Admin lists seat applications with optional hall/status filters + pagination
  */
-export const getApplications = asyncHandler(
-  async (req: Request, res: Response) => {
-    const hall = req.query.hall as Hall | undefined;
-    const status = req.query.status as SeatApplicationStatus | undefined;
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
-    const offset = (page - 1) * limit;
+export const getApplications = async (req: Request, res: Response) => {
+  const hall = req.query.hall as Hall | undefined;
+  const status = req.query.status as SeatApplicationStatus | undefined;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
 
-    const conditions = [];
-    if (hall) conditions.push(eq(seatApplications.hall, hall));
-    if (status) conditions.push(eq(seatApplications.status, status));
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  const conditions = [];
+  if (hall) conditions.push(eq(seatApplications.hall, hall));
+  if (status) conditions.push(eq(seatApplications.status, status));
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const apps = await db
-      .select({
-        id: seatApplications.id,
-        studentId: seatApplications.studentId,
-        studentName: uniStudents.name,
-        studentEmail: uniStudents.email,
-        hall: seatApplications.hall,
-        department: seatApplications.department,
-        session: seatApplications.session,
-        status: seatApplications.status,
-        createdAt: seatApplications.createdAt,
-        reviewedAt: seatApplications.reviewedAt,
-      })
-      .from(seatApplications)
-      .innerJoin(uniStudents, eq(seatApplications.studentId, uniStudents.id))
-      .where(whereClause)
-      .orderBy(desc(seatApplications.createdAt))
-      .limit(limit)
-      .offset(offset);
+  const apps = await db
+    .select({
+      id: seatApplications.id,
+      studentId: seatApplications.studentId,
+      studentName: uniStudents.name,
+      studentEmail: uniStudents.email,
+      hall: seatApplications.hall,
+      department: seatApplications.department,
+      session: seatApplications.session,
+      status: seatApplications.status,
+      createdAt: seatApplications.createdAt,
+      reviewedAt: seatApplications.reviewedAt,
+    })
+    .from(seatApplications)
+    .innerJoin(uniStudents, eq(seatApplications.studentId, uniStudents.id))
+    .where(whereClause)
+    .orderBy(desc(seatApplications.createdAt))
+    .limit(limit)
+    .offset(offset);
 
-    const [countResult] = await db
-      .select({ count: count() })
-      .from(seatApplications)
-      .where(whereClause);
+  const [countResult] = await db
+    .select({ count: count() })
+    .from(seatApplications)
+    .where(whereClause);
 
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          applications: apps,
-          pagination: {
-            page,
-            limit,
-            total: countResult?.count || 0,
-            totalPages: Math.ceil((countResult?.count || 0) / limit),
-          },
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        applications: apps,
+        pagination: {
+          page,
+          limit,
+          total: countResult?.count || 0,
+          totalPages: Math.ceil((countResult?.count || 0) / limit),
         },
-        "Applications retrieved successfully"
-      )
-    );
-  }
-);
+      },
+      "Applications retrieved successfully"
+    )
+  );
+};
 
 /**
  * PATCH /api/v1/admission/:id/review
  * Provost reviews and updates application status (approve/reject/waitlist)
  */
-export const reviewApplication = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params as { id: string };
-    const { status } = req.body;
-    const userId = req.user!.userId;
+export const reviewApplication = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const { status } = req.body;
+  const userId = req.user!.userId;
 
-    // Resolve hallAdmin record for reviewedBy FK
-    const [admin] = await db
-      .select()
-      .from(hallAdmins)
-      .where(eq(hallAdmins.id, userId))
-      .limit(1);
+  // Resolve hallAdmin record for reviewedBy FK
+  const [admin] = await db
+    .select()
+    .from(hallAdmins)
+    .where(eq(hallAdmins.id, userId))
+    .limit(1);
 
-    if (!admin) throw new ApiError(403, "Hall admin record not found");
+  if (!admin) throw new ApiError(403, "Hall admin record not found");
 
-    const [app] = await db
-      .select()
-      .from(seatApplications)
-      .where(eq(seatApplications.id, id))
-      .limit(1);
+  const [app] = await db
+    .select()
+    .from(seatApplications)
+    .where(eq(seatApplications.id, id))
+    .limit(1);
 
-    if (!app) throw new ApiError(404, "Application not found");
+  if (!app) throw new ApiError(404, "Application not found");
 
-    if (app.status !== "PENDING" && app.status !== "WAITLIST") {
-      throw new ApiError(400, "Application has already been reviewed");
-    }
-
-    await db
-      .update(seatApplications)
-      .set({
-        status,
-        reviewedBy: admin.id,
-        reviewedAt: new Date(),
-      })
-      .where(eq(seatApplications.id, id));
-
-    res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { id, status },
-          "Application reviewed successfully"
-        )
-      );
+  if (app.status !== "PENDING" && app.status !== "WAITLIST") {
+    throw new ApiError(400, "Application has already been reviewed");
   }
-);
+
+  await db
+    .update(seatApplications)
+    .set({
+      status,
+      reviewedBy: admin.id,
+      reviewedAt: new Date(),
+    })
+    .where(eq(seatApplications.id, id));
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, { id, status }, "Application reviewed successfully")
+    );
+};
 
 /**
  * POST /api/v1/admission/allocate
  * Provost allocates a bed to an approved applicant
  */
-export const allocateSeat = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { applicationId, bedId } = req.body;
-    const userId = req.user!.userId;
+export const allocateSeat = async (req: Request, res: Response) => {
+  const { applicationId, bedId } = req.body;
+  const userId = req.user!.userId;
 
-    // Resolve hallAdmin record for allocatedBy FK
-    const [admin] = await db
-      .select()
-      .from(hallAdmins)
-      .where(eq(hallAdmins.id, userId))
-      .limit(1);
+  // Resolve hallAdmin record for allocatedBy FK
+  const [admin] = await db
+    .select()
+    .from(hallAdmins)
+    .where(eq(hallAdmins.id, userId))
+    .limit(1);
 
-    if (!admin) throw new ApiError(403, "Hall admin record not found");
+  if (!admin) throw new ApiError(403, "Hall admin record not found");
 
-    const [app] = await db
-      .select()
-      .from(seatApplications)
-      .where(eq(seatApplications.id, applicationId))
-      .limit(1);
+  const [app] = await db
+    .select()
+    .from(seatApplications)
+    .where(eq(seatApplications.id, applicationId))
+    .limit(1);
 
-    if (!app) throw new ApiError(404, "Application not found");
-    if (app.status !== "APPROVED")
-      throw new ApiError(400, "Application must be approved before allocation");
+  if (!app) throw new ApiError(404, "Application not found");
+  if (app.status !== "APPROVED")
+    throw new ApiError(400, "Application must be approved before allocation");
 
-    const [bed] = await db
-      .select()
-      .from(beds)
-      .where(eq(beds.id, bedId))
-      .limit(1);
+  const [bed] = await db.select().from(beds).where(eq(beds.id, bedId)).limit(1);
 
-    if (!bed) throw new ApiError(404, "Bed not found");
-    if (bed.status !== "AVAILABLE")
-      throw new ApiError(400, "Bed is not available");
-    if (bed.hall !== app.hall)
-      throw new ApiError(400, "Bed does not belong to the applied hall");
+  if (!bed) throw new ApiError(404, "Bed not found");
+  if (bed.status !== "AVAILABLE")
+    throw new ApiError(400, "Bed is not available");
+  if (bed.hall !== app.hall)
+    throw new ApiError(400, "Bed does not belong to the applied hall");
 
-    const allocationId = randomUUID();
+  const allocationId = randomUUID();
 
-    // Create allocation record
-    await db.insert(seatAllocations).values({
-      id: allocationId,
-      studentId: app.studentId,
-      hall: app.hall,
-      roomId: bed.roomId,
-      bedId,
-      allocatedBy: admin.id,
-      rollNumber: app.rollNumber,
-    });
+  // Create allocation record
+  await db.insert(seatAllocations).values({
+    id: allocationId,
+    studentId: app.studentId,
+    hall: app.hall,
+    roomId: bed.roomId,
+    bedId,
+    allocatedBy: admin.id,
+    rollNumber: app.rollNumber,
+  });
 
-    // Mark bed as occupied
-    await db.update(beds).set({ status: "OCCUPIED" }).where(eq(beds.id, bedId));
+  // Mark bed as occupied
+  await db.update(beds).set({ status: "OCCUPIED" }).where(eq(beds.id, bedId));
 
-    // Update merged uniStudents entry with hall allocation
-    const [existingStudent] = await db
-      .select()
-      .from(uniStudents)
-      .where(eq(uniStudents.id, app.studentId))
-      .limit(1);
+  // Update merged uniStudents entry with hall allocation
+  const [existingStudent] = await db
+    .select()
+    .from(uniStudents)
+    .where(eq(uniStudents.id, app.studentId))
+    .limit(1);
 
-    if (existingStudent) {
-      await db
-        .update(uniStudents)
-        .set({
-          hall: app.hall,
-          roomId: bed.roomId,
-          isAllocated: true,
-          status: "ACTIVE",
-        })
-        .where(eq(uniStudents.id, app.studentId));
-    } else {
-      throw new ApiError(404, "Student record not found");
-    }
-
-    res.status(201).json(
-      new ApiResponse(
-        201,
-        {
-          allocationId,
-          studentId: app.studentId,
-          hall: app.hall,
-          roomId: bed.roomId,
-          bedId,
-        },
-        "Seat allocated successfully"
-      )
-    );
+  if (existingStudent) {
+    await db
+      .update(uniStudents)
+      .set({
+        hall: app.hall,
+        roomId: bed.roomId,
+        isAllocated: true,
+        status: "ACTIVE",
+      })
+      .where(eq(uniStudents.id, app.studentId));
+  } else {
+    throw new ApiError(404, "Student record not found");
   }
-);
+
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        allocationId,
+        studentId: app.studentId,
+        hall: app.hall,
+        roomId: bed.roomId,
+        bedId,
+      },
+      "Seat allocated successfully"
+    )
+  );
+};

@@ -4,14 +4,13 @@ import { db } from "../../db";
 import { hallAdmins, uniStudents } from "../../db/models";
 import { ApiError } from "../../utils/ApiError";
 import { ApiResponse } from "../../utils/ApiResponse";
-import { asyncHandler } from "../../utils/asyncHandler";
 import { uploadOnCloudinary } from "../../utils/cloudinary";
 
 /**
  * POST /api/v1/profile/upload-image
  * Upload user avatar image to Cloudinary
  */
-export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
+export const uploadImage = async (req: Request, res: Response) => {
   const avatarLocalPath = req.file?.path;
   const userId = req.user?.userId;
 
@@ -49,4 +48,4 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
         "Avatar uploaded successfully"
       )
     );
-});
+};

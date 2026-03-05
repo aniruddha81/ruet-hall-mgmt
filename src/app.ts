@@ -31,6 +31,7 @@ import diningRouter from "./modules/dining/dining.routes.ts";
 import financeRouter from "./modules/finance/finance.routes.ts";
 import inventoryRouter from "./modules/inventory/inventory.routes.ts";
 import profileRouter from "./modules/profile/profile.route.ts";
+import { ApiResponse } from "./utils/ApiResponse.ts";
 
 //routes declaration
 app.use("/api/auth", authRouter);
@@ -41,7 +42,9 @@ app.use("/api/inventory", inventoryRouter);
 app.use("/api/finance", financeRouter);
 
 app.get("/", (req, res) => {
-  res.send("Welcome to the University Management System API");
+  res
+    .status(200)
+    .json(new ApiResponse(200, null, "Welcome to RUET Hall Management API"));
 });
 
 // Error handling middleware

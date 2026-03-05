@@ -190,7 +190,7 @@ src/
 └── utils/
     ├── ApiError.ts                    # Custom error class
     ├── ApiResponse.ts                 # Standard response wrapper
-    ├── asyncHandler.ts                # Async/await error wrapper
+    ├── (no wrapper utility)           # Express 5 handles async errors natively
     ├── cloudinary.ts                  # Cloudinary upload configuration
     └── helpers.ts                     # Utility functions (hash, date format, etc)
 
@@ -349,7 +349,7 @@ FINANCE Module:
   • camelCase for function/method names
   • PascalCase for classes
 
-  ✓ Controllers: export const functionName = asyncHandler(...)
+  ✓ Controllers: export const functionName = async (...)
   ✓ Routes: export default router;
   ✓ Validators: export const functionNameSchema = { body, params, ... }
   ✓ Classes: export class ApiError { ... }
@@ -361,7 +361,7 @@ FINANCE Module:
   • Always use const/let (no var)
   • Use arrow functions unless this binding is needed
   • Use async/await, not .then() chains
-  • Always wrap controllers with asyncHandler()
+  • Use plain async controllers (Express 5 handles thrown async errors)
 
 
 ================================================================================
@@ -606,30 +606,24 @@ FINANCE Module:
     );
 
   In controller:
-    export const createUser = asyncHandler(
-      async (req: Request, res: Response) => {
-        const { email, name } = req.body;  // ← Already validated & typed
-        // ...
-      }
-    );
+    export const createUser = async (req: Request, res: Response) => {
+      const { email, name } = req.body;  // ← Already validated & typed
+      // ...
+    };
 
-## asyncHandler Wrapper
+## Async Error Handling (Express 5)
 ────────────────────────────────────────────────────────────────────────────────
 
-  Location: src/utils/asyncHandler.ts
-
-  Purpose:
-    • Wraps async controller functions
-    • Catches thrown errors
-    • Passes errors to next(error) for error handler middleware
+  Pattern:
+    • Write controllers/middlewares as native async functions
+    • Throw ApiError for failures
+    • Let Express 5 route thrown async errors to the error middleware
 
   Usage:
-    ✓ ALWAYS wrap controller functions
-    export const myController = asyncHandler(
-      async (req: Request, res: Response) => {
-        // your code
-      }
-    );
+    ✓ Use plain async handlers
+    export const myController = async (req: Request, res: Response) => {
+      // your code
+    };
 
 
 ================================================================================
@@ -767,7 +761,7 @@ FINANCE Module:
 ────────────────────────────────────────────────────────────────────────────────
 
   ✓ DO:
-    • Always use asyncHandler wrapper
+    • Use plain async handlers
     • Validate inputs via Zod schemas (in routes)
     • Throw ApiError for business logic errors
     • Use ApiResponse for success responses
@@ -780,7 +774,7 @@ FINANCE Module:
     • Throw generic Error (use ApiError)
     • Mix business logic across files
     • Use .then() chains (use async/await)
-    • Forget asyncHandler wrapper
+    • Swallow thrown async errors
 
 ## Validation Patterns
 ────────────────────────────────────────────────────────────────────────────────
@@ -881,7 +875,7 @@ FINANCE Module:
     not users.id for admin-only actions)
   • Frontend Requests: Include Authorization header for protected routes
     Header format: Authorization: Bearer <accessToken>
-  • All controllers MUST be wrapped with asyncHandler()
+  • All controllers should be plain async functions (no extra wrapper)
   • All responses MUST use ApiResponse class
   • All errors MUST use ApiError class
   • All routes MUST include Zod validation via validateRequest()

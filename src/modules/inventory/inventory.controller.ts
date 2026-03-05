@@ -13,7 +13,6 @@ import type {
 } from "../../types/enums";
 import { ApiError } from "../../utils/ApiError";
 import { ApiResponse } from "../../utils/ApiResponse";
-import { asyncHandler } from "../../utils/asyncHandler";
 
 // ========================
 // ROOMS
@@ -23,7 +22,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
  * GET /api/v1/inventory/rooms
  * List rooms with optional hall/status filters
  */
-export const getRooms = asyncHandler(async (req: Request, res: Response) => {
+export const getRooms = async (req: Request, res: Response) => {
   const { hall, status } = req.query as { hall?: Hall; status?: RoomStatus };
 
   const conditions = [];
@@ -47,7 +46,7 @@ export const getRooms = asyncHandler(async (req: Request, res: Response) => {
   res
     .status(200)
     .json(new ApiResponse(200, result, "Rooms retrieved successfully"));
-});
+};
 
 // ========================
 // BEDS
@@ -57,7 +56,7 @@ export const getRooms = asyncHandler(async (req: Request, res: Response) => {
  * POST /api/v1/inventory/beds
  * Create beds for a room (admin)
  */
-export const createBeds = asyncHandler(async (req: Request, res: Response) => {
+export const createBeds = async (req: Request, res: Response) => {
   const { hall, roomId, bedLabels } = req.body;
 
   // Verify room exists
@@ -81,13 +80,13 @@ export const createBeds = asyncHandler(async (req: Request, res: Response) => {
   res
     .status(201)
     .json(new ApiResponse(201, values, "Beds created successfully"));
-});
+};
 
 /**
  * GET /api/v1/inventory/beds
  * List beds with optional hall/roomId/status filters
  */
-export const getBeds = asyncHandler(async (req: Request, res: Response) => {
+export const getBeds = async (req: Request, res: Response) => {
   const hall = req.query.hall as Hall | undefined;
   const roomId = req.query.roomId as string | undefined;
   const status = req.query.status as BedStatus | undefined;
@@ -113,7 +112,7 @@ export const getBeds = asyncHandler(async (req: Request, res: Response) => {
   res
     .status(200)
     .json(new ApiResponse(200, result, "Beds retrieved successfully"));
-});
+};
 
 // ========================
 // ASSETS
@@ -123,7 +122,7 @@ export const getBeds = asyncHandler(async (req: Request, res: Response) => {
  * POST /api/v1/inventory/assets
  * Create a trackable asset (admin)
  */
-export const createAsset = asyncHandler(async (req: Request, res: Response) => {
+export const createAsset = async (req: Request, res: Response) => {
   const { hall, name, quantity, condition } = req.body;
 
   const id = randomUUID();
@@ -144,7 +143,7 @@ export const createAsset = asyncHandler(async (req: Request, res: Response) => {
         "Asset created successfully"
       )
     );
-});
+};
 
 // ========================
 // DAMAGE REPORTS
@@ -154,90 +153,85 @@ export const createAsset = asyncHandler(async (req: Request, res: Response) => {
  * POST /api/v1/inventory/damage
  * Student reports asset damage
  */
-export const reportDamage = asyncHandler(
-  async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
-    const { assetId, hall, description } = req.body;
+export const reportDamage = async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { assetId, hall, description } = req.body;
 
-    const [asset] = await db
-      .select()
-      .from(assets)
-      .where(eq(assets.id, assetId))
-      .limit(1);
+  const [asset] = await db
+    .select()
+    .from(assets)
+    .where(eq(assets.id, assetId))
+    .limit(1);
 
-    if (!asset) throw new ApiError(404, "Asset not found");
-    if (asset.hall !== hall)
-      throw new ApiError(400, "Asset does not belong to this hall");
+  if (!asset) throw new ApiError(404, "Asset not found");
+  if (asset.hall !== hall)
+    throw new ApiError(400, "Asset does not belong to this hall");
 
-    const id = randomUUID();
-    await db.insert(damageReports).values({
-      id,
-      studentId: userId,
-      assetId,
-      hall,
-      description,
-    });
+  const id = randomUUID();
+  await db.insert(damageReports).values({
+    id,
+    studentId: userId,
+    assetId,
+    hall,
+    description,
+  });
 
-    res
-      .status(201)
-      .json(
-        new ApiResponse(
-          201,
-          { id, assetId, hall, description, status: "REPORTED" },
-          "Damage reported successfully"
-        )
-      );
-  }
-);
+  res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        { id, assetId, hall, description, status: "REPORTED" },
+        "Damage reported successfully"
+      )
+    );
+};
 
 /**
  * PATCH /api/v1/inventory/damage/:id/verify
  * Admin verifies a damage report and assigns fine
  */
-export const verifyDamage = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params as { id: string };
-    const { fineAmount } = req.body;
-    const userId = req.user!.userId;
+export const verifyDamage = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const { fineAmount } = req.body;
+  const userId = req.user!.userId;
 
-    // Resolve hallAdmin record for verifiedBy FK
-    const [admin] = await db
-      .select()
-      .from(hallAdmins)
-      .where(eq(hallAdmins.id, userId))
-      .limit(1);
+  // Resolve hallAdmin record for verifiedBy FK
+  const [admin] = await db
+    .select()
+    .from(hallAdmins)
+    .where(eq(hallAdmins.id, userId))
+    .limit(1);
 
-    if (!admin) throw new ApiError(403, "Hall admin record not found");
+  if (!admin) throw new ApiError(403, "Hall admin record not found");
 
-    const [report] = await db
-      .select()
-      .from(damageReports)
-      .where(eq(damageReports.id, id))
-      .limit(1);
+  const [report] = await db
+    .select()
+    .from(damageReports)
+    .where(eq(damageReports.id, id))
+    .limit(1);
 
-    if (!report) throw new ApiError(404, "Damage report not found");
-    if (report.status === "VERIFIED")
-      throw new ApiError(400, "Already verified");
+  if (!report) throw new ApiError(404, "Damage report not found");
+  if (report.status === "VERIFIED") throw new ApiError(400, "Already verified");
 
-    const updateData: Record<string, unknown> = {
-      status: "VERIFIED" as const,
-      verifiedBy: admin.id,
-    };
-    if (fineAmount !== undefined) updateData.fineAmount = fineAmount;
+  const updateData: Record<string, unknown> = {
+    status: "VERIFIED" as const,
+    verifiedBy: admin.id,
+  };
+  if (fineAmount !== undefined) updateData.fineAmount = fineAmount;
 
-    await db
-      .update(damageReports)
-      .set(updateData)
-      .where(eq(damageReports.id, id));
+  await db
+    .update(damageReports)
+    .set(updateData)
+    .where(eq(damageReports.id, id));
 
-    res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { id, status: "VERIFIED", fineAmount },
-          "Damage report verified successfully"
-        )
-      );
-  }
-);
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { id, status: "VERIFIED", fineAmount },
+        "Damage report verified successfully"
+      )
+    );
+};
