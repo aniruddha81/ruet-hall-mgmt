@@ -10,8 +10,8 @@ import {
 } from "../../db/models";
 import { beds } from "../../db/models/inventory.models";
 import type { Hall, SeatApplicationStatus } from "../../types/enums";
-import { ApiError } from "../../utils/ApiError";
-import { ApiResponse } from "../../utils/ApiResponse";
+import ApiError from "../../utils/ApiError";
+import ApiResponse from "../../utils/ApiResponse";
 
 // ========================
 // STUDENT

@@ -11,8 +11,8 @@ import type {
   Hall,
   RoomStatus,
 } from "../../types/enums";
-import { ApiError } from "../../utils/ApiError";
-import { ApiResponse } from "../../utils/ApiResponse";
+import ApiError from "../../utils/ApiError";
+import ApiResponse from "../../utils/ApiResponse";
 
 // ========================
 // ROOMS

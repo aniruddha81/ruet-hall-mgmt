@@ -1,4 +1,4 @@
-class ApiError extends Error {
+export default class ApiError extends Error {
   readonly success = false;
   readonly data = null;
 
@@ -10,5 +10,3 @@ class ApiError extends Error {
     super(message);
   }
 }
-
-export { ApiError };

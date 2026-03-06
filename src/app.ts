@@ -31,7 +31,7 @@ import diningRouter from "./modules/dining/dining.routes.ts";
 import financeRouter from "./modules/finance/finance.routes.ts";
 import inventoryRouter from "./modules/inventory/inventory.routes.ts";
 import profileRouter from "./modules/profile/profile.route.ts";
-import { ApiResponse } from "./utils/ApiResponse.ts";
+import ApiResponse from "./utils/ApiResponse.ts";
 
 //routes declaration
 app.use("/api/auth", authRouter);

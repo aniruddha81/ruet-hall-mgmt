@@ -2,8 +2,8 @@ import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
 import { hallAdmins, uniStudents } from "../../db/models";
-import { ApiError } from "../../utils/ApiError";
-import { ApiResponse } from "../../utils/ApiResponse";
+import ApiError from "../../utils/ApiError";
+import ApiResponse from "../../utils/ApiResponse";
 import { uploadOnCloudinary } from "../../utils/cloudinary";
 
 /**

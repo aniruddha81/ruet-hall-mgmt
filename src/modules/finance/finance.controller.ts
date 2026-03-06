@@ -10,8 +10,8 @@ import {
   studentDues,
 } from "../../db/models/finance.models";
 import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums";
-import { ApiError } from "../../utils/ApiError";
-import { ApiResponse } from "../../utils/ApiResponse";
+import ApiError from "../../utils/ApiError";
+import ApiResponse from "../../utils/ApiResponse";
 
 // ========================
 // DUES

@@ -8,8 +8,8 @@ import {
   refreshTokens,
   uniStudents,
 } from "../../db/models/index.ts";
-import { ApiError } from "../../utils/ApiError.ts";
-import { ApiResponse } from "../../utils/ApiResponse.ts";
+import ApiError from "../../utils/ApiError.ts";
+import ApiResponse from "../../utils/ApiResponse.ts";
 import { hashToken } from "../../utils/helpers.ts";
 import type { AccessTokenPayload, RefreshTokenPayload } from "./auth.d.ts";
 import {

@@ -19,8 +19,8 @@ import {
   mealTokens,
   uniStudents,
 } from "../../db/models";
-import { ApiError } from "../../utils/ApiError";
-import { ApiResponse } from "../../utils/ApiResponse";
+import ApiError from "../../utils/ApiError";
+import ApiResponse from "../../utils/ApiResponse";
 import { toDateString } from "../../utils/helpers";
 import { createMealPayment } from "../finance/finance.service";
 
