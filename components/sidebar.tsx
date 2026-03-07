@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
+import type { StaffRole } from "@/lib/types";
+import type { LucideIcon } from "lucide-react";
 import {
   Building,
   ClipboardList,
@@ -18,12 +20,65 @@ import {
   Pin,
   PinOff,
   Settings,
+  User,
   UtensilsCrossed,
-  Wrench,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
+
+interface NavLink {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  roles: StaffRole[] | "all";
+}
+
+const allNavLinks: NavLink[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: Home,
+    roles: "all",
+  },
+  {
+    label: "Dining",
+    href: "/dashboard/dining",
+    icon: UtensilsCrossed,
+    roles: ["DINING_MANAGER", "ASST_DINING"],
+  },
+  {
+    label: "Admissions",
+    href: "/dashboard/admissions",
+    icon: ClipboardList,
+    roles: ["ASST_INVENTORY", "INVENTORY_SECTION_OFFICER"],
+  },
+  {
+    label: "Inventory",
+    href: "/dashboard/inventory",
+    icon: Building,
+    roles: ["ASST_INVENTORY", "INVENTORY_SECTION_OFFICER"],
+  },
+  {
+    label: "Finance",
+    href: "/dashboard/finance",
+    icon: CreditCard,
+    roles: ["ASST_FINANCE", "FINANCE_SECTION_OFFICER"],
+  },
+  {
+    label: "Profile",
+    href: "/dashboard/profile",
+    icon: User,
+    roles: "all",
+  },
+  {
+    label: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings,
+    roles: "all",
+  },
+];
 
 export default function Sidebar() {
   const {
@@ -35,48 +90,21 @@ export default function Sidebar() {
     closeMobile,
   } = useLayout();
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   // Sidebar is expanded if pinned OR hovered (on desktop)
   const isExpanded = isSidebarPinned || isSidebarHovered;
 
-  const navLinks = [
-    {
-      label: "Dashboard",
-      href: "/dashboard",
-      icon: Home,
-    },
-    {
-      label: "Dining",
-      href: "/dashboard/dining",
-      icon: UtensilsCrossed,
-    },
-    {
-      label: "Admissions",
-      href: "/dashboard/admissions",
-      icon: ClipboardList,
-    },
-    {
-      label: "Inventory",
-      href: "/dashboard/inventory",
-      icon: Building,
-    },
-    {
-      label: "Finance",
-      href: "/dashboard/finance",
-      icon: CreditCard,
-    },
-    {
-      label: "Maintenance",
-      href: "/dashboard/maintenance",
-      icon: Wrench,
-    },
-    {
-      label: "Settings",
-      href: "/dashboard/settings",
-      icon: Settings,
-    },
-  ];
+  // Filter nav links based on user's role
+  // Provost sees everything (bypasses role check)
+  const navLinks = useMemo(() => {
+    const role = user?.designation;
+    if (!role) return allNavLinks.filter((l) => l.roles === "all");
+    if (role === "PROVOST") return allNavLinks;
+    return allNavLinks.filter(
+      (link) => link.roles === "all" || link.roles.includes(role),
+    );
+  }, [user?.designation]);
 
   const handleLinkClick = () => {
     // Only close sidebar on mobile when a link is clicked

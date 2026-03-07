@@ -111,7 +111,7 @@ export interface AdminData {
   email: string;
   name: string;
   role: Role;
-  academicDepartment: AcademicDepartment;
+  academicDepartment: AcademicDepartment | null;
   phone: string;
   hall: Hall;
   designation: StaffRole;

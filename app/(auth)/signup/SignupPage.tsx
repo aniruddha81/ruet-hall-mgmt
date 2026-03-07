@@ -67,12 +67,7 @@ export default function SignupPage() {
       return;
     }
 
-    if (
-      !formData.hall ||
-      !formData.designation ||
-      !formData.operationalUnit ||
-      !formData.academicDepartment
-    ) {
+    if (!formData.hall || !formData.designation || !formData.operationalUnit) {
       setError("Please fill in all required fields");
       return;
     }
@@ -85,7 +80,12 @@ export default function SignupPage() {
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
-        academicDepartment: formData.academicDepartment as AcademicDepartment,
+        ...(formData.academicDepartment
+          ? {
+              academicDepartment:
+                formData.academicDepartment as AcademicDepartment,
+            }
+          : {}),
         hall: formData.hall as Hall,
         designation: formData.designation as StaffRole,
         operationalUnit: formData.operationalUnit as OperationalUnit,
@@ -170,7 +170,6 @@ export default function SignupPage() {
                   <select
                     id="academicDepartment"
                     name="academicDepartment"
-                    required
                     value={formData.academicDepartment}
                     onChange={handleChange}
                     className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
