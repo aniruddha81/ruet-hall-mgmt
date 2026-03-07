@@ -133,11 +133,15 @@ export const studentLogin = async (req: Request, res: Response) => {
     .orderBy(desc(refreshTokens.createdAt));
 
   if (activeTokens.length >= 2) {
-    const oldestToken = activeTokens.sort(
-      (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
-    )[0]!;
+    // const oldestToken = activeTokens.sort(
+    //   (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+    // )[0]!;
 
-    await db.delete(refreshTokens).where(eq(refreshTokens.id, oldestToken.id));
+    // await db.delete(refreshTokens).where(eq(refreshTokens.id, oldestToken.id));
+    throw new ApiError(
+      403,
+      "Maximum active sessions reached. Please logout from other devices."
+    );
   }
 
   return (
@@ -196,26 +200,29 @@ export const adminRegister = async (req: Request, res: Response) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const adminId = randomUUID();
 
-  await db.insert(hallAdmins).values({
-    id: adminId,
-    email,
-    passwordHash,
-    name,
-    phone,
-    academicDepartment,
-    hall,
-    designation,
-    operationalUnit,
-    isActive: true,
+  const newUser = await db.transaction(async (tx) => {
+    await tx.insert(hallAdmins).values({
+      id: randomUUID(),
+      email,
+      passwordHash,
+      name,
+      phone,
+      academicDepartment: academicDepartment || null,
+      hall,
+      designation,
+      operationalUnit,
+      isActive: true,
+    });
+
+    const [createdAdmin] = await tx
+      .select()
+      .from(hallAdmins)
+      .where(eq(hallAdmins.email, email))
+      .limit(1);
+
+    return createdAdmin;
   });
-
-  const [newUser] = await db
-    .select()
-    .from(hallAdmins)
-    .where(eq(hallAdmins.email, email))
-    .limit(1);
 
   if (!newUser) {
     throw new ApiError(500, "Failed to create user");
@@ -248,7 +255,7 @@ export const adminApproval = async (req: Request, res: Response) => {
 
   const { userId } = req.user!;
 
-  const [isAdmin] = await db
+  const [admin] = await db
     .select()
     .from(hallAdmins)
     .where(
@@ -256,7 +263,7 @@ export const adminApproval = async (req: Request, res: Response) => {
     )
     .limit(1);
 
-  if (!isAdmin) {
+  if (!admin) {
     throw new ApiError(403, "Only provosts can approve admin applications");
   }
 
@@ -282,7 +289,7 @@ export const adminApproval = async (req: Request, res: Response) => {
  */
 export const adminApplications = async (req: Request, res: Response) => {
   const { userId } = req.user!;
-  const [isAdmin] = await db
+  const [admin] = await db
     .select()
     .from(hallAdmins)
     .where(
@@ -290,14 +297,19 @@ export const adminApplications = async (req: Request, res: Response) => {
     )
     .limit(1);
 
-  if (!isAdmin) {
+  if (!admin) {
     throw new ApiError(403, "Only provosts can view admin applications");
   }
 
   const applications = await db
     .select()
     .from(hallAdmins)
-    .where(eq(hallAdmins.hallAdminStatus, "PENDING"));
+    .where(
+      and(
+        eq(hallAdmins.hallAdminStatus, "PENDING"),
+        eq(hallAdmins.hall, admin.hall)
+      )
+    );
 
   res
     .status(200)
@@ -357,11 +369,15 @@ export const adminLogin = async (req: Request, res: Response) => {
     .orderBy(desc(refreshTokens.createdAt));
 
   if (activeTokens.length >= 2) {
-    const oldestToken = activeTokens.sort(
-      (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
-    )[0]!;
+    // const oldestToken = activeTokens.sort(
+    //   (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+    // )[0]!;
 
-    await db.delete(refreshTokens).where(eq(refreshTokens.id, oldestToken.id));
+    // await db.delete(refreshTokens).where(eq(refreshTokens.id, oldestToken.id));
+    throw new ApiError(
+      403,
+      "Maximum active sessions reached. Please logout from other devices."
+    );
   }
 
   return (

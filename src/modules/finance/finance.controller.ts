@@ -424,3 +424,108 @@ export const getMealPaymentsReport = async (req: Request, res: Response) => {
     )
   );
 };
+
+// ========================
+// STUDENT-FACING FINANCE
+// ========================
+
+/**
+ * GET /api/v1/finance/my-dues
+ * Student views their own dues
+ */
+export const getMyDues = async (req: Request, res: Response) => {
+  const studentId = req.user!.userId;
+
+  const dues = await db
+    .select({
+      id: studentDues.id,
+      type: studentDues.type,
+      hall: studentDues.hall,
+      amount: studentDues.amount,
+      status: studentDues.status,
+      paidAt: studentDues.paidAt,
+      createdAt: studentDues.createdAt,
+    })
+    .from(studentDues)
+    .where(eq(studentDues.studentId, studentId))
+    .orderBy(desc(studentDues.createdAt));
+
+  const totalUnpaid = dues
+    .filter((d) => d.status === "UNPAID")
+    .reduce((sum, d) => sum + d.amount, 0);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, { dues, totalUnpaid }, "Dues retrieved successfully")
+    );
+};
+
+/**
+ * GET /api/v1/finance/my-ledger
+ * Student views their own financial ledger
+ */
+export const getMyLedger = async (req: Request, res: Response) => {
+  const studentId = req.user!.userId;
+
+  const dues = await db
+    .select({
+      id: studentDues.id,
+      type: studentDues.type,
+      hall: studentDues.hall,
+      amount: studentDues.amount,
+      status: studentDues.status,
+      paidAt: studentDues.paidAt,
+      createdAt: studentDues.createdAt,
+    })
+    .from(studentDues)
+    .where(eq(studentDues.studentId, studentId))
+    .orderBy(desc(studentDues.createdAt));
+
+  const studentPayments = await db
+    .select({
+      id: payments.id,
+      hall: payments.hall,
+      dueId: payments.dueId,
+      amount: payments.amount,
+      method: payments.method,
+      createdAt: payments.createdAt,
+    })
+    .from(payments)
+    .where(eq(payments.studentId, studentId))
+    .orderBy(desc(payments.createdAt));
+
+  const mealPaymentsList = await db
+    .select({
+      id: mealPayments.id,
+      amount: mealPayments.amount,
+      totalQuantity: mealPayments.totalQuantity,
+      paymentMethod: mealPayments.paymentMethod,
+      transactionId: mealPayments.transactionId,
+      paymentDate: mealPayments.paymentDate,
+      refundAmount: mealPayments.refundAmount,
+      refundedAt: mealPayments.refundedAt,
+    })
+    .from(mealPayments)
+    .where(eq(mealPayments.studentId, studentId))
+    .orderBy(desc(mealPayments.paymentDate));
+
+  const totalDue = dues
+    .filter((d) => d.status === "UNPAID")
+    .reduce((sum, d) => sum + d.amount, 0);
+
+  const totalPaid = studentPayments.reduce((sum, p) => sum + p.amount, 0);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        dues,
+        payments: studentPayments,
+        mealPayments: mealPaymentsList,
+        summary: { totalDue, totalPaid },
+      },
+      "Ledger retrieved successfully"
+    )
+  );
+};

@@ -2,7 +2,13 @@ import bcrypt from "bcrypt";
 import { randomUUIDv7 } from "bun";
 import { randomUUID } from "crypto";
 import { db } from ".";
-import { beds, hallAdmins, halls as hallsTable, rooms } from "./models";
+import {
+  beds,
+  hallAdmins,
+  halls as hallsTable,
+  rooms,
+  uniStudents,
+} from "./models";
 
 async function seed() {
   const pass = await bcrypt.hash("AdminPass123!", 10);
@@ -126,6 +132,26 @@ async function seed() {
     isActive: true,
   }));
   await db.insert(hallAdmins).values(admins);
+
+  const studentPass = "StudentPass123!";
+  const studentPassHash = await bcrypt.hash(studentPass, 10);
+  const studentsData = Array.from({ length: 50 }, (_, i) => ({
+    id: randomUUIDv7(),
+    email: `student${i + 1}@gmail.com`,
+    passwordHash: studentPassHash,
+    name: `Student ${i + 1}`,
+    phone: `+880171234567${String(i + 1).padStart(2, "0")}`,
+    rollNumber: String(i + 1).padStart(5, "0"),
+    academicDepartment: "CSE" as const,
+    isActive: true,
+    avatarUrl: null,
+    isAllocated: false,
+    session: "2024-2025",
+    hall: null,
+    roomId: null,
+    status: "ACTIVE" as const,
+  }));
+  await db.insert(uniStudents).values(studentsData);
 }
 
 try {

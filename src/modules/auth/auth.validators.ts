@@ -54,6 +54,10 @@ const studentLoginSchema = {
   }),
 };
 
+const STAFF_ROLES_WITHOUT_PROVOST = STAFF_ROLES.filter(
+  (role) => role !== "PROVOST"
+) as [string, ...string[]];
+
 const adminRegisterSchema = {
   body: z
     .object({
@@ -61,9 +65,9 @@ const adminRegisterSchema = {
       email: z.email("Invalid email address"),
       password: passwordStrengthSchema,
       confirmPassword: passwordStrengthSchema,
-      academicDepartment: z.enum(ACADEMIC_DEPARTMENTS),
+      academicDepartment: z.enum(ACADEMIC_DEPARTMENTS).optional(),
       hall: z.enum(HALLS),
-      designation: z.enum(STAFF_ROLES),
+      designation: z.enum(STAFF_ROLES_WITHOUT_PROVOST),
       operationalUnit: z.enum(OPERATIONAL_UNITS),
       phone: z.string().max(20),
     })

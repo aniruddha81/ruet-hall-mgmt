@@ -11,6 +11,8 @@ import {
   getMealPaymentById,
   getMealPayments,
   getMealPaymentsReport,
+  getMyDues,
+  getMyLedger,
   getStudentLedger,
   payDue,
 } from "./finance.controller";
@@ -23,6 +25,26 @@ import {
 } from "./finance.validators";
 
 const financeRouter = Router();
+
+// ==============================================================
+// STUDENT-FACING ROUTES
+// ==============================================================
+
+// Student views their own dues
+financeRouter.get(
+  "/my-dues",
+  authenticateToken,
+  authorizeRoles("STUDENT"),
+  getMyDues
+);
+
+// Student views their own financial ledger
+financeRouter.get(
+  "/my-ledger",
+  authenticateToken,
+  authorizeRoles("STUDENT"),
+  getMyLedger
+);
 
 // ==============================================================
 // DUES

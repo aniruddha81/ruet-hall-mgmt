@@ -119,7 +119,7 @@ export const hallAdmins = mysqlTable(
 
     phone: varchar("phone", { length: 20 }).notNull(),
 
-    academicDepartment: academicDepartmentsSQL_Enum().notNull(),
+    academicDepartment: academicDepartmentsSQL_Enum(),
 
     hall: hallSQL_Enum()
       .notNull()
