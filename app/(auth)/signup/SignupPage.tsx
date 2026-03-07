@@ -58,7 +58,7 @@ export default function SignupPage() {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -215,7 +215,7 @@ export default function SignupPage() {
                     className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <option value="">Select</option>
-                    {STAFF_ROLES.map((r) => (
+                    {STAFF_ROLES.filter((r) => r !== "PROVOST").map((r) => (
                       <option key={r} value={r}>
                         {r.replace(/_/g, " ")}
                       </option>
