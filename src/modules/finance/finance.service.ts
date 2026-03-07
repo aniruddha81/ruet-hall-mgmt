@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { mealPayments } from "../../db/models/dining.models";
-import { ApiError } from "../../utils/ApiError";
+import ApiError from "../../utils/ApiError";
 import type { CreateMealPaymentParams, MealPaymentResult } from "./finance";
 import { PAYMENT_SERVER_URL } from "../../Constants";
 

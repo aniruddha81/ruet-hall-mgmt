@@ -239,6 +239,10 @@ export const adminRegister = async (req: Request, res: Response) => {
   );
 };
 
+/**
+ * POST /api/v1/auth/admin/approval
+ * Update an admin application's approval status (provost only)
+ */
 export const adminApproval = async (req: Request, res: Response) => {
   const { adminApplicationId, status } = req.body;
 
@@ -272,6 +276,10 @@ export const adminApproval = async (req: Request, res: Response) => {
     );
 };
 
+/**
+ * GET /api/v1/auth/admin/applications
+ * Retrieve pending admin applications (provost only)
+ */
 export const adminApplications = async (req: Request, res: Response) => {
   const { userId } = req.user!;
   const [isAdmin] = await db
@@ -302,6 +310,10 @@ export const adminApplications = async (req: Request, res: Response) => {
     );
 };
 
+/**
+ * POST /api/v1/auth/admin/login
+ * Login an approved admin account
+ */
 export const adminLogin = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 

@@ -4,7 +4,7 @@ import { db } from "../db/index.ts";
 import { hallAdmins, uniStudents } from "../db/models/auth.models.ts";
 import { verifyAccessToken } from "../modules/auth/auth.service.ts";
 import type { Role } from "../types/enums.ts";
-import { ApiError } from "../utils/ApiError.ts";
+import ApiError from "../utils/ApiError.ts";
 
 export const authenticateToken = async (
   req: Request,
