@@ -27,6 +27,10 @@ export function proxy(request: NextRequest) {
     pathname.startsWith(route),
   );
 
+  if (refreshToken && pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   // Authenticated users should not access login/signup pages
   if (refreshToken && isPublicOnlyRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
