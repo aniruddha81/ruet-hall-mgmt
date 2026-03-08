@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { HALLS, MEAL_TYPES, PAYMENT_METHODS, TOKEN_STATUSES } from "../../types/enums";
+import {
+  HALLS,
+  MEAL_TYPES,
+  PAYMENT_METHODS,
+  TOKEN_STATUSES,
+} from "../../types/enums";
 
 // ==============================================================
 // STUDENT VALIDATORS

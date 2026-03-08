@@ -189,43 +189,72 @@ export const adminRegister = async (req: Request, res: Response) => {
     phone,
   } = req.body;
 
-  const [existingUser] = await db
-    .select()
-    .from(hallAdmins)
-    .where(eq(hallAdmins.email, email))
-    .limit(1);
-
-  if (existingUser) {
-    throw new ApiError(409, "User with this email already exists");
-  }
-
   const passwordHash = await bcrypt.hash(password, 10);
 
   const newUser = await db.transaction(async (tx) => {
-    await tx.insert(hallAdmins).values({
-      id: randomUUID(),
-      email,
-      passwordHash,
-      name,
-      phone,
-      academicDepartment: academicDepartment || null,
-      hall,
-      designation,
-      operationalUnit,
-      isActive: true,
-    });
-
-    const [createdAdmin] = await tx
+    // Check if user already exists
+    const [existingUser] = await tx
       .select()
       .from(hallAdmins)
       .where(eq(hallAdmins.email, email))
       .limit(1);
 
-    return createdAdmin;
+    if (existingUser) {
+      if (existingUser.hallAdminStatus !== "REJECTED") {
+        throw new ApiError(409, "User with this email already exists");
+      }
+
+      // If REJECTED, update the existing row
+      await tx
+        .update(hallAdmins)
+        .set({
+          name,
+          phone,
+          passwordHash,
+          academicDepartment: academicDepartment || null,
+          hall,
+          designation,
+          operationalUnit,
+          isActive: true,
+          hallAdminStatus: "PENDING", // Reset status for re-approval
+        })
+        .where(eq(hallAdmins.id, existingUser.id));
+
+      // Return updated user
+      const [updatedUser] = await tx
+        .select()
+        .from(hallAdmins)
+        .where(eq(hallAdmins.id, existingUser.id))
+        .limit(1);
+
+      return updatedUser;
+    } else {
+      // Create new user
+      await tx.insert(hallAdmins).values({
+        id: randomUUID(),
+        email,
+        passwordHash,
+        name,
+        phone,
+        academicDepartment: academicDepartment || null,
+        hall,
+        designation,
+        operationalUnit,
+        isActive: true,
+      });
+
+      const [createdAdmin] = await tx
+        .select()
+        .from(hallAdmins)
+        .where(eq(hallAdmins.email, email))
+        .limit(1);
+
+      return createdAdmin;
+    }
   });
 
   if (!newUser) {
-    throw new ApiError(500, "Failed to create user");
+    throw new ApiError(500, "Failed to create or update user");
   }
 
   const tokenPayload: AccessTokenPayload = {
@@ -351,7 +380,7 @@ export const adminLogin = async (req: Request, res: Response) => {
   if (user.hallAdminStatus !== "APPROVED") {
     throw new ApiError(
       403,
-      `Admin application is ${user.hallAdminStatus.toLowerCase()}`
+      `Application is ${user.hallAdminStatus.toLowerCase()}`
     );
   }
 
