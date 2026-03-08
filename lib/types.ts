@@ -20,12 +20,7 @@ export const STAFF_ROLES = [
   "INVENTORY_SECTION_OFFICER",
 ] as const;
 
-export const OPERATIONAL_UNITS = [
-  "FINANCE",
-  "DINING",
-  "INVENTORY",
-  "ALL",
-] as const;
+export const OPERATIONAL_UNITS = ["FINANCE", "DINING", "INVENTORY"] as const;
 
 export const ACADEMIC_DEPARTMENTS = [
   "CSE",

@@ -91,7 +91,7 @@ export default function SignupPage() {
         operationalUnit: formData.operationalUnit as OperationalUnit,
         phone: formData.phone,
       });
-      router.push("/login");
+      router.push("/login?signup=success");
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {

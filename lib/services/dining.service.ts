@@ -45,17 +45,51 @@ export async function deleteTomorrowMenu(menuId: string) {
 }
 
 export async function getTomorrowMenusList() {
-  const res = await api.get<ApiResponse<{ menus: MealMenu[] }>>(
+  const res = await api.get<ApiResponse<Array<MealMenu & { menuId?: string }>>>(
     "/dining/menus/tomorrow",
   );
-  return res.data;
+
+  const rawMenus = Array.isArray(res.data.data)
+    ? res.data.data
+    : ((
+        res.data.data as
+          | { menus?: Array<MealMenu & { menuId?: string }> }
+          | undefined
+      )?.menus ?? []);
+
+  const menus = rawMenus.map((menu) => ({
+    ...menu,
+    id: menu.id ?? menu.menuId,
+  }));
+
+  return {
+    ...res.data,
+    data: { menus },
+  };
 }
 
 export async function getTodayMenus() {
-  const res = await api.get<ApiResponse<{ menus: MealMenu[] }>>(
+  const res = await api.get<ApiResponse<Array<MealMenu & { menuId?: string }>>>(
     "/dining/menus/today",
   );
-  return res.data;
+
+  const rawMenus = Array.isArray(res.data.data)
+    ? res.data.data
+    : ((
+        res.data.data as
+          | { menus?: Array<MealMenu & { menuId?: string }> }
+          | undefined
+      )?.menus ?? []);
+
+  const menus = rawMenus.map((menu) => ({
+    ...menu,
+    id: menu.id ?? menu.menuId,
+  }));
+
+  return {
+    ...res.data,
+    data: { menus },
+  };
 }
 
 // =================== BOOKING MANAGEMENT ===================
