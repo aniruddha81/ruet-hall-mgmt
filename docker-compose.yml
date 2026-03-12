@@ -1,0 +1,44 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: mysql://root:1234@mysql-db:3306/hall_db
+
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules/
+            - .git/
+            - drizzle/
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: bun.lock
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: hall_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - ../mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

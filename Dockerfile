@@ -2,12 +2,14 @@ FROM oven/bun:alpine
 
 WORKDIR /app
 
-COPY package.json bun.lock ./
+ENV NODE_ENV=development
+ENV CHOKIDAR_USEPOLLING=true
 
-RUN bun install
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 COPY . .
 
-EXPOSE 8080
+EXPOSE 8000
 
-CMD ["bun", "run", "start"]
+CMD ["bun", "run", "dev"]
