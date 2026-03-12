@@ -1,0 +1,18 @@
+services:
+  payment-server:
+    build: .
+    ports:
+      - "8080:8080"
+
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules/
+            - .git/
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: bun.lock
