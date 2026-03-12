@@ -21,6 +21,7 @@ import {
 import type { MealMenu, SeatApplication, StaffRole } from "@/lib/types";
 import {
   ArrowRight,
+  Building,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
