@@ -1,6 +1,7 @@
 import api from "@/lib/api";
 import type {
   AcademicDepartment,
+  AdminData,
   AdminLoginResponse,
   AdminRegisterResponse,
   ApiResponse,
@@ -16,7 +17,7 @@ export async function adminRegister(data: {
   email: string;
   password: string;
   confirmPassword: string;
-  academicDepartment: AcademicDepartment;
+  academicDepartment?: AcademicDepartment;
   hall: Hall;
   designation: StaffRole;
   operationalUnit: OperationalUnit;
@@ -51,5 +52,21 @@ export async function logout() {
 
 export async function logoutAll() {
   const res = await api.post<ApiResponse<null>>("/auth/logout-all");
+  return res.data;
+}
+
+// =================== ADMIN APPLICATIONS (Provost) ===================
+
+export async function getAdminApplications() {
+  const res = await api.get<ApiResponse<{ applications: AdminData[] }>>(
+    "/auth/admin/approve",
+  );
+  return res.data;
+}
+
+export async function approveAdmin(adminApplicationId: string, status: string) {
+  const res = await api.patch<
+    ApiResponse<{ adminApplicationId: string; status: string }>
+  >("/auth/admin/approve", { adminApplicationId, status });
   return res.data;
 }

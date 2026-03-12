@@ -20,12 +20,7 @@ export const STAFF_ROLES = [
   "INVENTORY_SECTION_OFFICER",
 ] as const;
 
-export const OPERATIONAL_UNITS = [
-  "FINANCE",
-  "DINING",
-  "INVENTORY",
-  "ALL",
-] as const;
+export const OPERATIONAL_UNITS = ["FINANCE", "DINING", "INVENTORY"] as const;
 
 export const ACADEMIC_DEPARTMENTS = [
   "CSE",
@@ -44,9 +39,11 @@ export const ACADEMIC_DEPARTMENTS = [
 
 export const HALLS = [
   "ZIA_HALL",
-  "SHAH_JALAL_HALL",
-  "RASHID_HALL",
-  "FARUKI_HALL",
+  "SELIM_HALL",
+  "HAMID_HALL",
+  "SHAHIDUL_HALL",
+  "TIN_SHED_HALL",
+  "FAZLUL_HUQ_HALL",
 ] as const;
 
 export const MEAL_TYPES = ["LUNCH", "DINNER"] as const;
@@ -109,7 +106,7 @@ export interface AdminData {
   email: string;
   name: string;
   role: Role;
-  academicDepartment: AcademicDepartment;
+  academicDepartment: AcademicDepartment | null;
   phone: string;
   hall: Hall;
   designation: StaffRole;

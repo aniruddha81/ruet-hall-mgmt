@@ -153,7 +153,7 @@ export default function SignupPage() {
         operationalUnit: formData.operationalUnit as OperationalUnit,
         phone: formData.phone,
       });
-      router.push("/login");
+      router.push("/login?signup=success");
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -170,8 +170,6 @@ export default function SignupPage() {
       <div className="w-full max-w-6xl">
         <Card className="overflow-hidden border-white/70 bg-white/75 shadow-[0_20px_80px_-24px_rgba(15,23,42,0.35)] backdrop-blur-md">
           <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
-
-            {/* ── Left hero panel ── */}
             <section className="relative border-border/30 bg-gradient-to-br from-slate-900 via-sky-900 to-cyan-900 p-7 text-white lg:border-r lg:p-10">
               <div className="absolute inset-0 opacity-20 [background:linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.24)_50%,transparent_100%)] [background-size:250%_250%] [animation:shine_12s_linear_infinite]" />
               <div className="relative z-10 space-y-7">
@@ -191,9 +189,7 @@ export default function SignupPage() {
                     onError={() => setLogoSrc("/ruet-logo.svg")}
                   />
                   <div className="space-y-2">
-                    <p className="text-sm text-cyan-100/95">
-                      {greeting}, Administrator
-                    </p>
+                    <p className="text-sm text-cyan-100/95">{greeting}, Administrator</p>
                     <h1 className="text-3xl font-bold leading-tight lg:text-4xl">
                       RUET Hall Management
                       <span className="block text-cyan-200">Control Portal</span>
@@ -248,7 +244,6 @@ export default function SignupPage() {
               </div>
             </section>
 
-            {/* ── Right form panel ── */}
             <section className="flex flex-col">
               <CardHeader className="space-y-2 pb-3 text-center sm:text-left">
                 <div className="mx-auto mb-2 flex w-fit items-center gap-3 rounded-full border border-border/70 bg-slate-100/80 px-3 py-1.5 sm:mx-0">
@@ -493,7 +488,6 @@ export default function SignupPage() {
                 </p>
               </CardFooter>
             </section>
-
           </div>
         </Card>
       </div>

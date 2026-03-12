@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 const MODULE_ROTATION_MS = 2600;
@@ -52,6 +54,9 @@ export default function LoginPage() {
   const [logoSrc, setLogoSrc] = useState("/ruet-logo.png");
   const [now, setNow] = useState(() => new Date());
   const [activeModuleIndex, setActiveModuleIndex] = useState(0);
+
+  const searchParams = useSearchParams();
+  const showMessage = searchParams.get("signup") === "success";
   const { login } = useAuth();
 
   useEffect(() => {
@@ -139,7 +144,6 @@ export default function LoginPage() {
                       RUET Hall Management
                       <span className="block text-cyan-200">Control Portal</span>
                     </h1>
-                    
                   </div>
                 </div>
 
@@ -211,6 +215,14 @@ export default function LoginPage() {
                 <CardDescription className="text-sm">
                   Enter your authorized university credentials to continue.
                 </CardDescription>
+                {showMessage && (
+                  <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800">
+                    <AlertTitle>Signup successful!</AlertTitle>
+                    <AlertDescription>
+                      Your request has been submitted. You will receive approval via email.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardHeader>
 
               <CardContent>
