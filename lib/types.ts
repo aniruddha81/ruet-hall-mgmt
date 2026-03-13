@@ -59,7 +59,6 @@ export const SEAT_APPLICATION_STATUSES = [
   "PENDING",
   "APPROVED",
   "REJECTED",
-  "WAITLIST",
 ] as const;
 export const BED_STATUSES = ["AVAILABLE", "OCCUPIED", "MAINTENANCE"] as const;
 export const ASSET_CONDITIONS = ["GOOD", "FAIR", "POOR", "DAMAGED"] as const;
