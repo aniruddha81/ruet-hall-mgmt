@@ -13,7 +13,7 @@ export async function applyForSeat(data: {
   academicDepartment: AcademicDepartment;
   session: string;
 }) {
-  const res = await api.post<ApiResponse<{ application: SeatApplication }>>(
+  const res = await api.post<ApiResponse<SeatApplication>>(
     "/admission/apply",
     data,
   );
@@ -21,7 +21,7 @@ export async function applyForSeat(data: {
 }
 
 export async function getMyApplicationStatus() {
-  const res = await api.get<ApiResponse<{ application: SeatApplication }>>(
+  const res = await api.get<ApiResponse<SeatApplication>>(
     "/admission/my-status",
   );
   return res.data;

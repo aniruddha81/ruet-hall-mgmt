@@ -9,7 +9,7 @@ import {
   applyForSeat,
   getMyApplicationStatus,
 } from "@/lib/services/admission.service";
-import type { SeatApplication } from "@/lib/types";
+import { HALLS, type Hall, type SeatApplication } from "@/lib/types";
 import { ClipboardList, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -20,12 +20,14 @@ export default function AdmissionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [hall, setHall] = useState<Hall | null>(null);
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
         const res = await getMyApplicationStatus();
-        setApplication(res.data?.application ?? null);
+        console.log("res : ", res);
+        setApplication(res.data ?? null);
       } catch {
         // No application yet
       } finally {
@@ -37,24 +39,27 @@ export default function AdmissionPage() {
 
   const handleApply = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user || !user.hall) {
-      setError(
-        "Your profile is missing hall information. Please update your profile first.",
-      );
+    if (!user) {
+      setError("User data not found");
       return;
     }
+    if (!hall) {
+      setError("Please select a hall");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     setSuccess(null);
     try {
       await applyForSeat({
-        hall: user.hall,
+        hall,
         academicDepartment: user.academicDepartment,
         session: user.session,
       });
       setSuccess("Application submitted successfully!");
       const res = await getMyApplicationStatus();
-      setApplication(res.data?.application ?? null);
+      setApplication(res.data ?? null);
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -168,7 +173,21 @@ export default function AdmissionPage() {
                 <div>
                   <p className="text-xs text-muted-foreground">Hall</p>
                   <p className="font-medium">
-                    {user?.hall?.replace(/_/g, " ") ?? "-"}
+                    <select
+                      id="hall"
+                      name="hall"
+                      required
+                      value={hall ?? ""}
+                      onChange={(e) => setHall(e.target.value as Hall)}
+                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="">Select a hall</option>
+                      {HALLS.map((h) => (
+                        <option key={h} value={h}>
+                          {h.replace(/_/g, " ")}
+                        </option>
+                      ))}
+                    </select>
                   </p>
                 </div>
                 <div>
