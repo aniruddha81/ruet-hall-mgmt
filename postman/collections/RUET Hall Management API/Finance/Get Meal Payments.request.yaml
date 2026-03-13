@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/finance/meal-payments"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+queryParams:
+  - key: page
+    value: "1"
+    disabled: true
+  - key: limit
+    value: "20"
+    disabled: true
+order: 6000

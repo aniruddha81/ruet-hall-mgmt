@@ -98,7 +98,7 @@ export const uniStudents = mysqlTable(
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
   },
   (t) => [
-    index("idx_uni_students_department").on(t.academicDepartment),
+    index("idx_uni_students_academic_department").on(t.academicDepartment),
     index("idx_students_hall").on(t.hall),
     index("idx_students_room").on(t.roomId),
     index("idx_students_status").on(t.status),

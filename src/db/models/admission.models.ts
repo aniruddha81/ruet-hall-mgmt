@@ -35,7 +35,7 @@ export const seatApplications = mysqlTable(
 
     hall: hallSQL_Enum().references(() => halls.name, { onDelete: "cascade" }),
 
-    department: academicDepartmentsSQL_Enum().notNull(),
+    academicDepartment: academicDepartmentsSQL_Enum().notNull(),
 
     session: varchar("session", { length: 10 }).notNull(),
 

@@ -9,7 +9,7 @@ import {
 export const applyForSeatSchema = {
   body: z.object({
     hall: z.enum(HALLS).describe("Hall to apply for"),
-    department: z.enum(ACADEMIC_DEPARTMENTS).describe("Academic department"),
+    academicDepartment: z.enum(ACADEMIC_DEPARTMENTS).describe("Academic department"),
     session: z
       .string()
       .min(4, "Session is required")

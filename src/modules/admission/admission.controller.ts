@@ -28,7 +28,7 @@ export const applyForSeat = async (req: Request, res: Response) => {
     throw new ApiError(400, "Roll number is required to apply for a seat");
   }
 
-  const { hall, department, session } = req.body;
+  const { hall, academicDepartment, session } = req.body;
 
   // Check if user already has a pending/approved application
   const [existing] = await db
@@ -66,19 +66,23 @@ export const applyForSeat = async (req: Request, res: Response) => {
     studentId,
     rollNumber,
     hall,
-    department,
+    academicDepartment,
     session,
   });
 
-  res
-    .status(201)
-    .json(
-      new ApiResponse(
-        201,
-        { id, hall, department, session, status: "PENDING" },
-        "Application submitted successfully"
-      )
-    );
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        id,
+        hall,
+        academicDepartment,
+        session,
+        status: "PENDING",
+      },
+      "Application submitted successfully"
+    )
+  );
 };
 
 /**
@@ -92,7 +96,7 @@ export const getMyStatus = async (req: Request, res: Response) => {
     .select({
       id: seatApplications.id,
       hall: seatApplications.hall,
-      department: seatApplications.department,
+      academicDepartment: seatApplications.academicDepartment,
       session: seatApplications.session,
       status: seatApplications.status,
       createdAt: seatApplications.createdAt,
@@ -136,7 +140,7 @@ export const getApplications = async (req: Request, res: Response) => {
       studentName: uniStudents.name,
       studentEmail: uniStudents.email,
       hall: seatApplications.hall,
-      department: seatApplications.department,
+      academicDepartment: seatApplications.academicDepartment,
       session: seatApplications.session,
       status: seatApplications.status,
       createdAt: seatApplications.createdAt,

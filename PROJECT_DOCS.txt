@@ -267,7 +267,7 @@ DINING Module:
 
 ADMISSION Module:
   • seatApplications
-    - id (PK), studentId (FK), hall, department, session
+    - id (PK), studentId (FK), hall, academicDepartment, session
     - status (PENDING/APPROVED/REJECTED/WAITLIST)
     - reviewedBy (FK → hallAdmins), reviewedAt, createdAt
 

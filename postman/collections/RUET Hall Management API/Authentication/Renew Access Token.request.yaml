@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/auth/renew-access-token"
+method: POST
+order: 5000

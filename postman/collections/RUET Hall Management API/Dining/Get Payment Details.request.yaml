@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/dining/payment/:paymentId"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+pathVariables:
+  paymentId: payment-uuid-here
+order: 18000

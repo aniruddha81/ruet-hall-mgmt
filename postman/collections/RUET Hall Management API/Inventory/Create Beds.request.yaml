@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/inventory/beds"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "hall": "ZIA_HALL",
+      "roomId": "32d520cd-8a5a-43ba-8267-902d99b125f1",
+      "bedLabels": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    }
+order: 2000

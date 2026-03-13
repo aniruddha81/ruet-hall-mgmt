@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/profile/upload-image"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+body:
+  type: formdata
+  content:
+    - type: file
+      key: avatar
+      src: []
+order: 1000
