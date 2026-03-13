@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
 import {
@@ -37,7 +37,7 @@ export const applyForSeat = async (req: Request, res: Response) => {
     .where(
       and(
         eq(seatApplications.studentId, studentId),
-        sql`${seatApplications.status} IN ('PENDING', 'APPROVED')`
+        inArray(seatApplications.status, ["PENDING", "APPROVED"])
       )
     )
     .limit(1);
@@ -92,24 +92,17 @@ export const applyForSeat = async (req: Request, res: Response) => {
 export const getMyStatus = async (req: Request, res: Response) => {
   const studentId = req.user!.userId;
 
-  const applications = await db
-    .select({
-      id: seatApplications.id,
-      hall: seatApplications.hall,
-      academicDepartment: seatApplications.academicDepartment,
-      session: seatApplications.session,
-      status: seatApplications.status,
-      createdAt: seatApplications.createdAt,
-      reviewedAt: seatApplications.reviewedAt,
-    })
+  const [application] = await db
+    .select()
     .from(seatApplications)
     .where(eq(seatApplications.studentId, studentId))
-    .orderBy(desc(seatApplications.createdAt));
+    .orderBy(desc(seatApplications.createdAt))
+    .limit(1);
 
   res
     .status(200)
     .json(
-      new ApiResponse(200, applications, "Applications retrieved successfully")
+      new ApiResponse(200, application, "Applications retrieved successfully")
     );
 };
 
@@ -201,7 +194,7 @@ export const reviewApplication = async (req: Request, res: Response) => {
 
   if (!app) throw new ApiError(404, "Application not found");
 
-  if (app.status !== "PENDING" && app.status !== "WAITLIST") {
+  if (app.status !== "PENDING") {
     throw new ApiError(400, "Application has already been reviewed");
   }
 

@@ -81,7 +81,6 @@ export const SEAT_APPLICATION_STATUSES = [
   "PENDING",
   "APPROVED",
   "REJECTED",
-  "WAITLIST",
 ] as const;
 
 export const HALL_ADMIN_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
