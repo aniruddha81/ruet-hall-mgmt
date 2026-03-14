@@ -43,6 +43,12 @@ export const authenticateToken = async (
         name: student.name,
         role: "STUDENT",
         rollNumber: student.rollNumber,
+        hall: student.hall,
+      };
+
+      req.authAccount = {
+        kind: "STUDENT",
+        student,
       };
     } else {
       const [admin] = await db
@@ -60,7 +66,12 @@ export const authenticateToken = async (
         email: admin.email,
         name: admin.name,
         role: admin.designation,
-        rollNumber: undefined,
+        hall: admin.hall,
+      };
+
+      req.authAccount = {
+        kind: "ADMIN",
+        admin,
       };
     }
 

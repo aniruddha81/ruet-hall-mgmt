@@ -3,13 +3,12 @@ import { and, count, desc, eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
 import {
-  hallAdmins,
   seatAllocations,
   seatApplications,
   uniStudents,
 } from "../../db/models";
 import { beds } from "../../db/models/inventory.models";
-import type { Hall, SeatApplicationStatus } from "../../types/enums";
+import type { SeatApplicationStatus } from "../../types/enums";
 import ApiError from "../../utils/ApiError";
 import ApiResponse from "../../utils/ApiResponse";
 
@@ -115,16 +114,22 @@ export const getMyStatus = async (req: Request, res: Response) => {
  * Admin lists seat applications with optional hall/status filters + pagination
  */
 export const getApplications = async (req: Request, res: Response) => {
-  const hall = req.query.hall as Hall | undefined;
+  const admin =
+    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+
+  if (!admin) {
+    throw new ApiError(403, "Hall admin record not found");
+  }
+
   const status = req.query.status as SeatApplicationStatus | undefined;
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
-  const conditions = [];
-  if (hall) conditions.push(eq(seatApplications.hall, hall));
-  if (status) conditions.push(eq(seatApplications.status, status));
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  const whereClause = and(
+    eq(seatApplications.hall, admin.hall),
+    status ? eq(seatApplications.status, status) : undefined
+  );
 
   const apps = await db
     .select({
@@ -169,20 +174,14 @@ export const getApplications = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/v1/admission/:id/review
- * Provost reviews and updates application status (approve/reject/waitlist)
+ * PATCH /api/v1/admission/review/:id
+ * Provost reviews and updates application status (approve/reject)
  */
 export const reviewApplication = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const { status } = req.body;
-  const userId = req.user!.userId;
-
-  // Resolve hallAdmin record for reviewedBy FK
-  const [admin] = await db
-    .select()
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, userId))
-    .limit(1);
+  const admin =
+    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) throw new ApiError(403, "Hall admin record not found");
 
@@ -220,14 +219,8 @@ export const reviewApplication = async (req: Request, res: Response) => {
  */
 export const allocateSeat = async (req: Request, res: Response) => {
   const { applicationId, bedId } = req.body;
-  const userId = req.user!.userId;
-
-  // Resolve hallAdmin record for allocatedBy FK
-  const [admin] = await db
-    .select()
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, userId))
-    .limit(1);
+  const admin =
+    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) throw new ApiError(403, "Hall admin record not found");
 

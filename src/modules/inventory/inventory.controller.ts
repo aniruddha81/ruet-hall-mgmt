@@ -2,7 +2,6 @@ import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db";
-import { hallAdmins } from "../../db/models";
 import { rooms } from "../../db/models/halls.models";
 import { assets, beds, damageReports } from "../../db/models/inventory.models";
 import type {
@@ -194,14 +193,8 @@ export const reportDamage = async (req: Request, res: Response) => {
 export const verifyDamage = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const { fineAmount } = req.body;
-  const userId = req.user!.userId;
-
-  // Resolve hallAdmin record for verifiedBy FK
-  const [admin] = await db
-    .select()
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, userId))
-    .limit(1);
+  const admin =
+    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) throw new ApiError(403, "Hall admin record not found");
 

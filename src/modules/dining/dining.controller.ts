@@ -13,7 +13,6 @@ import {
 import type { Request, Response } from "express";
 import { db } from "../../db";
 import {
-  hallAdmins,
   mealMenus,
   mealPayments,
   mealTokens,
@@ -23,6 +22,22 @@ import ApiError from "../../utils/ApiError";
 import ApiResponse from "../../utils/ApiResponse";
 import { toDateString } from "../../utils/helpers";
 import { createMealPayment } from "../finance/finance.service";
+
+const requireStudentAccount = (req: Request) => {
+  if (req.authAccount?.kind !== "STUDENT") {
+    throw new ApiError(401, "Student authentication required");
+  }
+
+  return req.authAccount.student;
+};
+
+const requireAdminAccount = (req: Request) => {
+  if (req.authAccount?.kind !== "ADMIN") {
+    throw new ApiError(401, "Admin authentication required");
+  }
+
+  return req.authAccount.admin;
+};
 
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
 
@@ -55,19 +70,8 @@ export const getTomorrowMenus = async (req: Request, res: Response) => {
  * Book meal tokens for tomorrow's meal
  */
 export const bookMealTokens = async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
+  const student = requireStudentAccount(req);
   const { menuId, quantity, paymentMethod, hall } = req.body;
-
-  // Find student in uni_students table
-  const [user] = await db
-    .select({ id: uniStudents.id, name: uniStudents.name })
-    .from(uniStudents)
-    .where(eq(uniStudents.id, userId!))
-    .limit(1);
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
 
   const [menu] = await db
     .select()
@@ -97,7 +101,7 @@ export const bookMealTokens = async (req: Request, res: Response) => {
 
   // Process payment through finance service
   const payment = await createMealPayment({
-    studentId: user.id,
+    studentId: student.id,
     amount: totalAmount,
     totalQuantity: quantity,
     paymentMethod,
@@ -108,7 +112,7 @@ export const bookMealTokens = async (req: Request, res: Response) => {
   await db.transaction(async (trx) => {
     await trx.insert(mealTokens).values({
       id: tokenId,
-      studentId: user.id,
+      studentId: student.id,
       menuId: menu.id,
       hall: menu.hall,
       mealDate: menu.mealDate,
@@ -146,17 +150,7 @@ export const bookMealTokens = async (req: Request, res: Response) => {
  * Get student's active tokens for tomorrow's meals
  */
 export const getMyActiveTokens = async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-
-  const [user] = await db
-    .select({ id: uniStudents.id })
-    .from(uniStudents)
-    .where(eq(uniStudents.id, userId!))
-    .limit(1);
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+  const student = requireStudentAccount(req);
 
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
@@ -175,7 +169,7 @@ export const getMyActiveTokens = async (req: Request, res: Response) => {
     .innerJoin(mealMenus, eq(mealTokens.menuId, mealMenus.id))
     .where(
       and(
-        eq(mealTokens.studentId, user.id),
+        eq(mealTokens.studentId, student.id),
         isNull(mealTokens.cancelledAt),
         sql`${mealTokens.mealDate} = CAST(${tomorrowDate} AS DATE)`
       )
@@ -193,18 +187,8 @@ export const getMyActiveTokens = async (req: Request, res: Response) => {
  * Cancel a booked meal token before the meal date
  */
 export const cancelMealToken = async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
+  const student = requireStudentAccount(req);
   const { tokenId } = req.params as { tokenId: string };
-
-  const [user] = await db
-    .select({ id: uniStudents.id })
-    .from(uniStudents)
-    .where(eq(uniStudents.id, userId!))
-    .limit(1);
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
 
   const [token] = await db
     .select()
@@ -216,7 +200,7 @@ export const cancelMealToken = async (req: Request, res: Response) => {
     throw new ApiError(404, "Token not found");
   }
 
-  if (token.studentId !== user.id) {
+  if (token.studentId !== student.id) {
     throw new ApiError(403, "This token does not belong to you");
   }
 
@@ -277,24 +261,14 @@ export const cancelMealToken = async (req: Request, res: Response) => {
 
 // GET /api/v1/dining/token-history - Get student's token purchase history
 export const getMyTokenHistory = async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
+  const student = requireStudentAccount(req);
   const { page = 1, limit = 10, status, startDate, endDate } = req.query;
-
-  const [user] = await db
-    .select({ id: uniStudents.id })
-    .from(uniStudents)
-    .where(eq(uniStudents.id, userId!))
-    .limit(1);
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
 
   const pageNum = Number(page);
   const limitNum = Number(limit);
   const offset = (pageNum - 1) * limitNum;
 
-  let conditions = [eq(mealTokens.studentId, user.id)];
+  let conditions = [eq(mealTokens.studentId, student.id)];
 
   if (status === "ACTIVE") {
     conditions.push(isNull(mealTokens.cancelledAt));
@@ -356,18 +330,8 @@ export const getMyTokenHistory = async (req: Request, res: Response) => {
 
 // GET /api/v1/dining/token/:tokenId - Get token details
 export const getMyTokenById = async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
+  const student = requireStudentAccount(req);
   const { tokenId } = req.params as { tokenId: string };
-
-  const [user] = await db
-    .select({ id: uniStudents.id })
-    .from(uniStudents)
-    .where(eq(uniStudents.id, userId!))
-    .limit(1);
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
 
   const [tokenDetails] = await db
     .select({
@@ -391,7 +355,9 @@ export const getMyTokenById = async (req: Request, res: Response) => {
     .from(mealTokens)
     .innerJoin(mealMenus, eq(mealTokens.menuId, mealMenus.id))
     .innerJoin(mealPayments, eq(mealTokens.paymentId, mealPayments.id))
-    .where(and(eq(mealTokens.id, tokenId), eq(mealTokens.studentId, user.id)))
+    .where(
+      and(eq(mealTokens.id, tokenId), eq(mealTokens.studentId, student.id))
+    )
     .limit(1);
 
   if (!tokenDetails) {
@@ -409,22 +375,9 @@ export const getMyTokenById = async (req: Request, res: Response) => {
 
 // POST /api/v1/dining/menu/create - Create menu for tomorrow
 export const createTomorrowMenu = async (req: Request, res: Response) => {
-  const diningManagerId = req.user?.userId;
+  const manager = requireAdminAccount(req);
   const { mealType, menuDescription, price, totalTokens } = req.body;
-
-  const [hallResult] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!hallResult) {
-    return res
-      .status(404)
-      .json(new ApiResponse(404, {}, "Dining manager's hall not found"));
-  }
-
-  const { hall } = hallResult;
+  const hall = manager.hall;
 
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
@@ -461,7 +414,7 @@ export const createTomorrowMenu = async (req: Request, res: Response) => {
     menuDescription,
     price,
     totalTokens: totalTokens,
-    createdBy: diningManagerId!,
+    createdBy: manager.id,
   });
 
   res.status(201).json(
@@ -484,17 +437,7 @@ export const createTomorrowMenu = async (req: Request, res: Response) => {
 export const updateTomorrowMenu = async (req: Request, res: Response) => {
   const { menuId } = req.params as { menuId: string };
   const { menuDescription, price, totalTokens } = req.body;
-  const diningManagerId = req.user?.userId;
-
-  const [manager] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!manager) {
-    throw new ApiError(404, "Dining manager's hall not found");
-  }
+  const manager = requireAdminAccount(req);
 
   const [menu] = await db
     .select()
@@ -550,17 +493,7 @@ export const updateTomorrowMenu = async (req: Request, res: Response) => {
 // DELETE /api/v1/dining/menu/:menuId - Delete tomorrow's menu (only if no bookings)
 export const deleteTomorrowMenu = async (req: Request, res: Response) => {
   const { menuId } = req.params as { menuId: string };
-  const diningManagerId = req.user?.userId;
-
-  const [manager] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!manager) {
-    throw new ApiError(404, "Dining manager's hall not found");
-  }
+  const manager = requireAdminAccount(req);
 
   const [menu] = await db
     .select()
@@ -589,17 +522,7 @@ export const deleteTomorrowMenu = async (req: Request, res: Response) => {
 
 // GET /api/v1/dining/menus/tomorrow - View tomorrow's menus
 export const getTomorrowMenusList = async (req: Request, res: Response) => {
-  const diningManagerId = req.user?.userId;
-
-  const [manager] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!manager) {
-    throw new ApiError(404, "Dining manager's hall not found");
-  }
+  const manager = requireAdminAccount(req);
 
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
@@ -632,17 +555,7 @@ export const getTomorrowMenusList = async (req: Request, res: Response) => {
 
 // GET /api/v1/dining/menus/today - View today's menus
 export const getTodayMenus = async (req: Request, res: Response) => {
-  const diningManagerId = req.user?.userId;
-
-  const [manager] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!manager) {
-    throw new ApiError(404, "Dining manager's hall not found");
-  }
+  const manager = requireAdminAccount(req);
 
   const todayDate = toDateString(new Date());
 
@@ -678,17 +591,7 @@ export const getTodayMenus = async (req: Request, res: Response) => {
 export const getAllBookingsForMenu = async (req: Request, res: Response) => {
   const { menuId } = req.params as { menuId: string };
   const { status, page = 1, limit = 20 } = req.query;
-  const diningManagerId = req.user?.userId;
-
-  const [manager] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!manager) {
-    throw new ApiError(404, "Dining manager's hall not found");
-  }
+  const manager = requireAdminAccount(req);
 
   const [menu] = await db
     .select()
@@ -763,17 +666,7 @@ export const getAllBookingsForMenu = async (req: Request, res: Response) => {
 
 // GET /api/v1/dining/bookings/tomorrow - Get all bookings for tomorrow
 export const getTomorrowBookings = async (req: Request, res: Response) => {
-  const diningManagerId = req.user?.userId;
-
-  const [manager] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!manager) {
-    throw new ApiError(404, "Dining manager's hall not found");
-  }
+  const manager = requireAdminAccount(req);
 
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
@@ -822,18 +715,12 @@ export const getTomorrowBookings = async (req: Request, res: Response) => {
  * Mark tokens as consumed after meal service
  */
 export const markTokensAsConsumed = async (req: Request, res: Response) => {
-  const diningManagerId = req.user?.userId;
+  const manager = requireAdminAccount(req);
   const { tokenIds } = req.body;
 
-  const [manager] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!manager) {
-    throw new ApiError(404, "Dining manager's hall not found");
-  }
+  // Keep manager referenced so the role-specific account is validated.
+  void manager;
+  void tokenIds;
 
   res.status(200).json(
     new ApiResponse(
@@ -849,18 +736,8 @@ export const markTokensAsConsumed = async (req: Request, res: Response) => {
 
 // GET /api/v1/dining/report/daily - Generate daily consumption report
 export const getDailyReport = async (req: Request, res: Response) => {
-  const diningManagerId = req.user?.userId;
+  const manager = requireAdminAccount(req);
   const { date } = req.query;
-
-  const [manager] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!manager) {
-    throw new ApiError(404, "Dining manager's hall not found");
-  }
 
   const reportDate = date
     ? toDateString(new Date(date as string))
@@ -921,18 +798,8 @@ export const getDailyReport = async (req: Request, res: Response) => {
 
 // GET /api/v1/dining/report/monthly - Generate monthly summary
 export const getMonthlyReport = async (req: Request, res: Response) => {
-  const diningManagerId = req.user?.userId;
+  const manager = requireAdminAccount(req);
   const { month, year } = req.query;
-
-  const [manager] = await db
-    .select({ hall: hallAdmins.hall })
-    .from(hallAdmins)
-    .where(eq(hallAdmins.id, diningManagerId!))
-    .limit(1);
-
-  if (!manager) {
-    throw new ApiError(404, "Dining manager's hall not found");
-  }
 
   const monthNum = Number(month);
   const yearNum = Number(year);
@@ -992,18 +859,8 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
 
 // POST /api/v1/dining/payment/process - Process payment
 export const processPayment = async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
+  const student = requireStudentAccount(req);
   const { amount, paymentMethod, transactionId, totalQuantity } = req.body;
-
-  const [user] = await db
-    .select({ id: uniStudents.id })
-    .from(uniStudents)
-    .where(eq(uniStudents.id, userId!))
-    .limit(1);
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
 
   const [existingTransaction] = await db
     .select()
@@ -1019,7 +876,7 @@ export const processPayment = async (req: Request, res: Response) => {
 
   await db.insert(mealPayments).values({
     id: paymentId,
-    studentId: user.id,
+    studentId: student.id,
     amount,
     totalQuantity,
     paymentMethod,
@@ -1044,7 +901,6 @@ export const processPayment = async (req: Request, res: Response) => {
 // GET /api/v1/dining/payment/:paymentId - Get payment details
 export const getPaymentDetails = async (req: Request, res: Response) => {
   const { paymentId } = req.params as { paymentId: string };
-  const userId = req.user?.userId;
   const userRole = req.user?.role;
 
   const [payment] = await db
@@ -1071,25 +927,13 @@ export const getPaymentDetails = async (req: Request, res: Response) => {
   }
 
   if (userRole === "STUDENT") {
-    const [user] = await db
-      .select({ id: uniStudents.id })
-      .from(uniStudents)
-      .where(eq(uniStudents.id, userId!))
-      .limit(1);
+    const student = requireStudentAccount(req);
 
-    if (!user || payment.studentId !== user.id) {
+    if (payment.studentId !== student.id) {
       throw new ApiError(403, "This payment does not belong to you");
     }
   } else if (userRole === "DINING_MANAGER") {
-    const [manager] = await db
-      .select({ hall: hallAdmins.hall })
-      .from(hallAdmins)
-      .where(eq(hallAdmins.id, userId!))
-      .limit(1);
-
-    if (!manager) {
-      throw new ApiError(404, "Dining manager's hall not found");
-    }
+    const manager = requireAdminAccount(req);
 
     // For dining managers, we need to check if the user who made the payment
     // is associated with their hall (if they are a hall student)
@@ -1119,7 +963,6 @@ export const getPaymentDetails = async (req: Request, res: Response) => {
 export const processRefund = async (req: Request, res: Response) => {
   const { paymentId } = req.params as { paymentId: string };
   const { refundAmount, refundReason } = req.body;
-  const userId = req.user?.userId;
   const userRole = req.user?.role;
 
   const [payment] = await db
@@ -1133,13 +976,9 @@ export const processRefund = async (req: Request, res: Response) => {
   }
 
   if (userRole === "STUDENT") {
-    const [user] = await db
-      .select({ id: uniStudents.id })
-      .from(uniStudents)
-      .where(eq(uniStudents.id, userId!))
-      .limit(1);
+    const student = requireStudentAccount(req);
 
-    if (!user || payment.studentId !== user.id) {
+    if (payment.studentId !== student.id) {
       throw new ApiError(403, "This payment does not belong to you");
     }
   }

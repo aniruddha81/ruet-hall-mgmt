@@ -282,17 +282,10 @@ export const adminRegister = async (req: Request, res: Response) => {
 export const adminApproval = async (req: Request, res: Response) => {
   const { adminApplicationId, status } = req.body;
 
-  const { userId } = req.user!;
+  const admin =
+    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
 
-  const [admin] = await db
-    .select()
-    .from(hallAdmins)
-    .where(
-      and(eq(hallAdmins.id, userId), eq(hallAdmins.designation, "PROVOST"))
-    )
-    .limit(1);
-
-  if (!admin) {
+  if (!admin || admin.designation !== "PROVOST") {
     throw new ApiError(403, "Only provosts can approve admin applications");
   }
 
@@ -317,16 +310,10 @@ export const adminApproval = async (req: Request, res: Response) => {
  * Retrieve pending admin applications (provost only)
  */
 export const adminApplications = async (req: Request, res: Response) => {
-  const { userId } = req.user!;
-  const [admin] = await db
-    .select()
-    .from(hallAdmins)
-    .where(
-      and(eq(hallAdmins.id, userId), eq(hallAdmins.designation, "PROVOST"))
-    )
-    .limit(1);
+  const admin =
+    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
 
-  if (!admin) {
+  if (!admin || admin.designation !== "PROVOST") {
     throw new ApiError(403, "Only provosts can view admin applications");
   }
 

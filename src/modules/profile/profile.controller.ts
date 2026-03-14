@@ -13,10 +13,14 @@ import { uploadOnCloudinary } from "../../utils/cloudinary";
  */
 export const uploadImage = async (req: Request, res: Response) => {
   const avatarLocalPath = req.file?.path;
-  const userId = req.user?.userId;
+  const authAccount = req.authAccount;
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar image is required");
+  }
+
+  if (!authAccount) {
+    throw new ApiError(401, "Authentication required");
   }
 
   const avatarCloudinaryUrl = await uploadOnCloudinary(avatarLocalPath);
@@ -24,16 +28,20 @@ export const uploadImage = async (req: Request, res: Response) => {
     throw new ApiError(500, "Failed to upload avatar");
   }
 
-  if (req.user?.role === "STUDENT") {
+  if (authAccount.kind === "STUDENT") {
     await db
       .update(uniStudents)
       .set({ avatarUrl: avatarCloudinaryUrl.url })
-      .where(eq(uniStudents.id, userId!));
+      .where(eq(uniStudents.id, authAccount.student.id));
+
+    authAccount.student.avatarUrl = avatarCloudinaryUrl.url;
   } else {
     await db
       .update(hallAdmins)
       .set({ avatarUrl: avatarCloudinaryUrl.url })
-      .where(eq(hallAdmins.id, userId!));
+      .where(eq(hallAdmins.id, authAccount.admin.id));
+
+    authAccount.admin.avatarUrl = avatarCloudinaryUrl.url;
   }
 
   res
@@ -52,58 +60,54 @@ export const uploadImage = async (req: Request, res: Response) => {
  * Get current user's full profile
  */
 export const getMyProfile = async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
+  const authAccount = req.authAccount;
 
-  if (req.user?.role === "STUDENT") {
-    const [student] = await db
-      .select({
-        id: uniStudents.id,
-        email: uniStudents.email,
-        name: uniStudents.name,
-        phone: uniStudents.phone,
-        rollNumber: uniStudents.rollNumber,
-        academicDepartment: uniStudents.academicDepartment,
-        session: uniStudents.session,
-        hall: uniStudents.hall,
-        roomId: uniStudents.roomId,
-        status: uniStudents.status,
-        isAllocated: uniStudents.isAllocated,
-        avatarUrl: uniStudents.avatarUrl,
-        createdAt: uniStudents.createdAt,
-      })
-      .from(uniStudents)
-      .where(eq(uniStudents.id, userId!))
-      .limit(1);
+  if (!authAccount) {
+    throw new ApiError(401, "Authentication required");
+  }
 
-    if (!student) throw new ApiError(404, "Student not found");
+  if (authAccount.kind === "STUDENT") {
+    const student = authAccount.student;
+
+    const profile = {
+      id: student.id,
+      email: student.email,
+      name: student.name,
+      phone: student.phone,
+      rollNumber: student.rollNumber,
+      academicDepartment: student.academicDepartment,
+      session: student.session,
+      hall: student.hall,
+      roomId: student.roomId,
+      status: student.status,
+      isAllocated: student.isAllocated,
+      avatarUrl: student.avatarUrl,
+      createdAt: student.createdAt,
+    };
 
     res
       .status(200)
-      .json(new ApiResponse(200, { profile: student }, "Profile retrieved"));
+      .json(new ApiResponse(200, { profile }, "Profile retrieved"));
   } else {
-    const [admin] = await db
-      .select({
-        id: hallAdmins.id,
-        email: hallAdmins.email,
-        name: hallAdmins.name,
-        phone: hallAdmins.phone,
-        academicDepartment: hallAdmins.academicDepartment,
-        hall: hallAdmins.hall,
-        designation: hallAdmins.designation,
-        operationalUnit: hallAdmins.operationalUnit,
-        avatarUrl: hallAdmins.avatarUrl,
-        isActive: hallAdmins.isActive,
-        createdAt: hallAdmins.createdAt,
-      })
-      .from(hallAdmins)
-      .where(eq(hallAdmins.id, userId!))
-      .limit(1);
+    const admin = authAccount.admin;
 
-    if (!admin) throw new ApiError(404, "Admin not found");
+    const profile = {
+      id: admin.id,
+      email: admin.email,
+      name: admin.name,
+      phone: admin.phone,
+      academicDepartment: admin.academicDepartment,
+      hall: admin.hall,
+      designation: admin.designation,
+      operationalUnit: admin.operationalUnit,
+      avatarUrl: admin.avatarUrl,
+      isActive: admin.isActive,
+      createdAt: admin.createdAt,
+    };
 
     res
       .status(200)
-      .json(new ApiResponse(200, { profile: admin }, "Profile retrieved"));
+      .json(new ApiResponse(200, { profile }, "Profile retrieved"));
   }
 };
 
@@ -112,8 +116,12 @@ export const getMyProfile = async (req: Request, res: Response) => {
  * Update current user's profile (name, phone)
  */
 export const updateProfile = async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
+  const authAccount = req.authAccount;
   const { name, phone } = req.body;
+
+  if (!authAccount) {
+    throw new ApiError(401, "Authentication required");
+  }
 
   const updateData: Record<string, string> = {};
   if (name) updateData.name = name;
@@ -123,16 +131,34 @@ export const updateProfile = async (req: Request, res: Response) => {
     throw new ApiError(400, "No fields to update");
   }
 
-  if (req.user?.role === "STUDENT") {
+  if (authAccount.kind === "STUDENT") {
     await db
       .update(uniStudents)
       .set(updateData)
-      .where(eq(uniStudents.id, userId!));
+      .where(eq(uniStudents.id, authAccount.student.id));
+
+    if (name) {
+      authAccount.student.name = name;
+    }
+    if (phone) {
+      authAccount.student.phone = phone;
+    }
   } else {
     await db
       .update(hallAdmins)
       .set(updateData)
-      .where(eq(hallAdmins.id, userId!));
+      .where(eq(hallAdmins.id, authAccount.admin.id));
+
+    if (name) {
+      authAccount.admin.name = name;
+    }
+    if (phone) {
+      authAccount.admin.phone = phone;
+    }
+  }
+
+  if (req.user && name) {
+    req.user.name = name;
   }
 
   res.status(200).json(new ApiResponse(200, updateData, "Profile updated"));
@@ -145,15 +171,14 @@ export const updateProfile = async (req: Request, res: Response) => {
 export const changePassword = async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   const { currentPassword, newPassword } = req.body;
+  const authAccount = req.authAccount;
 
-  if (req.user?.role === "STUDENT") {
-    const [student] = await db
-      .select({ passwordHash: uniStudents.passwordHash })
-      .from(uniStudents)
-      .where(eq(uniStudents.id, userId!))
-      .limit(1);
+  if (!authAccount) {
+    throw new ApiError(401, "Authentication required");
+  }
 
-    if (!student) throw new ApiError(404, "Student not found");
+  if (authAccount.kind === "STUDENT") {
+    const student = authAccount.student;
 
     const isValid = await bcrypt.compare(currentPassword, student.passwordHash);
     if (!isValid) throw new ApiError(401, "Current password is incorrect");
@@ -164,13 +189,7 @@ export const changePassword = async (req: Request, res: Response) => {
       .set({ passwordHash: newHash })
       .where(eq(uniStudents.id, userId!));
   } else {
-    const [admin] = await db
-      .select({ passwordHash: hallAdmins.passwordHash })
-      .from(hallAdmins)
-      .where(eq(hallAdmins.id, userId!))
-      .limit(1);
-
-    if (!admin) throw new ApiError(404, "Admin not found");
+    const admin = authAccount.admin;
 
     const isValid = await bcrypt.compare(currentPassword, admin.passwordHash);
     if (!isValid) throw new ApiError(401, "Current password is incorrect");
