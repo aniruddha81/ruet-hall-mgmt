@@ -27,33 +27,13 @@ import {
   STAFF_ROLES,
 } from "@/lib/types";
 import {
-  CalendarDays,
-  Clock3,
   Eye,
   EyeOff,
-  ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-
-const MODULE_ROTATION_MS = 2600;
-
-const modules = [
-  "Admissions",
-  "Dining",
-  "Inventory",
-  "Finance",
-  "Resident Services",
-];
-
-function getGreeting(hour: number) {
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
+import { useState } from "react";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -72,44 +52,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logoSrc, setLogoSrc] = useState("/ruet-logo.png");
-  const [now, setNow] = useState(() => new Date());
-  const [activeModuleIndex, setActiveModuleIndex] = useState(0);
   const router = useRouter();
-
-  useEffect(() => {
-    const timerId = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timerId);
-  }, []);
-
-  useEffect(() => {
-    const rotateId = window.setInterval(
-      () => setActiveModuleIndex((prev) => (prev + 1) % modules.length),
-      MODULE_ROTATION_MS,
-    );
-    return () => window.clearInterval(rotateId);
-  }, []);
-
-  const greeting = useMemo(() => getGreeting(now.getHours()), [now]);
-  const currentTime = useMemo(
-    () =>
-      new Intl.DateTimeFormat("en-BD", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      }).format(now),
-    [now],
-  );
-  const currentDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat("en-BD", {
-        weekday: "long",
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-      }).format(now),
-    [now],
-  );
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -170,76 +113,32 @@ export default function SignupPage() {
       <div className="w-full max-w-6xl">
         <Card className="overflow-hidden border-white/70 bg-white/75 shadow-[0_20px_80px_-24px_rgba(15,23,42,0.35)] backdrop-blur-md">
           <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
-            <section className="relative border-border/30 bg-gradient-to-br from-slate-900 via-sky-900 to-cyan-900 p-7 text-white lg:border-r lg:p-10">
+            <section className="relative min-h-[320px] overflow-hidden border-border/30 lg:border-r">
+              <Image
+                src="/male-hall.jpeg"
+                alt="RUET male hall building"
+                fill
+                className="object-cover"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-950/78 via-sky-950/52 to-cyan-900/40" />
               <div className="absolute inset-0 opacity-20 [background:linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.24)_50%,transparent_100%)] [background-size:250%_250%] [animation:shine_12s_linear_infinite]" />
-              <div className="relative z-10 space-y-7">
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Secure Command Center
-                </div>
-
+              <div className="relative z-10 flex h-full min-h-[320px] items-end p-7 text-white lg:p-10">
                 <div className="space-y-5">
                   <Image
                     src={logoSrc}
                     alt="RUET official logo"
-                    width={116}
-                    height={116}
-                    className="rounded-2xl border border-white/30 bg-white/90 p-2.5 shadow-xl"
+                    width={88}
+                    height={88}
+                    className="rounded-2xl border border-white/30 bg-white/90 p-2 shadow-xl"
                     priority
                     onError={() => setLogoSrc("/ruet-logo.svg")}
                   />
-                  <div className="space-y-2">
-                    <p className="text-sm text-cyan-100/95">{greeting}, Administrator</p>
-                    <h1 className="text-3xl font-bold leading-tight lg:text-4xl">
-                      RUET Hall Management
-                      <span className="block text-cyan-200">Control Portal</span>
+                  <div className="max-w-md space-y-2">
+                    <h1 className="text-3xl font-bold leading-tight text-white lg:text-4xl">
+                      Ruet hall management control panel
                     </h1>
                   </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-white/20 bg-white/10 p-3">
-                    <p className="mb-1 inline-flex items-center gap-2 text-xs text-cyan-100">
-                      <Clock3 className="h-3.5 w-3.5" />
-                      Current Time
-                    </p>
-                    <p className="text-lg font-semibold">{currentTime}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/20 bg-white/10 p-3">
-                    <p className="mb-1 inline-flex items-center gap-2 text-xs text-cyan-100">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      Today
-                    </p>
-                    <p className="text-sm font-medium">{currentDate}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-white/20 bg-white/10 p-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-cyan-100/90">
-                    Active Module Focus
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {modules.map((module, index) => {
-                      const active = index === activeModuleIndex;
-                      return (
-                        <span
-                          key={module}
-                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-500 ${
-                            active
-                              ? "scale-105 border-cyan-100 bg-cyan-100 text-slate-900 shadow-lg"
-                              : "border-white/35 bg-transparent text-cyan-50"
-                          }`}
-                        >
-                          {module}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/60 bg-emerald-300/15 px-3 py-1 text-xs font-medium text-emerald-100">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  End-to-end monitored administrator access
                 </div>
               </div>
             </section>
