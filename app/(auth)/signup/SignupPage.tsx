@@ -155,7 +155,7 @@ export default function SignupPage() {
                     onError={() => setLogoSrc("/ruet-logo.svg")}
                   />
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    University Hall Admin
+                    RUET Hall Admin
                   </span>
                 </div>
                 <CardTitle className="text-2xl font-bold text-slate-900">
