@@ -109,6 +109,7 @@ export default function SignupPage() {
   };
 
   return (
+<<<<<<< HEAD
     <div
       {...swipeHandlers}
       className="auth-page auth-swipe-shell relative flex min-h-screen touch-pan-y items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_15%,#e0f2fe_0%,transparent_35%),radial-gradient(circle_at_90%_80%,#cffafe_0%,transparent_32%),linear-gradient(145deg,#f8fafc,#eef2ff)] px-4 py-8 [animation:pageFade_700ms_ease-out_both] [view-transition-name:auth-page] dark:bg-[radial-gradient(circle_at_15%_15%,rgba(56,189,248,0.16)_0%,transparent_35%),radial-gradient(circle_at_90%_80%,rgba(34,211,238,0.14)_0%,transparent_32%),linear-gradient(145deg,#020617,#0f172a)]"
@@ -117,11 +118,21 @@ export default function SignupPage() {
       <div className="pointer-events-none absolute -right-28 bottom-[-120px] h-[22rem] w-[22rem] rounded-full bg-cyan-200/55 blur-3xl [animation:float_19s_ease-in-out_infinite] dark:bg-cyan-500/20" />
       <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-white/55 blur-2xl dark:bg-slate-200/10" />
       <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.5)_0%,transparent_42%),radial-gradient(circle_at_80%_30%,rgba(56,189,248,0.25)_0%,transparent_38%)] [animation:drift_24s_linear_infinite] dark:opacity-35" />
+=======
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_15%,#e0f2fe_0%,transparent_35%),radial-gradient(circle_at_90%_80%,#cffafe_0%,transparent_32%),linear-gradient(145deg,#f8fafc,#eef2ff)] px-4 py-8">
+      <div className="pointer-events-none absolute -left-28 -top-25 h-80 w-80 rounded-full bg-sky-200/55 blur-3xl animate-[float_16s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute -right-28 -bottom-30 h-88 w-88 rounded-full bg-cyan-200/55 blur-3xl animate-[float_19s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-white/55 blur-2xl" />
+>>>>>>> fa003243ddf7e72c3af9c6c922c364b93514afa9
 
       <div className="w-full max-w-6xl">
         <Card className="group overflow-hidden border-white/70 bg-white/75 shadow-[0_20px_80px_-24px_rgba(15,23,42,0.35)] backdrop-blur-md [animation:cardEnter_900ms_cubic-bezier(0.22,1,0.36,1)_both] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_28px_95px_-28px_rgba(15,23,42,0.5)] dark:border-white/10 dark:bg-slate-950/75">
           <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
+<<<<<<< HEAD
             <section className="relative min-h-[320px] overflow-hidden border-border/30 [animation:slideInLeft_900ms_cubic-bezier(0.22,1,0.36,1)_both] lg:border-r">
+=======
+            <section className="relative min-h-80 overflow-hidden border-border/30 lg:border-r">
+>>>>>>> fa003243ddf7e72c3af9c6c922c364b93514afa9
               <Image
                 src="/male-hall.jpeg"
                 alt="RUET male hall building"
@@ -129,9 +140,9 @@ export default function SignupPage() {
                 className="object-cover"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-950/78 via-sky-950/52 to-cyan-900/40" />
-              <div className="absolute inset-0 opacity-20 [background:linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.24)_50%,transparent_100%)] [background-size:250%_250%] [animation:shine_12s_linear_infinite]" />
-              <div className="relative z-10 flex h-full min-h-[320px] items-end p-7 text-white lg:p-10">
+              <div className="absolute inset-0 bg-linear-to-br from-slate-950/78 via-sky-950/52 to-cyan-900/40" />
+              <div className="absolute inset-0 opacity-20 [background:linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.24)_50%,transparent_100%)] bg-size-[250%_250%] animate-[shine_12s_linear_infinite]" />
+              <div className="relative z-10 flex h-full min-h-80 items-end p-7 text-white lg:p-10">
                 <div className="space-y-5">
                   <Image
                     src={logoSrc}
