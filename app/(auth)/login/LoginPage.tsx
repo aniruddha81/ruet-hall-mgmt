@@ -13,8 +13,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { TransitionLink } from "@/components/ui/transition-link";
 import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
+import { useSwipeRouteTransition } from "@/lib/useSwipeRouteTransition";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,6 +35,9 @@ export default function LoginPage() {
 	const searchParams = useSearchParams();
 	const showMessage = searchParams.get("signup") === "success";
 	const { login } = useAuth();
+	const swipeHandlers = useSwipeRouteTransition({
+		onSwipeLeft: { href: "/signup", direction: "forward" },
+	});
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -49,15 +54,19 @@ export default function LoginPage() {
 	};
 
 	return (
-		<div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_15%,#e0f2fe_0%,transparent_35%),radial-gradient(circle_at_90%_80%,#cffafe_0%,transparent_32%),linear-gradient(145deg,#f8fafc,#eef2ff)] px-4 py-8">
-			<div className="pointer-events-none absolute -left-28 top-[-100px] h-80 w-80 rounded-full bg-sky-200/55 blur-3xl [animation:float_16s_ease-in-out_infinite]" />
-			<div className="pointer-events-none absolute -right-28 bottom-[-120px] h-[22rem] w-[22rem] rounded-full bg-cyan-200/55 blur-3xl [animation:float_19s_ease-in-out_infinite]" />
-			<div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-white/55 blur-2xl" />
+		<div
+			{...swipeHandlers}
+			className="auth-page auth-swipe-shell relative flex min-h-screen touch-pan-y items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_15%,#e0f2fe_0%,transparent_35%),radial-gradient(circle_at_90%_80%,#cffafe_0%,transparent_32%),linear-gradient(145deg,#f8fafc,#eef2ff)] px-4 py-8 [animation:pageFade_700ms_ease-out_both] [view-transition-name:auth-page] dark:bg-[radial-gradient(circle_at_15%_15%,rgba(56,189,248,0.16)_0%,transparent_35%),radial-gradient(circle_at_90%_80%,rgba(34,211,238,0.14)_0%,transparent_32%),linear-gradient(145deg,#020617,#0f172a)]"
+		>
+			<div className="pointer-events-none absolute -left-28 top-[-100px] h-80 w-80 rounded-full bg-sky-200/55 blur-3xl [animation:float_16s_ease-in-out_infinite] dark:bg-sky-500/20" />
+			<div className="pointer-events-none absolute -right-28 bottom-[-120px] h-[22rem] w-[22rem] rounded-full bg-cyan-200/55 blur-3xl [animation:float_19s_ease-in-out_infinite] dark:bg-cyan-500/20" />
+			<div className="pobuinter-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-white/55 blur-2xl dark:bg-slate-200/10" />
+			<div className="pointer-events-none absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.5)_0%,transparent_42%),radial-gradient(circle_at_80%_30%,rgba(56,189,248,0.25)_0%,transparent_38%)] [animation:drift_24s_linear_infinite] dark:opacity-35" />
 
 			<div className="w-full max-w-6xl">
-				<Card className="overflow-hidden border-white/70 bg-white/75 shadow-[0_20px_80px_-24px_rgba(15,23,42,0.35)] backdrop-blur-md">
+				<Card className="group overflow-hidden border-white/70 bg-white/75 shadow-[0_20px_80px_-24px_rgba(15,23,42,0.35)] backdrop-blur-md [animation:cardEnter_900ms_cubic-bezier(0.22,1,0.36,1)_both] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_28px_95px_-28px_rgba(15,23,42,0.5)] dark:border-white/10 dark:bg-slate-950/75">
 					<div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
-						<section className="relative min-h-[320px] overflow-hidden border-border/30 lg:border-r">
+						<section className="relative min-h-[320px] overflow-hidden border-border/30 [animation:slideInLeft_900ms_cubic-bezier(0.22,1,0.36,1)_both] lg:border-r">
 							<Image
 								src="/male-hall.jpeg"
 								alt="RUET male hall building"
@@ -87,9 +96,9 @@ export default function LoginPage() {
 							</div>
 						</section>
 
-						<section>
-							<CardHeader className="space-y-2 pb-3 text-center sm:text-left">
-								<div className="mx-auto mb-2 flex w-fit items-center gap-3 rounded-full border border-border/70 bg-slate-100/80 px-3 py-1.5 sm:mx-0">
+						<section className="[animation:slideInRight_900ms_cubic-bezier(0.22,1,0.36,1)_both]">
+							<CardHeader className="space-y-2 pb-3 text-center [animation:fadeUp_700ms_ease-out_both] [animation-delay:140ms] sm:text-left">
+								<div className="mx-auto mb-2 flex w-fit items-center gap-3 rounded-full border border-border/70 bg-slate-100/80 px-3 py-1.5 sm:mx-0 dark:bg-slate-900/70">
 									<Image
 										src={logoSrc}
 										alt="RUET logo"
@@ -102,12 +111,12 @@ export default function LoginPage() {
 										RUET Hall Admin
 									</span>
 								</div>
-								<CardTitle className="text-2xl font-bold text-slate-900">Sign In</CardTitle>
+								<CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100">Sign In</CardTitle>
 								<CardDescription className="text-sm">
 									Enter your authorized university credentials to continue.
 								</CardDescription>
 								{showMessage && (
-									<Alert className="border-emerald-200 bg-emerald-50 text-emerald-800">
+									<Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
 										<AlertTitle>Signup successful!</AlertTitle>
 										<AlertDescription>
 											Your request has been submitted. You will receive approval via email.
@@ -116,15 +125,15 @@ export default function LoginPage() {
 								)}
 							</CardHeader>
 
-							<CardContent>
+							<CardContent className="[animation:fadeUp_720ms_ease-out_both] [animation-delay:220ms]">
 								<form onSubmit={handleSubmit} className="space-y-4">
 									{error && (
-										<div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+										<div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive [animation:fadeUp_540ms_ease-out_both] [animation-delay:260ms]">
 											{error}
 										</div>
 									)}
 
-									<div className="space-y-2">
+									<div className="space-y-2 [animation:fadeUp_560ms_ease-out_both] [animation-delay:280ms]">
 										<Label htmlFor="email">University Email</Label>
 										<Input
 											id="email"
@@ -133,11 +142,11 @@ export default function LoginPage() {
 											value={email}
 											onChange={(e) => setEmail(e.target.value)}
 											placeholder="admin@ruet.ac.bd"
-											className="h-11 border-slate-300/70 bg-white"
+											className="h-11 border-slate-300/70 bg-white dark:border-slate-700 dark:bg-slate-900/70"
 										/>
 									</div>
 
-									<div className="space-y-2">
+									<div className="space-y-2 [animation:fadeUp_560ms_ease-out_both] [animation-delay:340ms]">
 										<Label htmlFor="password">Password</Label>
 										<div className="relative">
 											<Input
@@ -147,7 +156,7 @@ export default function LoginPage() {
 												value={password}
 												onChange={(e) => setPassword(e.target.value)}
 												placeholder="Enter your password"
-												className="h-11 border-slate-300/70 bg-white pr-10"
+												className="h-11 border-slate-300/70 bg-white pr-10 dark:border-slate-700 dark:bg-slate-900/70"
 											/>
 											<Button
 												type="button"
@@ -165,7 +174,7 @@ export default function LoginPage() {
 										</div>
 									</div>
 
-									<div className="flex items-center justify-between gap-3">
+									<div className="flex items-center justify-between gap-3 [animation:fadeUp_560ms_ease-out_both] [animation-delay:400ms]">
 										<label htmlFor="remember" className="flex cursor-pointer items-center gap-2">
 											<input
 												id="remember"
@@ -187,34 +196,35 @@ export default function LoginPage() {
 									<Button
 										type="submit"
 										disabled={isLoading}
-										className="h-11 w-full bg-slate-900 text-base text-white hover:bg-slate-800"
+										className="h-11 w-full bg-slate-900 text-base text-white transition-all duration-300 [animation:fadeUp_560ms_ease-out_both] [animation-delay:460ms] hover:-translate-y-0.5 hover:bg-slate-800 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
 									>
 										{isLoading ? "Signing in..." : "Sign In to Dashboard"}
 									</Button>
 								</form>
 
-								<div className="relative my-6">
+								<div className="relative my-6 [animation:fadeUp_560ms_ease-out_both] [animation-delay:520ms]">
 									<Separator />
-									<span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs uppercase text-muted-foreground">
+									<span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs uppercase text-muted-foreground dark:bg-slate-950">
 										Protected Access
 									</span>
 								</div>
 
-								<p className="text-center text-sm text-muted-foreground sm:text-left">
+								<p className="text-center text-sm text-muted-foreground [animation:fadeUp_560ms_ease-out_both] [animation-delay:580ms] sm:text-left">
 									This portal is restricted to authorized hall administrators.
 									Unauthorized attempts are logged and reviewed.
 								</p>
 							</CardContent>
 
-							<CardFooter className="justify-center sm:justify-start">
+							<CardFooter className="justify-center [animation:fadeUp_560ms_ease-out_both] [animation-delay:640ms] sm:justify-start">
 								<p className="text-sm text-muted-foreground">
 									Need admin access?{" "}
-									<Link
+									<TransitionLink
 										href="/signup"
+										direction="forward"
 										className="font-semibold text-primary transition-colors hover:text-primary/80"
 									>
 										Request Access
-									</Link>
+									</TransitionLink>
 								</p>
 							</CardFooter>
 						</section>
@@ -223,6 +233,71 @@ export default function LoginPage() {
 			</div>
 
 			<style jsx>{`
+				@keyframes pageFade {
+					from {
+						opacity: 0;
+					}
+					to {
+						opacity: 1;
+					}
+				}
+
+				@keyframes cardEnter {
+					0% {
+						opacity: 0;
+						transform: translateY(24px) scale(0.985);
+					}
+					100% {
+						opacity: 1;
+						transform: translateY(0) scale(1);
+					}
+				}
+
+				@keyframes slideInLeft {
+					0% {
+						opacity: 0;
+						transform: translateX(-28px);
+					}
+					100% {
+						opacity: 1;
+						transform: translateX(0);
+					}
+				}
+
+				@keyframes slideInRight {
+					0% {
+						opacity: 0;
+						transform: translateX(28px);
+					}
+					100% {
+						opacity: 1;
+						transform: translateX(0);
+					}
+				}
+
+				@keyframes fadeUp {
+					from {
+						opacity: 0;
+						transform: translateY(16px);
+					}
+					to {
+						opacity: 1;
+						transform: translateY(0);
+					}
+				}
+
+				@keyframes drift {
+					0% {
+						transform: translate3d(0, 0, 0) scale(1);
+					}
+					50% {
+						transform: translate3d(1.8%, -1.2%, 0) scale(1.04);
+					}
+					100% {
+						transform: translate3d(0, 0, 0) scale(1);
+					}
+				}
+
 				@keyframes float {
 					0%,
 					100% {
@@ -239,6 +314,13 @@ export default function LoginPage() {
 					}
 					100% {
 						background-position: 200% 50%;
+					}
+				}
+
+				@media (prefers-reduced-motion: reduce) {
+					* {
+						animation: none !important;
+						transition: none !important;
 					}
 				}
 			`}</style>

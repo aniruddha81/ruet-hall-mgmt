@@ -12,8 +12,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { TransitionLink } from "@/components/ui/transition-link";
 import { getApiErrorMessage } from "@/lib/api";
 import { adminRegister } from "@/lib/services/auth.service";
+import { useSwipeRouteTransition } from "@/lib/useSwipeRouteTransition";
 import type {
   AcademicDepartment,
   Hall,
@@ -31,7 +33,6 @@ import {
   EyeOff,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -53,6 +54,9 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [logoSrc, setLogoSrc] = useState("/ruet-logo.png");
   const router = useRouter();
+  const swipeHandlers = useSwipeRouteTransition({
+    onSwipeRight: { href: "/login", direction: "back" },
+  });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -105,15 +109,19 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_15%,#e0f2fe_0%,transparent_35%),radial-gradient(circle_at_90%_80%,#cffafe_0%,transparent_32%),linear-gradient(145deg,#f8fafc,#eef2ff)] px-4 py-8">
-      <div className="pointer-events-none absolute -left-28 top-[-100px] h-80 w-80 rounded-full bg-sky-200/55 blur-3xl [animation:float_16s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute -right-28 bottom-[-120px] h-[22rem] w-[22rem] rounded-full bg-cyan-200/55 blur-3xl [animation:float_19s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-white/55 blur-2xl" />
+    <div
+      {...swipeHandlers}
+      className="auth-page auth-swipe-shell relative flex min-h-screen touch-pan-y items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_15%,#e0f2fe_0%,transparent_35%),radial-gradient(circle_at_90%_80%,#cffafe_0%,transparent_32%),linear-gradient(145deg,#f8fafc,#eef2ff)] px-4 py-8 [animation:pageFade_700ms_ease-out_both] [view-transition-name:auth-page] dark:bg-[radial-gradient(circle_at_15%_15%,rgba(56,189,248,0.16)_0%,transparent_35%),radial-gradient(circle_at_90%_80%,rgba(34,211,238,0.14)_0%,transparent_32%),linear-gradient(145deg,#020617,#0f172a)]"
+    >
+      <div className="pointer-events-none absolute -left-28 top-[-100px] h-80 w-80 rounded-full bg-sky-200/55 blur-3xl [animation:float_16s_ease-in-out_infinite] dark:bg-sky-500/20" />
+      <div className="pointer-events-none absolute -right-28 bottom-[-120px] h-[22rem] w-[22rem] rounded-full bg-cyan-200/55 blur-3xl [animation:float_19s_ease-in-out_infinite] dark:bg-cyan-500/20" />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-white/55 blur-2xl dark:bg-slate-200/10" />
+      <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.5)_0%,transparent_42%),radial-gradient(circle_at_80%_30%,rgba(56,189,248,0.25)_0%,transparent_38%)] [animation:drift_24s_linear_infinite] dark:opacity-35" />
 
       <div className="w-full max-w-6xl">
-        <Card className="overflow-hidden border-white/70 bg-white/75 shadow-[0_20px_80px_-24px_rgba(15,23,42,0.35)] backdrop-blur-md">
+        <Card className="group overflow-hidden border-white/70 bg-white/75 shadow-[0_20px_80px_-24px_rgba(15,23,42,0.35)] backdrop-blur-md [animation:cardEnter_900ms_cubic-bezier(0.22,1,0.36,1)_both] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_28px_95px_-28px_rgba(15,23,42,0.5)] dark:border-white/10 dark:bg-slate-950/75">
           <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
-            <section className="relative min-h-[320px] overflow-hidden border-border/30 lg:border-r">
+            <section className="relative min-h-[320px] overflow-hidden border-border/30 [animation:slideInLeft_900ms_cubic-bezier(0.22,1,0.36,1)_both] lg:border-r">
               <Image
                 src="/male-hall.jpeg"
                 alt="RUET male hall building"
@@ -143,9 +151,9 @@ export default function SignupPage() {
               </div>
             </section>
 
-            <section className="flex flex-col">
-              <CardHeader className="space-y-2 pb-3 text-center sm:text-left">
-                <div className="mx-auto mb-2 flex w-fit items-center gap-3 rounded-full border border-border/70 bg-slate-100/80 px-3 py-1.5 sm:mx-0">
+            <section className="flex flex-col [animation:slideInRight_900ms_cubic-bezier(0.22,1,0.36,1)_both]">
+              <CardHeader className="space-y-2 pb-3 text-center [animation:fadeUp_700ms_ease-out_both] [animation-delay:140ms] sm:text-left">
+                <div className="mx-auto mb-2 flex w-fit items-center gap-3 rounded-full border border-border/70 bg-slate-100/80 px-3 py-1.5 sm:mx-0 dark:bg-slate-900/70">
                   <Image
                     src={logoSrc}
                     alt="RUET logo"
@@ -158,7 +166,7 @@ export default function SignupPage() {
                     RUET Hall Admin
                   </span>
                 </div>
-                <CardTitle className="text-2xl font-bold text-slate-900">
+                <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   Request Admin Access
                 </CardTitle>
                 <CardDescription className="text-sm">
@@ -166,15 +174,15 @@ export default function SignupPage() {
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="flex-1 overflow-y-auto">
+              <CardContent className="flex-1 overflow-y-auto [animation:fadeUp_720ms_ease-out_both] [animation-delay:220ms]">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {error && (
-                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive [animation:fadeUp_540ms_ease-out_both] [animation-delay:260ms]">
                       {error}
                     </div>
                   )}
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 [animation:fadeUp_560ms_ease-out_both] [animation-delay:280ms]">
                     <Label htmlFor="name">Full Name</Label>
                     <Input
                       id="name"
@@ -184,11 +192,11 @@ export default function SignupPage() {
                       value={formData.name}
                       onChange={handleChange}
                       placeholder="Enter your full name"
-                      className="h-11 border-slate-300/70 bg-white"
+                      className="h-11 border-slate-300/70 bg-white dark:border-slate-700 dark:bg-slate-900/70"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 [animation:fadeUp_560ms_ease-out_both] [animation-delay:340ms]">
                     <div className="space-y-2">
                       <Label htmlFor="email">Official Email</Label>
                       <Input
@@ -199,7 +207,7 @@ export default function SignupPage() {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="your.email@ruet.edu.bd"
-                        className="h-11 border-slate-300/70 bg-white"
+                        className="h-11 border-slate-300/70 bg-white dark:border-slate-700 dark:bg-slate-900/70"
                       />
                     </div>
                     <div className="space-y-2">
@@ -212,12 +220,12 @@ export default function SignupPage() {
                         value={formData.phone}
                         onChange={handleChange}
                         placeholder="01XXXXXXXXX"
-                        className="h-11 border-slate-300/70 bg-white"
+                        className="h-11 border-slate-300/70 bg-white dark:border-slate-700 dark:bg-slate-900/70"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 [animation:fadeUp_560ms_ease-out_both] [animation-delay:400ms]">
                     <div className="space-y-2">
                       <Label htmlFor="academicDepartment">Department</Label>
                       <select
@@ -226,7 +234,7 @@ export default function SignupPage() {
                         required
                         value={formData.academicDepartment}
                         onChange={handleChange}
-                        className="flex h-11 w-full rounded-md border border-slate-300/70 bg-white px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex h-11 w-full rounded-md border border-slate-300/70 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100"
                       >
                         <option value="">Select</option>
                         {ACADEMIC_DEPARTMENTS.map((d) => (
@@ -244,7 +252,7 @@ export default function SignupPage() {
                         required
                         value={formData.hall}
                         onChange={handleChange}
-                        className="flex h-11 w-full rounded-md border border-slate-300/70 bg-white px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex h-11 w-full rounded-md border border-slate-300/70 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100"
                       >
                         <option value="">Select</option>
                         {HALLS.map((h) => (
@@ -256,7 +264,7 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 [animation:fadeUp_560ms_ease-out_both] [animation-delay:460ms]">
                     <div className="space-y-2">
                       <Label htmlFor="designation">Designation</Label>
                       <select
@@ -265,7 +273,7 @@ export default function SignupPage() {
                         required
                         value={formData.designation}
                         onChange={handleChange}
-                        className="flex h-11 w-full rounded-md border border-slate-300/70 bg-white px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex h-11 w-full rounded-md border border-slate-300/70 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100"
                       >
                         <option value="">Select</option>
                         {STAFF_ROLES.map((r) => (
@@ -283,7 +291,7 @@ export default function SignupPage() {
                         required
                         value={formData.operationalUnit}
                         onChange={handleChange}
-                        className="flex h-11 w-full rounded-md border border-slate-300/70 bg-white px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex h-11 w-full rounded-md border border-slate-300/70 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100"
                       >
                         <option value="">Select</option>
                         {OPERATIONAL_UNITS.map((u) => (
@@ -295,7 +303,7 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 [animation:fadeUp_560ms_ease-out_both] [animation-delay:520ms]">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
                       <Input
@@ -306,7 +314,7 @@ export default function SignupPage() {
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="Create a strong password"
-                        className="h-11 border-slate-300/70 bg-white pr-10"
+                        className="h-11 border-slate-300/70 bg-white pr-10 dark:border-slate-700 dark:bg-slate-900/70"
                       />
                       <Button
                         type="button"
@@ -324,7 +332,7 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 [animation:fadeUp_560ms_ease-out_both] [animation-delay:580ms]">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
                     <div className="relative">
                       <Input
@@ -335,7 +343,7 @@ export default function SignupPage() {
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         placeholder="Confirm your password"
-                        className="h-11 border-slate-300/70 bg-white pr-10"
+                        className="h-11 border-slate-300/70 bg-white pr-10 dark:border-slate-700 dark:bg-slate-900/70"
                       />
                       <Button
                         type="button"
@@ -356,34 +364,35 @@ export default function SignupPage() {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="h-11 w-full bg-slate-900 text-base text-white hover:bg-slate-800"
+                    className="h-11 w-full bg-slate-900 text-base text-white transition-all duration-300 [animation:fadeUp_560ms_ease-out_both] [animation-delay:640ms] hover:-translate-y-0.5 hover:bg-slate-800 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
                   >
                     {isLoading ? "Submitting Request..." : "Request Access"}
                   </Button>
                 </form>
 
-                <div className="relative my-6">
+                <div className="relative my-6 [animation:fadeUp_560ms_ease-out_both] [animation-delay:700ms]">
                   <Separator />
-                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs uppercase text-muted-foreground">
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs uppercase text-muted-foreground dark:bg-slate-950">
                     Note
                   </span>
                 </div>
 
-                <p className="text-center text-sm text-muted-foreground sm:text-left">
+                <p className="text-center text-sm text-muted-foreground [animation:fadeUp_560ms_ease-out_both] [animation-delay:760ms] sm:text-left">
                   Your request will be reviewed by the super admin. You will
                   receive an email once approved.
                 </p>
               </CardContent>
 
-              <CardFooter className="justify-center sm:justify-start">
+              <CardFooter className="justify-center [animation:fadeUp_560ms_ease-out_both] [animation-delay:820ms] sm:justify-start">
                 <p className="text-sm text-muted-foreground">
                   Already have access?{" "}
-                  <Link
+                  <TransitionLink
                     href="/login"
+                    direction="back"
                     className="font-semibold text-primary transition-colors hover:text-primary/80"
                   >
                     Sign in
-                  </Link>
+                  </TransitionLink>
                 </p>
               </CardFooter>
             </section>
@@ -392,6 +401,71 @@ export default function SignupPage() {
       </div>
 
       <style jsx>{`
+        @keyframes pageFade {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes cardEnter {
+          0% {
+            opacity: 0;
+            transform: translateY(24px) scale(0.985);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes slideInLeft {
+          0% {
+            opacity: 0;
+            transform: translateX(-28px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slideInRight {
+          0% {
+            opacity: 0;
+            transform: translateX(28px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes drift {
+          0% {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+          50% {
+            transform: translate3d(1.8%, -1.2%, 0) scale(1.04);
+          }
+          100% {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+        }
+
         @keyframes float {
           0%,
           100% {
@@ -408,6 +482,13 @@ export default function SignupPage() {
           }
           100% {
             background-position: 200% 50%;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation: none !important;
+            transition: none !important;
           }
         }
       `}</style>
