@@ -27,16 +27,16 @@ export default function AdmissionsManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<SeatApplicationStatus | "">(
-    "",
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    SeatApplicationStatus | "ALL"
+  >("ALL");
   const [allocating, setAllocating] = useState<string | null>(null);
   const [allocateForm, setAllocateForm] = useState({ roomId: "", bedId: "" });
 
   const fetchApplications = async () => {
     try {
       const params: { status?: SeatApplicationStatus } = {};
-      if (statusFilter) params.status = statusFilter;
+      if (statusFilter !== "ALL") params.status = statusFilter;
       const res = await getApplications(params);
       setApplications(res.data?.applications ?? []);
     } catch (err) {
@@ -120,14 +120,14 @@ export default function AdmissionsManagement() {
 
       {/* Filter */}
       <div className="flex gap-2">
-        {(["", "PENDING", "APPROVED", "REJECTED"] as const).map((status) => (
+        {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((status) => (
           <Button
             key={status}
             variant={statusFilter === status ? "default" : "outline"}
             size="sm"
             onClick={() => setStatusFilter(status)}
           >
-            {status || "All"}
+            {status}
           </Button>
         ))}
       </div>

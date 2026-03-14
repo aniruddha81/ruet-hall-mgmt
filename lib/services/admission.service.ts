@@ -11,13 +11,13 @@ import type {
 
 export async function getApplications(params?: {
   status?: SeatApplicationStatus;
-  hall?: string;
   page?: number;
   limit?: number;
 }) {
   const res = await api.get<
     ApiResponse<{ applications: SeatApplication[]; pagination: Pagination }>
   >("/admission/applications", { params });
+  // this params is like query params, it will be converted to ?status=...&hall=...&page=...&limit=...
   return res.data;
 }
 

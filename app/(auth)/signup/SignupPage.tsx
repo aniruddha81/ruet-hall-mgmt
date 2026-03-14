@@ -106,14 +106,14 @@ export default function SignupPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_15%,#e0f2fe_0%,transparent_35%),radial-gradient(circle_at_90%_80%,#cffafe_0%,transparent_32%),linear-gradient(145deg,#f8fafc,#eef2ff)] px-4 py-8">
-      <div className="pointer-events-none absolute -left-28 top-[-100px] h-80 w-80 rounded-full bg-sky-200/55 blur-3xl [animation:float_16s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute -right-28 bottom-[-120px] h-[22rem] w-[22rem] rounded-full bg-cyan-200/55 blur-3xl [animation:float_19s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute -left-28 -top-25 h-80 w-80 rounded-full bg-sky-200/55 blur-3xl animate-[float_16s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute -right-28 -bottom-30 h-88 w-88 rounded-full bg-cyan-200/55 blur-3xl animate-[float_19s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-white/55 blur-2xl" />
 
       <div className="w-full max-w-6xl">
         <Card className="overflow-hidden border-white/70 bg-white/75 shadow-[0_20px_80px_-24px_rgba(15,23,42,0.35)] backdrop-blur-md">
           <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
-            <section className="relative min-h-[320px] overflow-hidden border-border/30 lg:border-r">
+            <section className="relative min-h-80 overflow-hidden border-border/30 lg:border-r">
               <Image
                 src="/male-hall.jpeg"
                 alt="RUET male hall building"
@@ -121,9 +121,9 @@ export default function SignupPage() {
                 className="object-cover"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-950/78 via-sky-950/52 to-cyan-900/40" />
-              <div className="absolute inset-0 opacity-20 [background:linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.24)_50%,transparent_100%)] [background-size:250%_250%] [animation:shine_12s_linear_infinite]" />
-              <div className="relative z-10 flex h-full min-h-[320px] items-end p-7 text-white lg:p-10">
+              <div className="absolute inset-0 bg-linear-to-br from-slate-950/78 via-sky-950/52 to-cyan-900/40" />
+              <div className="absolute inset-0 opacity-20 [background:linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.24)_50%,transparent_100%)] bg-size-[250%_250%] animate-[shine_12s_linear_infinite]" />
+              <div className="relative z-10 flex h-full min-h-80 items-end p-7 text-white lg:p-10">
                 <div className="space-y-5">
                   <Image
                     src={logoSrc}
