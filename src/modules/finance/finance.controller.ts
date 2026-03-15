@@ -1,17 +1,17 @@
 import { randomUUID } from "crypto";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
-import { db } from "../../db";
-import { uniStudents } from "../../db/models";
-import { mealPayments } from "../../db/models/dining.models";
+import { db } from "../../db/index.ts";
+import { uniStudents } from "../../db/models/index.ts";
+import { mealPayments } from "../../db/models/dining.models.ts";
 import {
   expenses,
   payments,
   studentDues,
-} from "../../db/models/finance.models";
-import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums";
-import ApiError from "../../utils/ApiError";
-import ApiResponse from "../../utils/ApiResponse";
+} from "../../db/models/finance.models.ts";
+import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums.ts";
+import ApiError from "../../utils/ApiError.ts";
+import ApiResponse from "../../utils/ApiResponse.ts";
 
 // ========================
 // DUES

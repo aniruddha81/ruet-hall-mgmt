@@ -2,21 +2,21 @@ import { Router } from "express";
 import {
   authenticateToken,
   authorizeRoles,
-} from "../../middlewares/auth.middleware";
-import { validateRequest } from "../../middlewares/validateRequest.middleware";
+} from "../../middlewares/auth.middleware.ts";
+import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
   allocateSeat,
   applyForSeat,
   getApplications,
   getMyStatus,
   reviewApplication,
-} from "./admission.controller";
+} from "./admission.controller.ts";
 import {
   allocateSeatSchema,
   applyForSeatSchema,
   listApplicationsSchema,
   reviewApplicationSchema,
-} from "./admission.validators";
+} from "./admission.validators.ts";
 
 const admissionRouter = Router();
 

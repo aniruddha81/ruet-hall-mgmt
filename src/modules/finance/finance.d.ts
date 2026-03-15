@@ -1,4 +1,4 @@
-import type { PaymentMethod } from "../../types/enums";
+import type { PaymentMethod } from "../../types/enums.ts";
 
 type CreateMealPaymentParams = {
   studentId: string;

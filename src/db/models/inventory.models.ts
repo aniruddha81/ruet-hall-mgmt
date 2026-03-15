@@ -12,9 +12,9 @@ import {
   ASSET_CONDITIONS,
   BED_STATUSES,
   DAMAGE_REPORT_STATUSES,
-} from "../../types/enums";
-import { hallAdmins, uniStudents } from "./auth.models";
-import { hallSQL_Enum, halls, rooms } from "./halls.models";
+} from "../../types/enums.ts";
+import { hallAdmins, uniStudents } from "./auth.models.ts";
+import { hallSQL_Enum, halls, rooms } from "./halls.models.ts";
 
 export const bedStatusSQL_Enum = () => mysqlEnum("bed_status", BED_STATUSES);
 export const assetConditionSQL_Enum = () => mysqlEnum(

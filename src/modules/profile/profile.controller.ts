@@ -1,11 +1,11 @@
 import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
-import { db } from "../../db";
-import { hallAdmins, uniStudents } from "../../db/models";
-import ApiError from "../../utils/ApiError";
-import ApiResponse from "../../utils/ApiResponse";
-import { uploadOnCloudinary } from "../../utils/cloudinary";
+import { db } from "../../db/index.ts";
+import { hallAdmins, uniStudents } from "../../db/models/index.ts";
+import ApiError from "../../utils/ApiError.ts";
+import ApiResponse from "../../utils/ApiResponse.ts";
+import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
 
 /**
  * POST /api/v1/profile/upload-image

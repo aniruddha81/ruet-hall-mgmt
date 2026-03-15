@@ -1,17 +1,17 @@
 import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import type { Request, Response } from "express";
-import { db } from "../../db";
-import { rooms } from "../../db/models/halls.models";
-import { assets, beds, damageReports } from "../../db/models/inventory.models";
+import { db } from "../../db/index.ts";
+import { rooms } from "../../db/models/halls.models.ts";
+import { assets, beds, damageReports } from "../../db/models/inventory.models.ts";
 import type {
   AssetCondition,
   BedStatus,
   Hall,
   RoomStatus,
-} from "../../types/enums";
-import ApiError from "../../utils/ApiError";
-import ApiResponse from "../../utils/ApiResponse";
+} from "../../types/enums.ts";
+import ApiError from "../../utils/ApiError.ts";
+import ApiResponse from "../../utils/ApiResponse.ts";
 
 // ========================
 // ROOMS

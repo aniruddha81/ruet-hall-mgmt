@@ -5,16 +5,16 @@ import {
   NODE_ENV,
   REFRESH_TOKEN_EXPIRY,
   REFRESH_TOKEN_SECRET,
-} from "../../Constants";
+} from "../../Constants.ts";
 import type {
   AccessTokenPayload,
   IssueAuthOptions,
   RefreshTokenPayload,
-} from "./auth";
+} from "./auth.d.ts";
 import type { CookieOptions } from "express";
-import { createJti, hashToken } from "../../utils/helpers";
-import { refreshTokens } from "../../db/models";
-import { db } from "../..";
+import { createJti, hashToken } from "../../utils/helpers.ts";
+import { refreshTokens } from "../../db/models/index.ts";
+import { db } from "../../index.ts";
 import { randomUUID } from "crypto";
 
 export const signAccessToken = (payload: AccessTokenPayload): string => {

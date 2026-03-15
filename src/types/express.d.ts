@@ -1,6 +1,6 @@
 import type { InferSelectModel } from "drizzle-orm";
-import type { hallAdmins, uniStudents } from "../db/models";
-import type { Hall, Role } from "./enums";
+import type { hallAdmins, uniStudents } from "../db/models/index.ts";
+import type { Hall, Role } from "./enums.ts";
 
 type StudentRecord = InferSelectModel<typeof uniStudents>;
 type HallAdminRecord = InferSelectModel<typeof hallAdmins>;

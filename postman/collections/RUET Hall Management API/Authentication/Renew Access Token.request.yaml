@@ -1,4 +1,8 @@
 $kind: http-request
+name: Renew Access Token
 url: "{{BASE_URL}}/api/auth/renew-access-token"
 method: POST
+body:
+  type: formdata
+  content: []
 order: 5000

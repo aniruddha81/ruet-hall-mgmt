@@ -3,7 +3,7 @@ import {
   ACADEMIC_DEPARTMENTS,
   HALLS,
   SEAT_APPLICATION_STATUSES,
-} from "../../types/enums";
+} from "../../types/enums.ts";
 
 // Student: apply for a seat
 export const applyForSeatSchema = {

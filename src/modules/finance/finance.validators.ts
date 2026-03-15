@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DUE_TYPES, FINANCE_PAYMENT_METHODS, HALLS } from "../../types/enums";
+import { DUE_TYPES, FINANCE_PAYMENT_METHODS, HALLS } from "../../types/enums.ts";
 
 // Create a due for a student
 export const createDueSchema = {

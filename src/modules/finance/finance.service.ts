@@ -1,10 +1,10 @@
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
-import { db } from "../../db";
-import { mealPayments } from "../../db/models/dining.models";
-import ApiError from "../../utils/ApiError";
-import type { CreateMealPaymentParams, MealPaymentResult } from "./finance";
-import { PAYMENT_SERVER_URL } from "../../Constants";
+import { db } from "../../db/index.ts";
+import { mealPayments } from "../../db/models/dining.models.ts";
+import ApiError from "../../utils/ApiError.ts";
+import type { CreateMealPaymentParams, MealPaymentResult } from "./finance.d.ts";
+import { PAYMENT_SERVER_URL } from "../../Constants.ts";
 
 /**
  * Creates a meal payment record

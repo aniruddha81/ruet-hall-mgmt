@@ -1,4 +1,4 @@
-import type { Role } from "../../types/enums";
+import type { Role } from "../../types/enums.ts";
 import type { Request, Response } from "express";
 
 type AccessTokenPayload = {

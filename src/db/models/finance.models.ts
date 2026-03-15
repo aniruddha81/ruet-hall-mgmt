@@ -11,9 +11,9 @@ import {
   DUE_STATUSES,
   DUE_TYPES,
   FINANCE_PAYMENT_METHODS,
-} from "../../types/enums";
-import { hallAdmins, uniStudents } from "./auth.models";
-import { hallSQL_Enum, halls } from "./halls.models";
+} from "../../types/enums.ts";
+import { hallAdmins, uniStudents } from "./auth.models.ts";
+import { hallSQL_Enum, halls } from "./halls.models.ts";
 
 export const dueTypeSQL_Enum = () => mysqlEnum("due_type", DUE_TYPES);
 export const dueStatusSQL_Enum = () => mysqlEnum("due_status", DUE_STATUSES);

@@ -1,14 +1,13 @@
 import bcrypt from "bcrypt";
-import { randomUUIDv7 } from "bun";
 import { randomUUID } from "crypto";
-import { db } from ".";
+import { db } from "./index.ts";
 import {
   beds,
   hallAdmins,
   halls as hallsTable,
   rooms,
   uniStudents,
-} from "./models";
+} from "./models/index.ts";
 
 async function seed() {
   const pass = await bcrypt.hash("AdminPass123!", 10);
@@ -121,7 +120,7 @@ async function seed() {
       hall: "FAZLUL_HUQ_HALL" as const,
     },
   ].map((admin) => ({
-    id: randomUUIDv7(),
+    id: randomUUID(),
     ...admin,
     passwordHash: pass,
     academicDepartment: "CSE" as const,
@@ -136,7 +135,7 @@ async function seed() {
   const studentPass = "StudentPass123!";
   const studentPassHash = await bcrypt.hash(studentPass, 10);
   const studentsData = Array.from({ length: 50 }, (_, i) => ({
-    id: randomUUIDv7(),
+    id: randomUUID(),
     email: `student${i + 1}@gmail.com`,
     passwordHash: studentPassHash,
     name: `Student ${i + 1}`,

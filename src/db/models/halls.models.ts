@@ -11,7 +11,7 @@ import {
   tinyint,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { HALLS, ROOM_STATUSES } from "../../types/enums";
+import { HALLS, ROOM_STATUSES } from "../../types/enums.ts";
 
 export const roomStatusSQL_Enum = () => mysqlEnum("room_status", ROOM_STATUSES);
 export const hallSQL_Enum = () => mysqlEnum("hall", HALLS);

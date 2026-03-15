@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   authenticateToken,
   authorizeRoles,
-} from "../../middlewares/auth.middleware";
+} from "../../middlewares/auth.middleware.ts";
 import {
   bookMealTokens,
   cancelMealToken,
@@ -26,9 +26,9 @@ import {
   processPayment,
   processRefund,
   updateTomorrowMenu,
-} from "./dining.controller";
+} from "./dining.controller.ts";
 
-import { validateRequest } from "../../middlewares/validateRequest.middleware";
+import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
   bookMealTokensSchema,
   cancelMealTokenSchema,
@@ -44,7 +44,7 @@ import {
   processPaymentSchema,
   processRefundSchema,
   updateMenuSchema,
-} from "./dining.validators";
+} from "./dining.validators.ts";
 
 const diningRouter = Router();
 

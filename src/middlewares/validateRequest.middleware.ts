@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError, ZodType } from "zod";
-import ApiError from "../utils/ApiError";
+import ApiError from "../utils/ApiError.ts";
 
 type ValidationSchemas = Partial<{
   body: ZodType;

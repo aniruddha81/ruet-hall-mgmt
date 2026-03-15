@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ASSET_CONDITIONS, BED_STATUSES, HALLS } from "../../types/enums";
+import { ASSET_CONDITIONS, BED_STATUSES, HALLS } from "../../types/enums.ts";
 
 // Create beds for a room
 export const createBedsSchema = {

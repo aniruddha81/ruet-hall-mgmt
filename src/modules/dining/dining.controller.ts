@@ -11,17 +11,17 @@ import {
   sum,
 } from "drizzle-orm";
 import type { Request, Response } from "express";
-import { db } from "../../db";
+import { db } from "../../db/index.ts";
 import {
   mealMenus,
   mealPayments,
   mealTokens,
   uniStudents,
-} from "../../db/models";
-import ApiError from "../../utils/ApiError";
-import ApiResponse from "../../utils/ApiResponse";
-import { toDateString } from "../../utils/helpers";
-import { createMealPayment } from "../finance/finance.service";
+} from "../../db/models/index.ts";
+import ApiError from "../../utils/ApiError.ts";
+import ApiResponse from "../../utils/ApiResponse.ts";
+import { toDateString } from "../../utils/helpers.ts";
+import { createMealPayment } from "../finance/finance.service.ts";
 
 const requireStudentAccount = (req: Request) => {
   if (req.authAccount?.kind !== "STUDENT") {

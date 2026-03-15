@@ -1,16 +1,16 @@
 import { randomUUID } from "crypto";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
-import { db } from "../../db";
+import { db } from "../../db/index.ts";
 import {
   seatAllocations,
   seatApplications,
   uniStudents,
-} from "../../db/models";
-import { beds } from "../../db/models/inventory.models";
-import type { SeatApplicationStatus } from "../../types/enums";
-import ApiError from "../../utils/ApiError";
-import ApiResponse from "../../utils/ApiResponse";
+} from "../../db/models/index.ts";
+import { beds } from "../../db/models/inventory.models.ts";
+import type { SeatApplicationStatus } from "../../types/enums.ts";
+import ApiError from "../../utils/ApiError.ts";
+import ApiResponse from "../../utils/ApiResponse.ts";
 
 // ========================
 // STUDENT

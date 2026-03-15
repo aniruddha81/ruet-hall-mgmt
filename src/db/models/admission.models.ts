@@ -6,13 +6,13 @@ import {
   mysqlTable,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { SEAT_APPLICATION_STATUSES } from "../../types/enums";
+import { SEAT_APPLICATION_STATUSES } from "../../types/enums.ts";
 import {
   academicDepartmentsSQL_Enum,
   hallAdmins,
   uniStudents,
-} from "./auth.models";
-import { hallSQL_Enum, halls, rooms } from "./halls.models";
+} from "./auth.models.ts";
+import { hallSQL_Enum, halls, rooms } from "./halls.models.ts";
 import { beds } from "./inventory.models.ts";
 
 export const seatApplicationStatusSQL_Enum = () =>

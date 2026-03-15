@@ -1,12 +1,12 @@
 {
-  "name": "backend-template",
+  "name": "ruet-hall-man-backend",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts",
-    "db": "bunx drizzle-kit generate && bunx drizzle-kit migrate",
-    "db-all": "bunx drizzle-kit generate && bunx drizzle-kit migrate && bun src/db/seed.ts"
+    "dev": "node --watch src/index.ts",
+    "start": "node src/index.ts",
+    "db": "npx drizzle-kit generate && npx drizzle-kit migrate",
+    "db-all": "npx drizzle-kit generate && npx drizzle-kit migrate && node src/db/seed.ts"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

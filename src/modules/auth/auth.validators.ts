@@ -5,7 +5,7 @@ import {
   HALLS,
   OPERATIONAL_UNITS,
   STAFF_ROLES,
-} from "../../types/enums";
+} from "../../types/enums.ts";
 
 // Common password strength rules used during registration
 const passwordStrengthSchema = z

@@ -2,8 +2,8 @@ import { Router } from "express";
 import {
   authenticateToken,
   authorizeRoles,
-} from "../../middlewares/auth.middleware";
-import { validateRequest } from "../../middlewares/validateRequest.middleware";
+} from "../../middlewares/auth.middleware.ts";
+import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
   createAsset,
   createBeds,
@@ -11,7 +11,7 @@ import {
   getRooms,
   reportDamage,
   verifyDamage,
-} from "./inventory.controller";
+} from "./inventory.controller.ts";
 import {
   createAssetSchema,
   createBedsSchema,
@@ -19,7 +19,7 @@ import {
   listRoomsSchema,
   reportDamageSchema,
   verifyDamageSchema,
-} from "./inventory.validators";
+} from "./inventory.validators.ts";
 
 const inventoryRouter = Router();
 

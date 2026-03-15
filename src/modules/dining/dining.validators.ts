@@ -4,7 +4,7 @@ import {
   MEAL_TYPES,
   PAYMENT_METHODS,
   TOKEN_STATUSES,
-} from "../../types/enums";
+} from "../../types/enums.ts";
 
 // ==============================================================
 // STUDENT VALIDATORS

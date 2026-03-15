@@ -2,20 +2,20 @@ import { Router } from "express";
 import {
   authenticateToken,
   authorizeRoles,
-} from "../../middlewares/auth.middleware";
-import { upload } from "../../middlewares/multer.middleware";
-import { validateRequest } from "../../middlewares/validateRequest.middleware";
-import { ROLES } from "../../types/enums";
+} from "../../middlewares/auth.middleware.ts";
+import { upload } from "../../middlewares/multer.middleware.ts";
+import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
+import { ROLES } from "../../types/enums.ts";
 import {
   changePassword,
   getMyProfile,
   updateProfile,
   uploadImage,
-} from "./profile.controller";
+} from "./profile.controller.ts";
 import {
   changePasswordSchema,
   updateProfileSchema,
-} from "./profile.validators";
+} from "./profile.validators.ts";
 
 const profileRouter = Router();
 

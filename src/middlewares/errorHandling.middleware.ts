@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { NODE_ENV } from "../Constants";
+import { NODE_ENV } from "../Constants.ts";
 
 export const handleError = (
   err: any,

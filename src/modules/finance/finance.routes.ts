@@ -2,8 +2,8 @@ import { Router } from "express";
 import {
   authenticateToken,
   authorizeRoles,
-} from "../../middlewares/auth.middleware";
-import { validateRequest } from "../../middlewares/validateRequest.middleware";
+} from "../../middlewares/auth.middleware.ts";
+import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
   createDue,
   createExpense,
@@ -15,14 +15,14 @@ import {
   getMyLedger,
   getStudentLedger,
   payDue,
-} from "./finance.controller";
+} from "./finance.controller.ts";
 import {
   createDueSchema,
   createExpenseSchema,
   listExpensesSchema,
   payDueSchema,
   studentLedgerSchema,
-} from "./finance.validators";
+} from "./finance.validators.ts";
 
 const financeRouter = Router();
 

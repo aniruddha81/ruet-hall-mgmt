@@ -15,8 +15,8 @@ import {
   OPERATIONAL_UNITS,
   STAFF_ROLES,
   STUDENT_STATUSES,
-} from "../../types/enums";
-import { hallSQL_Enum, halls, rooms } from "./halls.models";
+} from "../../types/enums.ts";
+import { hallSQL_Enum, halls, rooms } from "./halls.models.ts";
 
 export const studentStatusSQL_Enum = () =>
   mysqlEnum("student_status", STUDENT_STATUSES);
