@@ -1,6 +1,5 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import {
-  HALLS,
   MEAL_TYPES,
   PAYMENT_METHODS,
   TOKEN_STATUSES,
@@ -26,7 +25,6 @@ export const bookMealTokensSchema = {
     paymentMethod: z
       .enum(PAYMENT_METHODS)
       .describe("Payment method used for booking"),
-    hall: z.enum(HALLS).describe("Hall for which the tokens are being booked"),
   }),
 };
 

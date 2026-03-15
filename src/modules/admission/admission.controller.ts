@@ -1,16 +1,58 @@
-import { randomUUID } from "crypto";
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+﻿import { randomUUID } from "crypto";
+import { and, count, desc, eq, gte, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
 import {
   seatAllocations,
   seatApplications,
+  studentDues,
   uniStudents,
 } from "../../db/models/index.ts";
 import { beds } from "../../db/models/inventory.models.ts";
-import type { SeatApplicationStatus } from "../../types/enums.ts";
+import type { Hall, SeatApplicationStatus } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
+
+const getSeatChargeStartDate = (application: {
+  createdAt: Date;
+  reviewedAt: Date | null;
+}) => application.reviewedAt ?? application.createdAt;
+
+const getSeatChargeForApplication = async (application: {
+  studentId: string;
+  hall: Hall | null;
+  createdAt: Date;
+  reviewedAt: Date | null;
+}) => {
+  if (!application.hall) {
+    return null;
+  }
+
+  const [seatCharge] = await db
+    .select({
+      id: studentDues.id,
+      studentId: studentDues.studentId,
+      hall: studentDues.hall,
+      type: studentDues.type,
+      amount: studentDues.amount,
+      status: studentDues.status,
+      paidAt: studentDues.paidAt,
+      createdAt: studentDues.createdAt,
+    })
+    .from(studentDues)
+    .where(
+      and(
+        eq(studentDues.studentId, application.studentId),
+        eq(studentDues.hall, application.hall),
+        eq(studentDues.type, "RENT"),
+        gte(studentDues.createdAt, getSeatChargeStartDate(application))
+      )
+    )
+    .orderBy(desc(studentDues.createdAt))
+    .limit(1);
+
+  return seatCharge ?? null;
+};
 
 // ========================
 // STUDENT
@@ -98,11 +140,17 @@ export const getMyStatus = async (req: Request, res: Response) => {
     .orderBy(desc(seatApplications.createdAt))
     .limit(1);
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(200, application, "Applications retrieved successfully")
-    );
+  const seatCharge = application
+    ? await getSeatChargeForApplication(application)
+    : null;
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      application ? { ...application, seatCharge } : null,
+      "Applications retrieved successfully"
+    )
+  );
 };
 
 // ========================
@@ -137,6 +185,7 @@ export const getApplications = async (req: Request, res: Response) => {
       studentId: seatApplications.studentId,
       studentName: uniStudents.name,
       studentEmail: uniStudents.email,
+      rollNumber: seatApplications.rollNumber,
       hall: seatApplications.hall,
       academicDepartment: seatApplications.academicDepartment,
       session: seatApplications.session,
@@ -151,6 +200,19 @@ export const getApplications = async (req: Request, res: Response) => {
     .limit(limit)
     .offset(offset);
 
+  const applications = await Promise.all(
+    apps.map(async (application) => {
+      const seatCharge = await getSeatChargeForApplication(application);
+
+      return {
+        ...application,
+        seatCharge,
+        canAllocate:
+          application.status === "APPROVED" && seatCharge?.status === "PAID",
+      };
+    })
+  );
+
   const [countResult] = await db
     .select({ count: count() })
     .from(seatApplications)
@@ -160,7 +222,7 @@ export const getApplications = async (req: Request, res: Response) => {
     new ApiResponse(
       200,
       {
-        applications: apps,
+        applications,
         pagination: {
           page,
           limit,
@@ -192,6 +254,9 @@ export const reviewApplication = async (req: Request, res: Response) => {
     .limit(1);
 
   if (!app) throw new ApiError(404, "Application not found");
+  if (app.hall !== admin.hall) {
+    throw new ApiError(403, "Application does not belong to your hall");
+  }
 
   if (app.status !== "PENDING") {
     throw new ApiError(400, "Application has already been reviewed");
@@ -214,6 +279,79 @@ export const reviewApplication = async (req: Request, res: Response) => {
 };
 
 /**
+ * POST /api/v1/admission/applications/:id/seat-charge
+ * Create the seat allocation charge for an approved application
+ */
+export const createSeatCharge = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const { amount } = req.body;
+  const admin =
+    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+
+  if (!admin) throw new ApiError(403, "Hall admin record not found");
+
+  const [app] = await db
+    .select()
+    .from(seatApplications)
+    .where(eq(seatApplications.id, id))
+    .limit(1);
+
+  if (!app) throw new ApiError(404, "Application not found");
+  if (app.hall !== admin.hall) {
+    throw new ApiError(403, "Application does not belong to your hall");
+  }
+  if (!app.hall) {
+    throw new ApiError(400, "Application hall is missing");
+  }
+  if (app.status !== "APPROVED") {
+    throw new ApiError(400, "Application must be approved before charging");
+  }
+
+  const [student] = await db
+    .select({ isAllocated: uniStudents.isAllocated })
+    .from(uniStudents)
+    .where(eq(uniStudents.id, app.studentId))
+    .limit(1);
+
+  if (student?.isAllocated) {
+    throw new ApiError(409, "Student already has a hall seat allocated");
+  }
+
+  const existingSeatCharge = await getSeatChargeForApplication(app);
+  if (existingSeatCharge) {
+    throw new ApiError(
+      409,
+      "Seat charge has already been created for this application"
+    );
+  }
+
+  const chargeId = randomUUID();
+  await db.insert(studentDues).values({
+    id: chargeId,
+    studentId: app.studentId,
+    hall: app.hall,
+    type: "RENT",
+    amount,
+  });
+
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        id: chargeId,
+        applicationId: app.id,
+        studentId: app.studentId,
+        hall: app.hall,
+        type: "RENT",
+        amount,
+        status: "UNPAID",
+      },
+      "Seat allocation charge created successfully"
+    )
+  );
+};
+
+/**
  * POST /api/v1/admission/allocate
  * Provost allocates a bed to an approved applicant
  */
@@ -231,16 +369,46 @@ export const allocateSeat = async (req: Request, res: Response) => {
     .limit(1);
 
   if (!app) throw new ApiError(404, "Application not found");
-  if (app.status !== "APPROVED")
+  if (app.hall !== admin.hall) {
+    throw new ApiError(403, "Application does not belong to your hall");
+  }
+  if (!app.hall) {
+    throw new ApiError(400, "Application hall is missing");
+  }
+  if (app.status !== "APPROVED") {
     throw new ApiError(400, "Application must be approved before allocation");
+  }
+
+  const seatCharge = await getSeatChargeForApplication(app);
+  if (!seatCharge) {
+    throw new ApiError(400, "Seat allocation charge has not been created yet");
+  }
+  if (seatCharge.status !== "PAID") {
+    throw new ApiError(
+      400,
+      "Seat allocation payment must be completed before allocation"
+    );
+  }
+
+  const [existingAllocation] = await db
+    .select({ id: seatAllocations.id })
+    .from(seatAllocations)
+    .where(eq(seatAllocations.studentId, app.studentId))
+    .limit(1);
+
+  if (existingAllocation) {
+    throw new ApiError(409, "Student already has a seat allocation");
+  }
 
   const [bed] = await db.select().from(beds).where(eq(beds.id, bedId)).limit(1);
 
   if (!bed) throw new ApiError(404, "Bed not found");
-  if (bed.status !== "AVAILABLE")
+  if (bed.status !== "AVAILABLE") {
     throw new ApiError(400, "Bed is not available");
-  if (bed.hall !== app.hall)
+  }
+  if (bed.hall !== app.hall) {
     throw new ApiError(400, "Bed does not belong to the applied hall");
+  }
 
   const allocationId = randomUUID();
 

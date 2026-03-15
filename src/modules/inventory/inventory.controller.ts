@@ -1,7 +1,8 @@
-import { randomUUID } from "crypto";
+﻿import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
+import { studentDues } from "../../db/models/finance.models.ts";
 import { rooms } from "../../db/models/halls.models.ts";
 import { assets, beds, damageReports } from "../../db/models/inventory.models.ts";
 import type {
@@ -213,17 +214,33 @@ export const verifyDamage = async (req: Request, res: Response) => {
   };
   if (fineAmount !== undefined) updateData.fineAmount = fineAmount;
 
-  await db
-    .update(damageReports)
-    .set(updateData)
-    .where(eq(damageReports.id, id));
+  let fineDueId: string | null = null;
+
+  await db.transaction(async (trx) => {
+    await trx
+      .update(damageReports)
+      .set(updateData)
+      .where(eq(damageReports.id, id));
+
+    if (typeof fineAmount === "number" && fineAmount > 0) {
+      fineDueId = randomUUID();
+
+      await trx.insert(studentDues).values({
+        id: fineDueId,
+        studentId: report.studentId,
+        hall: report.hall,
+        type: "FINE",
+        amount: fineAmount,
+      });
+    }
+  });
 
   res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        { id, status: "VERIFIED", fineAmount },
+        { id, status: "VERIFIED", fineAmount, fineDueId },
         "Damage report verified successfully"
       )
     );

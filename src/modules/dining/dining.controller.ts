@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+﻿import { randomUUID } from "crypto";
 import {
   and,
   count,
@@ -46,16 +46,27 @@ const requireAdminAccount = (req: Request) => {
  * Get tomorrow's lunch and dinner menus for a hall
  */
 export const getTomorrowMenus = async (req: Request, res: Response) => {
+  const student = requireStudentAccount(req);
+
+  if (!student.hall) {
+    throw new ApiError(400, "You do not have an assigned hall yet");
+  }
+
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
   const menus = await db
     .select()
     .from(mealMenus)
-    .where(sql`${mealMenus.mealDate} = CAST(${tomorrowDate} AS DATE)`);
+    .where(
+      and(
+        eq(mealMenus.hall, student.hall),
+        sql`${mealMenus.mealDate} = CAST(${tomorrowDate} AS DATE)`
+      )
+    );
 
   const response = {
-    lunch: menus.filter((m) => m.mealType === "LUNCH") || null,
-    dinner: menus.filter((m) => m.mealType === "DINNER") || null,
+    lunch: menus.filter((m) => m.mealType === "LUNCH"),
+    dinner: menus.filter((m) => m.mealType === "DINNER"),
   };
 
   res
@@ -71,12 +82,16 @@ export const getTomorrowMenus = async (req: Request, res: Response) => {
  */
 export const bookMealTokens = async (req: Request, res: Response) => {
   const student = requireStudentAccount(req);
-  const { menuId, quantity, paymentMethod, hall } = req.body;
+  const { menuId, quantity, paymentMethod } = req.body;
+
+  if (!student.hall) {
+    throw new ApiError(400, "You do not have an assigned hall yet");
+  }
 
   const [menu] = await db
     .select()
     .from(mealMenus)
-    .where(and(eq(mealMenus.id, menuId), eq(mealMenus.hall, hall)))
+    .where(and(eq(mealMenus.id, menuId), eq(mealMenus.hall, student.hall)))
     .limit(1);
 
   if (!menu) {
@@ -139,6 +154,7 @@ export const bookMealTokens = async (req: Request, res: Response) => {
         mealType: menu.mealType,
         mealDate: menuDateStr,
         transactionId: payment.transactionId,
+        paymentMethod,
       },
       "Meal tokens booked successfully"
     )
@@ -1019,3 +1035,4 @@ export const processRefund = async (req: Request, res: Response) => {
     )
   );
 };
+

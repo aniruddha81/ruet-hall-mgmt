@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+﻿import { randomUUID } from "crypto";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
@@ -12,6 +12,7 @@ import {
 import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
+import { createDuePayment } from "./finance.service.ts";
 
 // ========================
 // DUES
@@ -97,6 +98,38 @@ export const payDue = async (req: Request, res: Response) => {
         "Due paid successfully"
       )
     );
+};
+
+/**
+ * POST /api/v1/finance/my-dues/:id/pay
+ * Student pays one of their own hall dues through the payment gateway
+ */
+export const payMyDue = async (req: Request, res: Response) => {
+  const studentId = req.user!.userId;
+  const { id } = req.params as { id: string };
+  const { method } = req.body;
+
+  const [due] = await db
+    .select()
+    .from(studentDues)
+    .where(and(eq(studentDues.id, id), eq(studentDues.studentId, studentId)))
+    .limit(1);
+
+  if (!due) throw new ApiError(404, "Due not found");
+  if (due.status === "PAID") throw new ApiError(400, "Due is already paid");
+
+  const payment = await createDuePayment({
+    dueId: due.id,
+    studentId: due.studentId,
+    hall: due.hall,
+    amount: due.amount,
+    paymentMethod: method as FinancePaymentMethod,
+    dueType: due.type,
+  });
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, payment, "Due paid successfully"));
 };
 
 // ========================
@@ -201,6 +234,8 @@ export const getStudentLedger = async (req: Request, res: Response) => {
   const dues = await db
     .select({
       id: studentDues.id,
+      studentId: studentDues.studentId,
+      hall: studentDues.hall,
       type: studentDues.type,
       amount: studentDues.amount,
       status: studentDues.status,
@@ -214,6 +249,8 @@ export const getStudentLedger = async (req: Request, res: Response) => {
   const studentPayments = await db
     .select({
       id: payments.id,
+      hall: payments.hall,
+      dueId: payments.dueId,
       amount: payments.amount,
       method: payments.method,
       createdAt: payments.createdAt,
@@ -221,6 +258,21 @@ export const getStudentLedger = async (req: Request, res: Response) => {
     .from(payments)
     .where(eq(payments.studentId, id))
     .orderBy(desc(payments.createdAt));
+
+  const mealPaymentsList = await db
+    .select({
+      id: mealPayments.id,
+      amount: mealPayments.amount,
+      totalQuantity: mealPayments.totalQuantity,
+      paymentMethod: mealPayments.paymentMethod,
+      transactionId: mealPayments.transactionId,
+      paymentDate: mealPayments.paymentDate,
+      refundAmount: mealPayments.refundAmount,
+      refundedAt: mealPayments.refundedAt,
+    })
+    .from(mealPayments)
+    .where(eq(mealPayments.studentId, id))
+    .orderBy(desc(mealPayments.paymentDate));
 
   const totalDue = dues
     .filter((d) => d.status === "UNPAID")
@@ -235,6 +287,7 @@ export const getStudentLedger = async (req: Request, res: Response) => {
         student: user,
         dues,
         payments: studentPayments,
+        mealPayments: mealPaymentsList,
         summary: { totalDue, totalPaid },
       },
       "Student ledger retrieved successfully"
@@ -439,6 +492,7 @@ export const getMyDues = async (req: Request, res: Response) => {
   const dues = await db
     .select({
       id: studentDues.id,
+      studentId: studentDues.studentId,
       type: studentDues.type,
       hall: studentDues.hall,
       amount: studentDues.amount,
@@ -471,6 +525,7 @@ export const getMyLedger = async (req: Request, res: Response) => {
   const dues = await db
     .select({
       id: studentDues.id,
+      studentId: studentDues.studentId,
       type: studentDues.type,
       hall: studentDues.hall,
       amount: studentDues.amount,

@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import { DUE_TYPES, FINANCE_PAYMENT_METHODS, HALLS } from "../../types/enums.ts";
 
 // Create a due for a student
@@ -13,6 +13,16 @@ export const createDueSchema = {
 
 // Mark due as paid
 export const payDueSchema = {
+  params: z.object({
+    id: z.uuid("Invalid due ID"),
+  }),
+  body: z.object({
+    method: z.enum(FINANCE_PAYMENT_METHODS),
+  }),
+};
+
+// Student pays own due
+export const payMyDueSchema = {
   params: z.object({
     id: z.uuid("Invalid due ID"),
   }),

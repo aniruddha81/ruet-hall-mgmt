@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import {
   authenticateToken,
   authorizeRoles,
@@ -7,6 +7,7 @@ import { validateRequest } from "../../middlewares/validateRequest.middleware.ts
 import {
   allocateSeat,
   applyForSeat,
+  createSeatCharge,
   getApplications,
   getMyStatus,
   reviewApplication,
@@ -14,6 +15,7 @@ import {
 import {
   allocateSeatSchema,
   applyForSeatSchema,
+  createSeatChargeSchema,
   listApplicationsSchema,
   reviewApplicationSchema,
 } from "./admission.validators.ts";
@@ -54,7 +56,7 @@ admissionRouter.get(
   getApplications
 );
 
-// Review (approve / reject / waitlist)
+// Review (approve / reject)
 admissionRouter.patch(
   "/review/:id/",
   authenticateToken,
@@ -63,7 +65,16 @@ admissionRouter.patch(
   reviewApplication
 );
 
-// Allocate seat to approved student
+// Create seat allocation charge for an approved student
+admissionRouter.post(
+  "/applications/:id/seat-charge",
+  authenticateToken,
+  authorizeRoles("ASST_INVENTORY"),
+  validateRequest(createSeatChargeSchema),
+  createSeatCharge
+);
+
+// Allocate seat to approved student after payment
 admissionRouter.post(
   "/allocate",
   authenticateToken,

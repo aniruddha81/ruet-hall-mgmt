@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import {
   authenticateToken,
   authorizeRoles,
@@ -15,12 +15,14 @@ import {
   getMyLedger,
   getStudentLedger,
   payDue,
+  payMyDue,
 } from "./finance.controller.ts";
 import {
   createDueSchema,
   createExpenseSchema,
   listExpensesSchema,
   payDueSchema,
+  payMyDueSchema,
   studentLedgerSchema,
 } from "./finance.validators.ts";
 
@@ -36,6 +38,15 @@ financeRouter.get(
   authenticateToken,
   authorizeRoles("STUDENT"),
   getMyDues
+);
+
+// Student pays one of their own dues
+financeRouter.post(
+  "/my-dues/:id/pay",
+  authenticateToken,
+  authorizeRoles("STUDENT"),
+  validateRequest(payMyDueSchema),
+  payMyDue
 );
 
 // Student views their own financial ledger

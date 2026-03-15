@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import {
   ACADEMIC_DEPARTMENTS,
   HALLS,
@@ -39,13 +39,23 @@ export const listApplicationsSchema = {
   }),
 };
 
-// Admin: review (approve/reject/waitlist)
+// Admin: review (approve/reject)
 export const reviewApplicationSchema = {
   params: z.object({
     id: z.uuid("Invalid application ID"),
   }),
   body: z.object({
-    status: z.enum(["APPROVED", "REJECTED", "WAITLIST"] as const),
+    status: z.enum(["APPROVED", "REJECTED"] as const),
+  }),
+};
+
+// Admin: create seat charge
+export const createSeatChargeSchema = {
+  params: z.object({
+    id: z.uuid("Invalid application ID"),
+  }),
+  body: z.object({
+    amount: z.int().positive("Amount must be a positive integer"),
   }),
 };
 
@@ -54,6 +64,5 @@ export const allocateSeatSchema = {
   body: z.object({
     applicationId: z.uuid("Invalid application ID"),
     bedId: z.uuid("Invalid bed ID"),
-    rollNumber: z.string().min(1, "Roll number is required"),
   }),
 };
