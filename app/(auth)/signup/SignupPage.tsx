@@ -17,7 +17,7 @@ import { getApiErrorMessage } from "@/lib/api";
 import { studentRegister } from "@/lib/services/auth.service";
 import type { AcademicDepartment } from "@/lib/types";
 import { ACADEMIC_DEPARTMENTS } from "@/lib/types";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -99,199 +99,232 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-background via-background to-muted/30 px-4 py-12">
-      <div className="w-full max-w-md">
-        <Card className="shadow-xl border-border/50">
-          <CardHeader className="space-y-1 text-center">
-            <div className="mx-auto mb-4 w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-primary-foreground font-bold text-xl">
-                R
-              </span>
-            </div>
-            <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
-            <CardDescription>Join RUET Hall Management System</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
-                  {error}
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-background via-muted/20 to-background px-4 py-10">
+      <div className="w-full max-w-5xl">
+        <Card className="overflow-hidden border-border/70 shadow-2xl">
+          <div className="grid md:grid-cols-[0.95fr_1.05fr]">
+            <section className="hidden border-r border-border/60 bg-muted/30 p-8 md:flex md:flex-col md:justify-between lg:p-10">
+              <div className="space-y-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
+                  <UserRoundPlus className="h-7 w-7" />
                 </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  className="h-11"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="rollNumber">Roll Number</Label>
-                  <Input
-                    id="rollNumber"
-                    name="rollNumber"
-                    type="number"
-                    required
-                    value={formData.rollNumber}
-                    onChange={handleChange}
-                    placeholder="e.g. 2004001"
-                    className="h-11"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="session">Session</Label>
-                  <Input
-                    id="session"
-                    name="session"
-                    type="text"
-                    required
-                    value={formData.session}
-                    onChange={handleChange}
-                    placeholder="e.g. 2020-21"
-                    className="h-11"
-                  />
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    RUET Hall Management
+                  </p>
+                  <h1 className="text-3xl font-bold leading-tight text-foreground">
+                    Student Account Signup
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Create your account to access hall allocation updates and
+                    student services.
+                  </p>
                 </div>
               </div>
+              <p className="text-sm text-muted-foreground">
+                Use your own academic and contact information.
+              </p>
+            </section>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="academicDepartment">Department</Label>
-                  <select
-                    id="academicDepartment"
-                    name="academicDepartment"
-                    required
-                    value={formData.academicDepartment}
-                    onChange={handleChange}
-                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">Select</option>
-                    {ACADEMIC_DEPARTMENTS.map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
-                      </option>
-                    ))}
-                  </select>
+            <section className="p-6 sm:p-8 lg:p-10">
+              <CardHeader className="space-y-2 px-0 pt-0 text-center sm:text-left">
+                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground md:hidden">
+                  <UserRoundPlus className="h-6 w-6" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="text"
-                    required
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="01XXXXXXXXX"
-                    className="h-11"
-                  />
-                </div>
-              </div>
+                <CardTitle className="text-2xl font-bold">
+                  Create Account
+                </CardTitle>
+                <CardDescription>
+                  Join RUET Hall Management System
+                </CardDescription>
+              </CardHeader>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Create a strong password"
-                    className="h-11 pr-10"
-                  />
+              <CardContent className="max-h-[70vh] overflow-y-auto px-0 pb-0">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="Enter your full name"
+                      className="h-11"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter your email"
+                      className="h-11"
+                    />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="rollNumber">Roll Number</Label>
+                      <Input
+                        id="rollNumber"
+                        name="rollNumber"
+                        type="number"
+                        required
+                        value={formData.rollNumber}
+                        onChange={handleChange}
+                        placeholder="e.g. 2004001"
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="session">Session</Label>
+                      <Input
+                        id="session"
+                        name="session"
+                        type="text"
+                        required
+                        value={formData.session}
+                        onChange={handleChange}
+                        placeholder="e.g. 2020-21"
+                        className="h-11"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="academicDepartment">Department</Label>
+                      <select
+                        id="academicDepartment"
+                        name="academicDepartment"
+                        required
+                        value={formData.academicDepartment}
+                        onChange={handleChange}
+                        className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="">Select</option>
+                        {ACADEMIC_DEPARTMENTS.map((dept) => (
+                          <option key={dept} value={dept}>
+                            {dept}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="text"
+                        required
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="01XXXXXXXXX"
+                        className="h-11"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        required
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Create a strong password"
+                        className="h-11 pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        required
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        placeholder="Confirm your password"
+                        className="h-11 pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
                   <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                    onClick={() => setShowPassword(!showPassword)}
+                    type="submit"
+                    disabled={isLoading}
+                    className="h-11 w-full text-base"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
+                    {isLoading ? "Creating Account..." : "Sign Up"}
                   </Button>
+                </form>
+
+                <div className="relative my-6">
+                  <Separator />
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs uppercase text-muted-foreground">
+                    Student Registration
+                  </span>
                 </div>
-              </div>
+              </CardContent>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Confirm your password"
-                    className="h-11 pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-11 text-base"
-              >
-                {isLoading ? "Creating Account..." : "Sign Up"}
-              </Button>
-            </form>
-
-            <div className="relative my-6">
-              <Separator />
-            </div>
-          </CardContent>
-          <CardFooter className="justify-center">
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link
-                href="/login"
-                className="text-primary hover:text-primary/80 font-semibold transition-colors"
-              >
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
+              <CardFooter className="justify-center px-0 sm:justify-start">
+                <p className="text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link href="/login" className="font-semibold text-primary">
+                    Sign in
+                  </Link>
+                </p>
+              </CardFooter>
+            </section>
+          </div>
         </Card>
       </div>
     </div>
