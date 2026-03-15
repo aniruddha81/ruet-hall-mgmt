@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,7 +60,6 @@ export default function FinanceManagement() {
   const [showPayForm, setShowPayForm] = useState(false);
   const [payForm, setPayForm] = useState({
     dueId: "",
-    amount: "",
     method: "CASH" as FinancePaymentMethod,
   });
   const [payingDue, setPayingDue] = useState(false);
@@ -129,11 +128,10 @@ export default function FinanceManagement() {
     try {
       await payDue(payForm.dueId, {
         method: payForm.method,
-        amount: Number(payForm.amount),
       });
       setSuccess("Payment recorded successfully!");
       setShowPayForm(false);
-      setPayForm({ dueId: "", amount: "", method: "CASH" });
+      setPayForm({ dueId: "", method: "CASH" });
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -148,6 +146,7 @@ export default function FinanceManagement() {
     setSuccess(null);
     try {
       await createExpense({
+        hall: user?.hall ?? ("ZIA_HALL" as Hall),
         title: expenseForm.title,
         amount: Number(expenseForm.amount),
         category: expenseForm.category,
@@ -339,29 +338,16 @@ export default function FinanceManagement() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handlePayDue} className="space-y-4 max-w-lg">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Due ID</Label>
-                      <Input
-                        value={payForm.dueId}
-                        onChange={(e) =>
-                          setPayForm({ ...payForm, dueId: e.target.value })
-                        }
-                        placeholder="Due ID"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Amount (৳)</Label>
-                      <Input
-                        type="number"
-                        value={payForm.amount}
-                        onChange={(e) =>
-                          setPayForm({ ...payForm, amount: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label>Due ID</Label>
+                    <Input
+                      value={payForm.dueId}
+                      onChange={(e) =>
+                        setPayForm({ ...payForm, dueId: e.target.value })
+                      }
+                      placeholder="Due ID"
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Payment Method</Label>
@@ -658,7 +644,7 @@ export default function FinanceManagement() {
                               #{payment.id.slice(0, 8)}
                             </TableCell>
                             <TableCell className="font-mono text-xs">
-                              #{payment.dueId.slice(0, 8)}
+                              {payment.dueId ? `#${payment.dueId.slice(0, 8)}` : "-"}
                             </TableCell>
                             <TableCell className="font-semibold">
                               ৳{payment.amount}

@@ -1,4 +1,4 @@
-// =================== BACKEND ENUM MIRRORS ===================
+﻿// =================== BACKEND ENUM MIRRORS ===================
 export const ROLES = [
   "PROVOST",
   "ASST_FINANCE",
@@ -99,6 +99,13 @@ export interface ApiResponse<T = unknown> {
   errors?: unknown[];
 }
 
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 // =================== AUTH TYPES ===================
 export interface AdminData {
   id: string;
@@ -148,7 +155,7 @@ export interface MealToken {
   id: string;
   studentId: string;
   menuId: string;
-  hall: Hall;
+  hall?: Hall;
   mealDate: string;
   mealType: MealType;
   quantity: number;
@@ -157,13 +164,15 @@ export interface MealToken {
   bookingTime: string;
   cancelledAt: string | null;
   status: TokenStatus;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MealPayment {
   id: string;
-  studentId: string;
+  studentId?: string;
+  studentName?: string;
+  rollNumber?: string;
   amount: number;
   totalQuantity: number;
   paymentMethod: PaymentMethod;
@@ -171,8 +180,8 @@ export interface MealPayment {
   paymentDate: string;
   refundedAt: string | null;
   refundAmount: number | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // =================== ADMISSION TYPES ===================
@@ -188,6 +197,9 @@ export interface SeatApplication {
   reviewedAt: string | null;
   createdAt: string;
   studentName?: string;
+  studentEmail?: string;
+  seatCharge?: StudentDue | null;
+  canAllocate?: boolean;
 }
 
 export interface SeatAllocation {
@@ -209,8 +221,8 @@ export interface Room {
   capacity: number;
   currentOccupancy: number;
   roomStatus: RoomStatus;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Bed {
@@ -219,7 +231,7 @@ export interface Bed {
   roomId: string;
   bedLabel: string;
   bedStatus: BedStatus;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface Asset {
@@ -239,6 +251,7 @@ export interface DamageReport {
   hall: Hall;
   description: string;
   fineAmount: number | null;
+  fineDueId?: string | null;
   status: string;
   verifiedBy: string | null;
   createdAt: string;
@@ -256,14 +269,14 @@ export interface StudentDue {
   dueStatus: DueStatus;
   paidAt: string | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface Payment {
   id: string;
-  studentId: string;
+  studentId?: string;
   hall: Hall;
-  dueId: string;
+  dueId: string | null;
   amount: number;
   method: FinancePaymentMethod;
   createdAt: string;
@@ -280,9 +293,17 @@ export interface Expense {
 }
 
 export interface StudentLedger {
+  student?: {
+    id: string;
+    name: string;
+  };
   dues: StudentDue[];
   payments: Payment[];
   mealPayments: MealPayment[];
+  summary?: {
+    totalDue: number;
+    totalPaid: number;
+  };
 }
 
 // =================== REPORT TYPES ===================
@@ -304,11 +325,3 @@ export interface MonthlyReport {
   totalCancelled: number;
   dailyBreakdown: DailyReport[];
 }
-
-export interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-

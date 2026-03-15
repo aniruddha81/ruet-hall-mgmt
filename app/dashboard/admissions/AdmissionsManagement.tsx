@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,30 +15,60 @@ import {
 import { getApiErrorMessage } from "@/lib/api";
 import {
   allocateSeat,
+  createSeatCharge,
   getApplications,
   reviewApplication,
 } from "@/lib/services/admission.service";
-import type { SeatApplication, SeatApplicationStatus } from "@/lib/types";
+import { getBeds, getRooms } from "@/lib/services/inventory.service";
+import type { Bed, Room, SeatApplication, SeatApplicationStatus } from "@/lib/types";
 import { ClipboardList, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+type ReviewableStatus = Extract<SeatApplicationStatus, "APPROVED" | "REJECTED">;
+
 export default function AdmissionsManagement() {
   const [applications, setApplications] = useState<SeatApplication[]>([]);
+  const [beds, setBeds] = useState<Bed[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<SeatApplicationStatus | "">(
-    "",
-  );
-  const [allocating, setAllocating] = useState<string | null>(null);
-  const [allocateForm, setAllocateForm] = useState({ roomId: "", bedId: "" });
+  const [statusFilter, setStatusFilter] = useState<SeatApplicationStatus | "">("");
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [creatingChargeId, setCreatingChargeId] = useState<string | null>(null);
+  const [allocatingId, setAllocatingId] = useState<string | null>(null);
+  const [chargeAmounts, setChargeAmounts] = useState<Record<string, string>>({});
+  const [selectedBeds, setSelectedBeds] = useState<Record<string, string>>({});
 
-  const fetchApplications = async () => {
+  const roomMap = new Map(rooms.map((room) => [room.id, room]));
+
+  const loadApplications = async () => {
+    const params: { status?: SeatApplicationStatus } = {};
+    if (statusFilter) {
+      params.status = statusFilter;
+    }
+
+    const res = await getApplications(params);
+    setApplications(res.data?.applications ?? []);
+  };
+
+  const loadInventory = async () => {
+    const [bedsRes, roomsRes] = await Promise.allSettled([
+      getBeds({ status: "AVAILABLE" }),
+      getRooms(),
+    ]);
+
+    if (bedsRes.status === "fulfilled") {
+      setBeds(bedsRes.value.data?.beds ?? []);
+    }
+    if (roomsRes.status === "fulfilled") {
+      setRooms(roomsRes.value.data?.rooms ?? []);
+    }
+  };
+
+  const refreshPage = async () => {
     try {
-      const params: { status?: SeatApplicationStatus } = {};
-      if (statusFilter) params.status = statusFilter;
-      const res = await getApplications(params);
-      setApplications(res.data?.applications ?? []);
+      await Promise.all([loadApplications(), loadInventory()]);
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -47,45 +77,116 @@ export default function AdmissionsManagement() {
   };
 
   useEffect(() => {
-    fetchApplications();
+    const run = async () => {
+      setLoading(true);
+
+      try {
+        const params: { status?: SeatApplicationStatus } = {};
+        if (statusFilter) {
+          params.status = statusFilter;
+        }
+
+        const [applicationsRes, bedsRes, roomsRes] = await Promise.allSettled([
+          getApplications(params),
+          getBeds({ status: "AVAILABLE" }),
+          getRooms(),
+        ]);
+
+        if (applicationsRes.status === "fulfilled") {
+          setApplications(applicationsRes.value.data?.applications ?? []);
+        }
+        if (bedsRes.status === "fulfilled") {
+          setBeds(bedsRes.value.data?.beds ?? []);
+        }
+        if (roomsRes.status === "fulfilled") {
+          setRooms(roomsRes.value.data?.rooms ?? []);
+        }
+      } catch (err) {
+        setError(getApiErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void run();
   }, [statusFilter]);
 
-  const handleReview = async (
-    applicationId: string,
-    status: SeatApplicationStatus,
-  ) => {
+  const handleReview = async (applicationId: string, status: ReviewableStatus) => {
+    setReviewingId(applicationId);
     setError(null);
     setSuccess(null);
+
     try {
       await reviewApplication(applicationId, { status });
-      setSuccess(`Application ${status.toLowerCase()}!`);
-      await fetchApplications();
+      setSuccess(`Application ${status.toLowerCase()} successfully.`);
+      await refreshPage();
     } catch (err) {
       setError(getApiErrorMessage(err));
+    } finally {
+      setReviewingId(null);
     }
   };
 
-  const handleAllocate = async (app: SeatApplication) => {
-    if (!allocateForm.bedId || !allocateForm.roomId) {
-      setError("Please enter both Room ID and Bed ID");
+  const handleCreateCharge = async (application: SeatApplication) => {
+    const amount = Number(chargeAmounts[application.id]);
+
+    if (!amount || amount <= 0) {
+      setError("Enter a valid seat charge amount.");
       return;
     }
+
+    setCreatingChargeId(application.id);
     setError(null);
     setSuccess(null);
+
     try {
-      await allocateSeat({
-        studentId: app.studentId,
-        roomId: allocateForm.roomId,
-        bedId: allocateForm.bedId,
-      });
-      setSuccess("Seat allocated successfully!");
-      setAllocating(null);
-      setAllocateForm({ roomId: "", bedId: "" });
-      await fetchApplications();
+      await createSeatCharge(application.id, { amount });
+      setSuccess("Seat allocation charge created successfully.");
+      setChargeAmounts((prev) => ({ ...prev, [application.id]: "" }));
+      await refreshPage();
     } catch (err) {
       setError(getApiErrorMessage(err));
+    } finally {
+      setCreatingChargeId(null);
     }
   };
+
+  const handleAllocate = async (application: SeatApplication) => {
+    const bedId = selectedBeds[application.id];
+
+    if (!bedId) {
+      setError("Select an available bed before allocating.");
+      return;
+    }
+
+    setAllocatingId(application.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await allocateSeat({
+        applicationId: application.id,
+        bedId,
+      });
+      setSuccess("Seat allocated successfully.");
+      setSelectedBeds((prev) => ({ ...prev, [application.id]: "" }));
+      await refreshPage();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setAllocatingId(null);
+    }
+  };
+
+  const availableBedOptions = beds.map((bed) => {
+    const room = roomMap.get(bed.roomId);
+    const roomLabel = room ? `Room ${room.roomNumber}` : `Room ${bed.roomId.slice(0, 6)}`;
+
+    return {
+      id: bed.id,
+      label: `${roomLabel} / Bed ${bed.bedLabel}`,
+    };
+  });
 
   if (loading) {
     return (
@@ -98,31 +199,30 @@ export default function AdmissionsManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground flex items-center gap-3">
+        <h2 className="flex items-center gap-3 text-3xl font-bold text-foreground">
           <ClipboardList className="h-8 w-8" />
           Admissions Management
         </h2>
-        <p className="text-muted-foreground mt-1">
-          Review seat applications, approve/reject, and allocate beds
+        <p className="mt-1 text-muted-foreground">
+          Approve applications, issue seat charges, confirm payment, and allocate available beds.
         </p>
       </div>
 
       {error && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
       {success && (
-        <div className="p-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg dark:text-green-400 dark:bg-green-950 dark:border-green-900">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400">
           {success}
         </div>
       )}
 
-      {/* Filter */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {(["", "PENDING", "APPROVED", "REJECTED"] as const).map((status) => (
           <Button
-            key={status}
+            key={status || "all"}
             variant={statusFilter === status ? "default" : "outline"}
             size="sm"
             onClick={() => setStatusFilter(status)}
@@ -138,7 +238,7 @@ export default function AdmissionsManagement() {
         </CardHeader>
         <CardContent>
           {applications.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
+            <p className="py-8 text-center text-muted-foreground">
               No applications found.
             </p>
           ) : (
@@ -150,111 +250,163 @@ export default function AdmissionsManagement() {
                   <TableHead>Roll</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Session</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Application</TableHead>
+                  <TableHead>Seat Charge</TableHead>
                   <TableHead>Applied</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {applications.map((app) => (
-                  <TableRow key={app.id}>
+                {applications.map((application) => (
+                  <TableRow key={application.id}>
                     <TableCell className="font-mono text-xs">
-                      #{app.id.slice(0, 8)}
+                      #{application.id.slice(0, 8)}
                     </TableCell>
-                    <TableCell className="font-medium">
-                      {app.studentName ??
-                        `Student #${app.studentId.slice(0, 8)}`}
+                    <TableCell>
+                      <div className="font-medium">
+                        {application.studentName ?? `Student #${application.studentId.slice(0, 8)}`}
+                      </div>
+                      {application.studentEmail ? (
+                        <div className="text-xs text-muted-foreground">
+                          {application.studentEmail}
+                        </div>
+                      ) : null}
                     </TableCell>
-                    <TableCell>{app.rollNumber}</TableCell>
+                    <TableCell>{application.rollNumber}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {app.academicDepartment ?? "-"}
+                      {application.academicDepartment}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {app.session ?? "-"}
+                      {application.session}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={
-                          app.status === "APPROVED"
+                          application.status === "APPROVED"
                             ? "default"
-                            : app.status === "REJECTED"
+                            : application.status === "REJECTED"
                               ? "destructive"
                               : "secondary"
                         }
                       >
-                        {app.status}
+                        {application.status}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {application.seatCharge ? (
+                        <div className="space-y-1">
+                          <div className="font-medium">
+                            BDT {application.seatCharge.amount}
+                          </div>
+                          <Badge
+                            variant={
+                              application.seatCharge.dueStatus === "PAID"
+                                ? "default"
+                                : "destructive"
+                            }
+                          >
+                            {application.seatCharge.dueStatus}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Not issued</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {app.createdAt
-                        ? new Date(app.createdAt).toLocaleDateString("en-GB")
-                        : "-"}
+                      {new Date(application.createdAt).toLocaleDateString("en-GB")}
                     </TableCell>
                     <TableCell>
-                      {app.status === "PENDING" && (
-                        <div className="flex gap-1">
+                      {application.status === "PENDING" ? (
+                        <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             className="text-green-600"
-                            onClick={() => handleReview(app.id, "APPROVED")}
+                            onClick={() => handleReview(application.id, "APPROVED")}
+                            disabled={reviewingId === application.id}
                           >
+                            {reviewingId === application.id ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : null}
                             Approve
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             className="text-destructive"
-                            onClick={() => handleReview(app.id, "REJECTED")}
+                            onClick={() => handleReview(application.id, "REJECTED")}
+                            disabled={reviewingId === application.id}
                           >
                             Reject
                           </Button>
                         </div>
-                      )}
-                      {app.status === "APPROVED" && (
-                        <>
-                          {allocating === app.id ? (
-                            <div className="flex gap-1 items-center">
-                              <Input
-                                placeholder="Room ID"
-                                className="w-24 h-8"
-                                value={allocateForm.roomId}
-                                onChange={(e) =>
-                                  setAllocateForm({
-                                    ...allocateForm,
-                                    roomId: e.target.value,
-                                  })
-                                }
-                              />
-                              <Input
-                                placeholder="Bed ID"
-                                className="w-24 h-8"
-                                value={allocateForm.bedId}
-                                onChange={(e) =>
-                                  setAllocateForm({
-                                    ...allocateForm,
-                                    bedId: e.target.value,
-                                  })
-                                }
-                              />
-                              <Button
-                                size="sm"
-                                onClick={() => handleAllocate(app)}
-                              >
-                                Go
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setAllocating(app.id)}
-                            >
-                              Allocate Seat
-                            </Button>
-                          )}
-                        </>
-                      )}
+                      ) : null}
+
+                      {application.status === "APPROVED" && !application.seatCharge ? (
+                        <div className="flex min-w-[260px] items-center gap-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            placeholder="Seat charge"
+                            value={chargeAmounts[application.id] ?? ""}
+                            onChange={(event) =>
+                              setChargeAmounts((prev) => ({
+                                ...prev,
+                                [application.id]: event.target.value,
+                              }))
+                            }
+                            className="h-9"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleCreateCharge(application)}
+                            disabled={creatingChargeId === application.id}
+                          >
+                            {creatingChargeId === application.id ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : null}
+                            Create Charge
+                          </Button>
+                        </div>
+                      ) : null}
+
+                      {application.status === "APPROVED" && application.seatCharge?.dueStatus === "UNPAID" ? (
+                        <span className="text-sm text-muted-foreground">
+                          Waiting for student payment.
+                        </span>
+                      ) : null}
+
+                      {application.status === "APPROVED" && application.canAllocate ? (
+                        <div className="flex min-w-[280px] items-center gap-2">
+                          <select
+                            value={selectedBeds[application.id] ?? ""}
+                            onChange={(event) =>
+                              setSelectedBeds((prev) => ({
+                                ...prev,
+                                [application.id]: event.target.value,
+                              }))
+                            }
+                            className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                          >
+                            <option value="">Select available bed</option>
+                            {availableBedOptions.map((bed) => (
+                              <option key={bed.id} value={bed.id}>
+                                {bed.label}
+                              </option>
+                            ))}
+                          </select>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAllocate(application)}
+                            disabled={allocatingId === application.id || availableBedOptions.length === 0}
+                          >
+                            {allocatingId === application.id ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : null}
+                            Allocate
+                          </Button>
+                        </div>
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -266,3 +418,5 @@ export default function AdmissionsManagement() {
     </div>
   );
 }
+
+
