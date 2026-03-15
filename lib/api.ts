@@ -3,6 +3,7 @@ import axios, {
   type AxiosInstance,
   type InternalAxiosRequestConfig,
 } from "axios";
+import { clearAuthData } from "@/lib/auth";
 
 const API_BASE_URL = "/api";
 
@@ -76,7 +77,17 @@ api.interceptors.response.use(
         processQueue(refreshError as AxiosError);
 
         if (typeof window !== "undefined") {
-          window.location.href = "/login";
+          clearAuthData();
+
+          const isAuthRoute = ["/login", "/signup"].some(
+            (route) =>
+              window.location.pathname === route ||
+              window.location.pathname.startsWith(`${route}/`),
+          );
+
+          if (!isAuthRoute) {
+            window.location.href = "/login";
+          }
         }
 
         return Promise.reject(refreshError);

@@ -17,16 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  Bell,
-  LogOut,
-  Menu,
-  Moon,
-  Settings,
-  Shield,
-  Sun,
-  User,
-} from "lucide-react";
+import { Bell, LogOut, Menu, Moon, Settings, Shield, Sun, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 
@@ -39,103 +30,97 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   const { user, logout } = useAuth();
 
   const userName = user?.name ?? "Admin";
+  const userRole = user?.designation ?? "Admin";
   const userInitials = userName
     .split(" ")
-    .map((n) => n[0])
+    .map((namePart) => namePart[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
 
   return (
     <TooltipProvider>
-      <header className="bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 shadow-sm sticky top-0 z-50 border-b border-border">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo and Brand */}
-            <div className="flex items-center space-x-4">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/60">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md transition-shadow group-hover:shadow-lg">
+              <Shield className="h-5 w-5" />
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="text-xl font-bold text-foreground">RUET Admin</h1>
+              <p className="text-xs text-muted-foreground">Hall Management</p>
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="rounded-lg"
+                >
+                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative rounded-lg">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                  <span className="sr-only">Notifications</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Notifications</TooltipContent>
+            </Tooltip>
+
+            {user && onMenuClick ? (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onMenuClick}
-                className="md:hidden"
+                className="rounded-lg md:hidden"
               >
                 <Menu className="h-5 w-5" />
+                <span className="sr-only">Open navigation</span>
               </Button>
-              <Link
-                href="/dashboard"
-                className="flex items-center space-x-3 group"
-              >
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-                  <Shield className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-xl font-bold text-foreground">
-                    RUET Admin
-                  </h1>
-                  <p className="text-xs text-muted-foreground">
-                    Hall Management
-                  </p>
-                </div>
-              </Link>
-            </div>
+            ) : null}
 
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-2">
-              {/* Dark Mode Toggle */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      setTheme(theme === "dark" ? "light" : "dark")
-                    }
-                    className="relative"
-                  >
-                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                    <span className="sr-only">Toggle theme</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Toggle theme</TooltipContent>
-              </Tooltip>
-
-              {/* Notifications */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-                    <span className="sr-only">Notifications</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Notifications</TooltipContent>
-              </Tooltip>
-
-              {/* User Dropdown */}
+            {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center gap-2 px-2"
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                  <Button variant="ghost" className="flex items-center gap-2 rounded-lg px-2">
+                    <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+                      <AvatarFallback className="bg-primary text-sm font-semibold text-primary-foreground">
                         {userInitials}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:block text-sm font-medium">
-                      {userName}
-                    </span>
+                    <div className="hidden text-left sm:block">
+                      <p className="text-sm font-medium text-foreground">{userName}</p>
+                      <p className="text-xs text-muted-foreground">{userRole}</p>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium">{userName}</p>
+                      <p className="text-xs text-muted-foreground">{userRole}</p>
+                    </div>
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard/profile" className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
-                      Profile
+                      My Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -147,14 +132,14 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={logout}
-                    className="text-destructive"
+                    className="cursor-pointer text-destructive focus:text-destructive"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    Log out
+                    Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
+            ) : null}
           </div>
         </div>
       </header>

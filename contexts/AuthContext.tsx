@@ -46,14 +46,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(storedUser);
 
         // Refresh the access token, then hydrate the latest profile from backend.
-        await renewAccessToken().catch(() => {});
+        const renewSucceeded = await renewAccessToken()
+          .then(() => true)
+          .catch(() => false);
+
+        if (!renewSucceeded) {
+          clearAuthData();
+          setUser(null);
+          return;
+        }
+
         const profileRes = await getMyProfile().catch(() => null);
 
         if (profileRes?.data.profile) {
           setUser(profileRes.data.profile);
+          return;
         }
+
+        clearAuthData();
+        setUser(null);
       } catch {
         clearAuthData();
+        setUser(null);
       } finally {
         setIsLoading(false);
       }

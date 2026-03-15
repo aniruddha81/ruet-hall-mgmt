@@ -1,12 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
 import type { StaffRole } from "@/lib/types";
@@ -92,47 +86,47 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  // Sidebar is expanded if pinned OR hovered (on desktop)
   const isExpanded = isSidebarPinned || isSidebarHovered;
+  const desktopLabelClass = `min-w-0 overflow-hidden whitespace-nowrap text-left transition-[max-width,opacity,margin,transform] duration-300 ease-out ${
+    isExpanded
+      ? "ml-1 max-w-[160px] translate-x-0 opacity-100"
+      : "ml-0 max-w-0 -translate-x-1 opacity-0"
+  }`;
 
-  // Filter nav links based on user's role
-  // Provost sees everything (bypasses role check)
   const navLinks = useMemo(() => {
     const role = user?.designation;
-    if (!role) return allNavLinks.filter((l) => l.roles === "all");
+    if (!role) return allNavLinks.filter((link) => link.roles === "all");
     if (role === "PROVOST") return allNavLinks;
+
     return allNavLinks.filter(
       (link) => link.roles === "all" || link.roles.includes(role),
     );
   }, [user?.designation]);
 
   const handleLinkClick = () => {
-    // Only close sidebar on mobile when a link is clicked
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       closeMobile();
     }
   };
 
   return (
-    <TooltipProvider>
-      {/* Mobile Overlay */}
+    <>
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden animate-in fade-in"
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm animate-in fade-in md:hidden"
           onClick={closeMobile}
         />
       )}
 
-      {/* Mobile Sidebar (Drawer) */}
       <aside
-        className={`fixed top-16 left-0 h-[calc(100vh-4rem)] w-72 bg-sidebar border-r border-sidebar-border transition-transform duration-300 z-50 md:hidden ${
+        className={`fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] w-72 border-r border-sidebar-border bg-sidebar transition-transform duration-300 md:hidden ${
           isMobileOpen
             ? "translate-x-0 animate-in slide-in-from-left"
             : "-translate-x-full"
         }`}
       >
-        <div className="flex flex-col h-full py-4">
-          <div className="px-4 mb-6 flex items-center justify-between">
+        <div className="flex h-full flex-col py-4">
+          <div className="mb-6 flex items-center justify-between px-4">
             <span className="font-semibold text-sidebar-foreground">Menu</span>
             <Button
               variant="ghost"
@@ -147,118 +141,100 @@ export default function Sidebar() {
           <nav className="flex-1 space-y-1 px-3">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
+              const Icon = link.icon;
+
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={handleLinkClick}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  }`}
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  } justify-start px-1`}
                 >
-                  <link.icon className="w-5 h-5" />
+                  <Icon className="h-5 w-5" />
                   {link.label}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="px-3 mt-auto">
+          <div className="border-t border-sidebar-border p-4">
             <Button
               variant="ghost"
               onClick={logout}
-              className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
-              <LogOut className="w-5 h-5" />
-              Logout
+              <LogOut className="mr-3 h-5 w-5" />
+              Sign Out
             </Button>
           </div>
         </div>
       </aside>
 
-      {/* Desktop Sidebar */}
       <aside
-        className={`hidden md:flex fixed top-16 left-0 h-[calc(100vh-4rem)] flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 z-30 ${
+        className={`fixed left-0 top-16 z-40 hidden h-[calc(100vh-4rem)] overflow-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ease-out md:block ${
           isExpanded ? "w-64" : "w-16"
         }`}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        {/* Pin Button */}
-        <div
-          className={`px-3 py-4 flex ${isExpanded ? "justify-end" : "justify-center"}`}
-        >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={togglePin}
-                className="h-8 w-8"
-              >
-                {isSidebarPinned ? (
-                  <PinOff className="h-4 w-4" />
-                ) : (
-                  <Pin className="h-4 w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {isSidebarPinned ? "Unpin sidebar" : "Pin sidebar"}
-            </TooltipContent>
-          </Tooltip>
-        </div>
+        <div className="flex h-full flex-col py-4">
+          <div className="mb-4 flex justify-end px-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={togglePin}
+              className="h-10 w-10 text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              {isSidebarPinned ? (
+                <PinOff className="h-4 w-4" />
+              ) : (
+                <Pin className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 space-y-1 px-3 overflow-y-auto">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            return (
-              <Tooltip key={link.href}>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={link.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    } ${!isExpanded ? "justify-center" : ""}`}
-                  >
-                    <link.icon className="w-5 h-5 shrink-0" />
-                    {isExpanded && <span>{link.label}</span>}
-                  </Link>
-                </TooltipTrigger>
-                {!isExpanded && (
-                  <TooltipContent side="right">{link.label}</TooltipContent>
-                )}
-              </Tooltip>
-            );
-          })}
-        </nav>
+          <nav className="flex-1 space-y-1 px-2 overflow-y-auto">
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              const Icon = link.icon;
 
-        {/* Logout Button */}
-        <div className="px-3 py-4 mt-auto">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                onClick={logout}
-                className={`w-full gap-3 text-destructive hover:text-destructive hover:bg-destructive/10 ${
-                  isExpanded ? "justify-start" : "justify-center"
-                }`}
-              >
-                <LogOut className="w-5 h-5 shrink-0" />
-                {isExpanded && <span>Logout</span>}
-              </Button>
-            </TooltipTrigger>
-            {!isExpanded && (
-              <TooltipContent side="right">Logout</TooltipContent>
-            )}
-          </Tooltip>
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex h-11 items-center rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  } justify-start px-1`}
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center">
+                    <Icon className="h-5 w-5 shrink-0" />
+                  </span>
+                  <span className={desktopLabelClass}>{link.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="border-t border-sidebar-border px-2 pt-4">
+            <Button
+              variant="ghost"
+              onClick={logout}
+              className="flex h-11 w-full items-center justify-start overflow-hidden px-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center">
+                <LogOut className="h-5 w-5 shrink-0" />
+              </span>
+              <span className={desktopLabelClass}>Sign Out</span>
+            </Button>
+          </div>
         </div>
       </aside>
-    </TooltipProvider>
+    </>
   );
 }

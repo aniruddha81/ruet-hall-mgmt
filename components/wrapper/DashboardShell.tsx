@@ -9,18 +9,22 @@ interface DashboardShellProps {
 }
 
 export default function DashboardShell({ children }: DashboardShellProps) {
-  const { isSidebarPinned, toggleMobile } = useLayout();
+  const { isSidebarPinned, isSidebarHovered, openMobile } = useLayout();
+
+  const isExpanded = isSidebarPinned || isSidebarHovered;
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar onMenuClick={toggleMobile} />
+      <Navbar onMenuClick={openMobile} />
       <Sidebar />
       <main
-        className={`transition-all duration-300 pt-4 px-4 md:px-6 lg:px-8 pb-8 ${
-          isSidebarPinned ? "md:ml-64" : "md:ml-16"
+        className={`min-h-screen pt-16 transition-all duration-300 ${
+          isExpanded ? "md:pl-64" : "md:pl-16"
         }`}
       >
-        {children}
+        <div className="mx-auto max-w-7xl p-4 pb-24 md:p-8 md:pb-8">
+          {children}
+        </div>
       </main>
     </div>
   );
