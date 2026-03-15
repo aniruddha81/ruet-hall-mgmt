@@ -82,6 +82,7 @@ export default function SignupPage() {
         email: res.data.user.email,
         name: res.data.user.name,
         phone: formData.phone,
+        avatarUrl: null,
         academicDepartment: formData.academicDepartment as AcademicDepartment,
         rollNumber: formData.rollNumber,
         session: formData.session,

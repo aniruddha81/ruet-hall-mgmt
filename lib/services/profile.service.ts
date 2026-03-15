@@ -1,13 +1,10 @@
 import api from "@/lib/api";
-import type { ApiResponse } from "@/lib/types";
+import type { ApiResponse, StudentData } from "@/lib/types";
 
 // =================== PROFILE ===================
 
 export async function getMyProfile() {
-  const res =
-    await api.get<ApiResponse<{ profile: Record<string, unknown> }>>(
-      "/profile/me",
-    );
+  const res = await api.get<ApiResponse<{ profile: StudentData }>>("/profile/me");
   return res.data;
 }
 

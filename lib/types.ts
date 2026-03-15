@@ -79,6 +79,7 @@ export interface StudentData {
   email: string;
   name: string;
   phone: string;
+  avatarUrl: string | null;
   academicDepartment: AcademicDepartment;
   rollNumber: string;
   session: string;
@@ -92,6 +93,7 @@ export interface AdminData {
   id: string;
   email: string;
   name: string;
+  avatarUrl: string | null;
   role: Role;
   academicDepartment: AcademicDepartment | null;
   phone: string;

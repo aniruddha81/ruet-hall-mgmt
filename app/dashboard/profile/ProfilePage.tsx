@@ -68,7 +68,10 @@ export default function ProfilePage() {
     setUploading(true);
     setError(null);
     try {
-      await uploadAvatar(file);
+      const res = await uploadAvatar(file);
+      if (user) {
+        setUser({ ...user, avatarUrl: res.data.avatarUrl });
+      }
       setSuccess("Avatar updated successfully");
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -116,7 +119,10 @@ export default function ProfilePage() {
           <div className="flex items-center gap-6">
             <div className="relative">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={undefined} alt={user?.name} />
+                <AvatarImage
+                  src={user?.avatarUrl ?? undefined}
+                  alt={user?.name || ""}
+                />
                 <AvatarFallback className="text-xl bg-primary/10 text-primary">
                   {user?.name
                     ?.split(" ")

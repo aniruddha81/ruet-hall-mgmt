@@ -1,6 +1,7 @@
 "use client";
 
 import { clearAuthData, getStoredUser, saveAuthData } from "@/lib/auth";
+import { getMyProfile } from "@/lib/services/profile.service";
 import {
   logout as logoutApi,
   renewAccessToken,
@@ -37,18 +38,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Restore user from localStorage on mount
   useEffect(() => {
-    try {
-      const storedUser = getStoredUser();
-      if (storedUser) {
+    (async () => {
+      try {
+        const storedUser = getStoredUser();
+        if (!storedUser) return;
+
         setUser(storedUser);
-        // Immediately try to renew access token on page load
-        renewAccessToken().catch(() => {});
+
+        // Refresh the access token, then hydrate the latest profile from backend.
+        await renewAccessToken().catch(() => {});
+        const profileRes = await getMyProfile().catch(() => null);
+
+        if (profileRes?.data.profile) {
+          setUser(profileRes.data.profile);
+        }
+      } catch {
+        clearAuthData();
+      } finally {
+        setIsLoading(false);
       }
-    } catch {
-      clearAuthData();
-    } finally {
-      setIsLoading(false);
-    }
+    })();
   }, []);
 
   // Sync user to localStorage and manage proactive token renewal
