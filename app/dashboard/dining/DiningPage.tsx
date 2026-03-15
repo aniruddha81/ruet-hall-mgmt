@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   bookMealTokens,
@@ -20,9 +19,8 @@ import {
   getMyActiveTokens,
   getMyTokenHistory,
   getTomorrowMenus,
-  processPayment,
 } from "@/lib/services/dining.service";
-import type { MealMenu, MealToken } from "@/lib/types";
+import type { MealMenu, MealToken, PaymentMethod } from "@/lib/types";
 import { PAYMENT_METHODS } from "@/lib/types";
 import { Loader2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -32,34 +30,70 @@ type Menus = {
   dinner: MealMenu[];
 };
 
+type BookingState = Record<
+  string,
+  {
+    quantity: number;
+    paymentMethod: PaymentMethod;
+  }
+>;
+
+const DEFAULT_PAYMENT_METHOD: PaymentMethod = "BKASH";
+
 export default function DiningPage() {
-  const { user } = useAuth();
-  const [menus, setMenus] = useState<Menus>({} as Menus);
+  const [menus, setMenus] = useState<Menus>({ lunch: [], dinner: [] });
   const [activeTokens, setActiveTokens] = useState<MealToken[]>([]);
   const [history, setHistory] = useState<MealToken[]>([]);
+  const [bookingState, setBookingState] = useState<BookingState>({});
   const [loading, setLoading] = useState(true);
   const [bookingMenuId, setBookingMenuId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [payingTokenIds, setPayingTokenIds] = useState<string[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [transactionId, setTransactionId] = useState("");
-  const [processingPayment, setProcessingPayment] = useState(false);
+
+  const getBookingOptions = (menuId: string) =>
+    bookingState[menuId] ?? {
+      quantity: 1,
+      paymentMethod: DEFAULT_PAYMENT_METHOD,
+    };
+
+  const updateBookingOptions = (
+    menuId: string,
+    patch: Partial<{ quantity: number; paymentMethod: PaymentMethod }>,
+  ) => {
+    setBookingState((prev) => ({
+      ...prev,
+      [menuId]: {
+        ...getBookingOptions(menuId),
+        ...patch,
+      },
+    }));
+  };
 
   const fetchData = async () => {
     try {
       const [menusRes, tokensRes, historyRes] = await Promise.allSettled([
         getTomorrowMenus(),
         getMyActiveTokens(),
-        getMyTokenHistory(),
+        getMyTokenHistory({ limit: 50 }),
       ]);
-      if (menusRes.status === "fulfilled")
-        setMenus(menusRes.value?.data?.menus ?? []);
-      if (tokensRes.status === "fulfilled")
-        setActiveTokens(tokensRes.value.data?.tokens ?? []);
-      if (historyRes.status === "fulfilled")
-        setHistory(historyRes.value.data?.tokens ?? []);
+
+      if (menusRes.status === "fulfilled") {
+        setMenus(menusRes.value.data.menus);
+      }
+      if (tokensRes.status === "fulfilled") {
+        setActiveTokens(tokensRes.value.data.tokens ?? []);
+      }
+      if (historyRes.status === "fulfilled") {
+        setHistory(historyRes.value.data.tokens ?? []);
+      }
+      if (
+        menusRes.status === "rejected" &&
+        tokensRes.status === "rejected" &&
+        historyRes.status === "rejected"
+      ) {
+        throw menusRes.reason;
+      }
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -68,16 +102,26 @@ export default function DiningPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
-  const handleBook = async (menuId: string) => {
-    setBookingMenuId(menuId);
+  const handleBook = async (menu: MealMenu) => {
+    const options = getBookingOptions(menu.id);
+
+    setBookingMenuId(menu.id);
     setError(null);
     setSuccess(null);
+
     try {
-      await bookMealTokens({ menuId, quantity: 1 });
-      setSuccess("Meal token booked successfully!");
+      const res = await bookMealTokens({
+        menuId: menu.id,
+        quantity: options.quantity,
+        paymentMethod: options.paymentMethod,
+      });
+
+      setSuccess(
+        `Meal token booked successfully. Reference: ${res.data.transactionId}`,
+      );
       await fetchData();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -90,9 +134,10 @@ export default function DiningPage() {
     setCancellingId(tokenId);
     setError(null);
     setSuccess(null);
+
     try {
       await cancelMealToken(tokenId);
-      setSuccess("Token cancelled successfully!");
+      setSuccess("Token cancelled successfully.");
       await fetchData();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -101,35 +146,101 @@ export default function DiningPage() {
     }
   };
 
-  const handlePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (payingTokenIds.length === 0 || !paymentMethod || !transactionId) return;
-    setProcessingPayment(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      await processPayment({
-        tokenIds: payingTokenIds,
-        paymentMethod,
-        transactionId,
-      });
-      setSuccess("Payment processed successfully!");
-      setPayingTokenIds([]);
-      setPaymentMethod("");
-      setTransactionId("");
-      await fetchData();
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setProcessingPayment(false);
+  const renderMenuSection = (title: string, items: MealMenu[]) => {
+    if (items.length === 0) {
+      return null;
     }
-  };
 
-  const toggleTokenForPayment = (tokenId: string) => {
-    setPayingTokenIds((prev) =>
-      prev.includes(tokenId)
-        ? prev.filter((id) => id !== tokenId)
-        : [...prev, tokenId],
+    return (
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground">{title}</h3>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {items.map((menu) => {
+            const options = getBookingOptions(menu.id);
+            const total = menu.price * options.quantity;
+
+            return (
+              <Card key={menu.id} className="border-border/60">
+                <CardHeader className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <CardTitle className="text-lg">
+                      {menu.mealType.replace(/_/g, " ")}
+                    </CardTitle>
+                    <Badge variant="outline">
+                      {menu.availableTokens}/{menu.totalTokens} left
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {menu.menuDescription}
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="space-y-2 text-sm">
+                      <span className="font-medium">Quantity</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={Math.min(menu.availableTokens, 20)}
+                        value={options.quantity}
+                        onChange={(event) =>
+                          updateBookingOptions(menu.id, {
+                            quantity: Math.max(
+                              1,
+                              Math.min(
+                                Number(event.target.value) || 1,
+                                Math.min(menu.availableTokens, 20),
+                              ),
+                            ),
+                          })
+                        }
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm">
+                      <span className="font-medium">Payment Method</span>
+                      <select
+                        value={options.paymentMethod}
+                        onChange={(event) =>
+                          updateBookingOptions(menu.id, {
+                            paymentMethod: event.target.value as PaymentMethod,
+                          })
+                        }
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        {PAYMENT_METHODS.map((method) => (
+                          <option key={method} value={method}>
+                            {method}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between border-t pt-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Payable now
+                      </p>
+                      <p className="text-2xl font-bold text-foreground">
+                        BDT {total}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => handleBook(menu)}
+                      disabled={bookingMenuId === menu.id || menu.availableTokens <= 0}
+                    >
+                      {bookingMenuId === menu.id ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      Pay & Book
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
     );
   };
 
@@ -144,22 +255,22 @@ export default function DiningPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground flex items-center gap-3">
+        <h2 className="flex items-center gap-3 text-3xl font-bold text-foreground">
           <UtensilsCrossed className="h-8 w-8" />
           Dining
         </h2>
-        <p className="text-muted-foreground mt-1">
-          View menus, book meal tokens, and manage your dining
+        <p className="mt-1 text-muted-foreground">
+          Pay for tomorrow&apos;s meals while booking, then manage your active and past tokens.
         </p>
       </div>
 
       {error && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
       {success && (
-        <div className="p-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg dark:text-green-400 dark:bg-green-950 dark:border-green-900">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400">
           {success}
         </div>
       )}
@@ -170,118 +281,20 @@ export default function DiningPage() {
           <TabsTrigger value="active">
             Active Tokens ({activeTokens.length})
           </TabsTrigger>
-          <TabsTrigger value="pay">Pay</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="menus" className="mt-6">
-          {!menus || (!menus.lunch?.length && !menus.dinner?.length) ? (
+          {menus.lunch.length === 0 && menus.dinner.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
-                No menus available for tomorrow yet. Check back later.
+                No menus are available for tomorrow yet.
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-8">
-              {menus.lunch && menus.lunch.length > 0 && (
-                <div>
-                  <h3 className="text-xl font-semibold mb-4 text-foreground">
-                    Lunch
-                  </h3>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {menus.lunch.map((menu) => (
-                      <Card
-                        key={menu.id}
-                        className="hover:shadow-md transition-shadow"
-                      >
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">
-                              {menu.mealType?.replace(/_/g, " ")}
-                            </CardTitle>
-                            <Badge variant="outline">
-                              {menu.availableTokens}/{menu.totalTokens} left
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <p className="text-muted-foreground text-sm">
-                            {menu.menuDescription}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold">
-                              ৳{menu.price}
-                            </span>
-                            <Button
-                              onClick={() => handleBook(menu.id)}
-                              disabled={
-                                bookingMenuId === menu.id ||
-                                menu.availableTokens <= 0
-                              }
-                              size="sm"
-                            >
-                              {bookingMenuId === menu.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              ) : null}
-                              Book Token
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {menus.dinner && menus.dinner.length > 0 && (
-                <div>
-                  <h3 className="text-xl font-semibold mb-4 text-foreground">
-                    Dinner
-                  </h3>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {menus.dinner.map((menu) => (
-                      <Card
-                        key={menu.id}
-                        className="hover:shadow-md transition-shadow"
-                      >
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">
-                              {menu.mealType?.replace(/_/g, " ")}
-                            </CardTitle>
-                            <Badge variant="outline">
-                              {menu.availableTokens}/{menu.totalTokens} left
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <p className="text-muted-foreground text-sm">
-                            {menu.menuDescription}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold">
-                              ৳{menu.price}
-                            </span>
-                            <Button
-                              onClick={() => handleBook(menu.id)}
-                              disabled={
-                                bookingMenuId === menu.id ||
-                                menu.availableTokens <= 0
-                              }
-                              size="sm"
-                            >
-                              {bookingMenuId === menu.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              ) : null}
-                              Book Token
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {renderMenuSection("Lunch", menus.lunch)}
+              {renderMenuSection("Dinner", menus.dinner)}
             </div>
           )}
         </TabsContent>
@@ -299,11 +312,11 @@ export default function DiningPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Token #</TableHead>
+                      <TableHead>Token</TableHead>
                       <TableHead>Meal</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Qty</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Amount</TableHead>
                       <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -313,19 +326,22 @@ export default function DiningPage() {
                         <TableCell className="font-mono text-xs">
                           #{token.id.slice(0, 8)}
                         </TableCell>
-                        <TableCell className="font-medium">
-                          {token.mealType?.replace(/_/g, " ")}
+                        <TableCell>
+                          <div className="font-medium">
+                            {token.mealType.replace(/_/g, " ")}
+                          </div>
+                          {token.menuDescription ? (
+                            <div className="text-xs text-muted-foreground">
+                              {token.menuDescription}
+                            </div>
+                          ) : null}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {token.mealDate
-                            ? new Date(token.mealDate).toLocaleDateString(
-                                "en-GB",
-                              )
-                            : "-"}
+                          {new Date(token.mealDate).toLocaleDateString("en-GB")}
                         </TableCell>
                         <TableCell>{token.quantity}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{token.status}</Badge>
+                        <TableCell className="font-semibold">
+                          BDT {token.totalAmount}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -335,7 +351,7 @@ export default function DiningPage() {
                             disabled={cancellingId === token.id}
                           >
                             {cancellingId === token.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                             ) : null}
                             Cancel
                           </Button>
@@ -347,102 +363,6 @@ export default function DiningPage() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-
-        <TabsContent value="pay" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pay for Meal Tokens</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {activeTokens.filter((t) => !t.paymentId).length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  No unpaid tokens. Book tokens first from the menus tab.
-                </p>
-              ) : (
-                <form onSubmit={handlePayment} className="space-y-4">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">
-                      Select tokens to pay for:
-                    </p>
-                    {activeTokens
-                      .filter((t) => !t.paymentId)
-                      .map((token) => (
-                        <label
-                          key={token.id}
-                          className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={payingTokenIds.includes(token.id)}
-                            onChange={() => toggleTokenForPayment(token.id)}
-                            className="rounded"
-                          />
-                          <span className="flex-1">
-                            {token.mealType} -{" "}
-                            {new Date(token.mealDate).toLocaleDateString()} -
-                            Qty: {token.quantity}
-                          </span>
-                          <span className="font-semibold">
-                            ৳{token.totalAmount}
-                          </span>
-                        </label>
-                      ))}
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        Payment Method
-                      </label>
-                      <select
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        required
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <option value="">Select method</option>
-                        {PAYMENT_METHODS.map((m) => (
-                          <option key={m} value={m}>
-                            {m}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        Transaction ID
-                      </label>
-                      <input
-                        type="text"
-                        value={transactionId}
-                        onChange={(e) => setTransactionId(e.target.value)}
-                        required
-                        placeholder="Enter transaction reference"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      />
-                    </div>
-                  </div>
-                  {payingTokenIds.length > 0 && (
-                    <p className="text-sm font-medium">
-                      Total: ৳
-                      {activeTokens
-                        .filter((t) => payingTokenIds.includes(t.id))
-                        .reduce((sum, t) => sum + t.totalAmount, 0)}
-                    </p>
-                  )}
-                  <Button
-                    type="submit"
-                    disabled={processingPayment || payingTokenIds.length === 0}
-                  >
-                    {processingPayment && (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    )}
-                    Process Payment
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
@@ -458,9 +378,10 @@ export default function DiningPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Token #</TableHead>
+                      <TableHead>Token</TableHead>
                       <TableHead>Meal</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Qty</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -472,26 +393,21 @@ export default function DiningPage() {
                           #{token.id.slice(0, 8)}
                         </TableCell>
                         <TableCell className="font-medium">
-                          {token.mealType?.replace(/_/g, " ")}
+                          {token.mealType.replace(/_/g, " ")}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {token.mealDate
-                            ? new Date(token.mealDate).toLocaleDateString(
-                                "en-GB",
-                              )
-                            : "-"}
+                          {new Date(token.mealDate).toLocaleDateString("en-GB")}
                         </TableCell>
+                        <TableCell>{token.quantity}</TableCell>
                         <TableCell className="font-semibold">
-                          ৳{token.totalAmount}
+                          BDT {token.totalAmount}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant={
-                              token.status === "CONSUMED"
-                                ? "default"
-                                : token.status === "CANCELLED"
-                                  ? "destructive"
-                                  : "secondary"
+                              token.status === "CANCELLED"
+                                ? "destructive"
+                                : "secondary"
                             }
                           >
                             {token.status}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,7 @@ export default function StudentDashboard() {
 
         try {
           const appRes = await getMyApplicationStatus();
-          setApplicationStatus(appRes.data?.application?.status ?? null);
+          setApplicationStatus(appRes.data?.status ?? null);
         } catch {
           // No application => that's fine
         }

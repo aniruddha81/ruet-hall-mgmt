@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -14,8 +15,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getApiErrorMessage } from "@/lib/api";
 import { getMyTokenHistory } from "@/lib/services/dining.service";
-import { getMyLedger } from "@/lib/services/finance.service";
-import type { MealPayment, MealToken, Payment, StudentDue } from "@/lib/types";
+import { getMyLedger, payMyDue } from "@/lib/services/finance.service";
+import type {
+  FinancePaymentMethod,
+  MealPayment,
+  MealToken,
+  Payment,
+  StudentDue,
+} from "@/lib/types";
+import { FINANCE_PAYMENT_METHODS } from "@/lib/types";
 import {
   AlertTriangle,
   CreditCard,
@@ -26,6 +34,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+const DEFAULT_METHOD: FinancePaymentMethod = "ONLINE";
+
 export default function PaymentsPage() {
   const [dues, setDues] = useState<StudentDue[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -34,33 +44,59 @@ export default function PaymentsPage() {
   const [summary, setSummary] = useState({ totalDue: 0, totalPaid: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [payingDueId, setPayingDueId] = useState<string | null>(null);
+  const [dueMethods, setDueMethods] = useState<Record<string, FinancePaymentMethod>>({});
+
+  const fetchData = async () => {
+    try {
+      const [ledgerRes, historyRes] = await Promise.allSettled([
+        getMyLedger(),
+        getMyTokenHistory({ limit: 50 }),
+      ]);
+
+      if (ledgerRes.status === "fulfilled") {
+        setDues(ledgerRes.value.data.dues);
+        setPayments(ledgerRes.value.data.payments);
+        setMealPayments(ledgerRes.value.data.mealPayments);
+        setSummary(ledgerRes.value.data.summary);
+      }
+
+      if (historyRes.status === "fulfilled") {
+        setTokenHistory(historyRes.value.data.tokens ?? []);
+      }
+
+      if (ledgerRes.status === "rejected" && historyRes.status === "rejected") {
+        throw ledgerRes.reason;
+      }
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [ledgerRes, historyRes] = await Promise.allSettled([
-          getMyLedger(),
-          getMyTokenHistory({ limit: 50 }),
-        ]);
-
-        if (ledgerRes.status === "fulfilled") {
-          setDues(ledgerRes.value.data.dues);
-          setPayments(ledgerRes.value.data.payments);
-          setMealPayments(ledgerRes.value.data.mealPayments);
-          setSummary(ledgerRes.value.data.summary);
-        }
-
-        if (historyRes.status === "fulfilled") {
-          setTokenHistory(historyRes.value.data.tokens ?? []);
-        }
-      } catch (err) {
-        setError(getApiErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    void fetchData();
   }, []);
+
+  const handlePayDue = async (due: StudentDue) => {
+    const method = dueMethods[due.id] ?? DEFAULT_METHOD;
+
+    setPayingDueId(due.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await payMyDue(due.id, { method });
+      setSuccess(`Payment completed. Reference: ${res.data.transactionId}`);
+      await fetchData();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setPayingDueId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -76,8 +112,8 @@ export default function PaymentsPage() {
         <h2 className="text-3xl font-bold text-foreground">
           Payments & Finance
         </h2>
-        <p className="text-muted-foreground mt-1">
-          View your dues, payment history, and meal token transactions
+        <p className="mt-1 text-muted-foreground">
+          Pay hall dues, review completed transactions, and keep track of meal purchases.
         </p>
       </div>
 
@@ -87,16 +123,20 @@ export default function PaymentsPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+      {success && (
+        <Alert>
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
+      )}
 
-      {/* Summary Cards */}
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Unpaid Dues</p>
-                <p className="text-2xl font-bold text-destructive mt-1">
-                  ৳{summary.totalDue}
+                <p className="mt-1 text-2xl font-bold text-destructive">
+                  BDT {summary.totalDue}
                 </p>
               </div>
               <Wallet className="h-8 w-8 text-destructive/30" />
@@ -107,12 +147,12 @@ export default function PaymentsPage() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Paid</p>
-                <p className="text-2xl font-bold text-chart-2 mt-1">
-                  ৳{summary.totalPaid}
+                <p className="text-sm text-muted-foreground">Hall Payments</p>
+                <p className="mt-1 text-2xl font-bold text-emerald-600">
+                  BDT {summary.totalPaid}
                 </p>
               </div>
-              <CreditCard className="h-8 w-8 text-chart-2/30" />
+              <CreditCard className="h-8 w-8 text-emerald-600/30" />
             </div>
           </CardContent>
         </Card>
@@ -121,7 +161,7 @@ export default function PaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Meal Payments</p>
-                <p className="text-2xl font-bold mt-1">{mealPayments.length}</p>
+                <p className="mt-1 text-2xl font-bold">{mealPayments.length}</p>
               </div>
               <UtensilsCrossed className="h-8 w-8 text-muted-foreground/30" />
             </div>
@@ -132,7 +172,7 @@ export default function PaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Token History</p>
-                <p className="text-2xl font-bold mt-1">{tokenHistory.length}</p>
+                <p className="mt-1 text-2xl font-bold">{tokenHistory.length}</p>
               </div>
               <Receipt className="h-8 w-8 text-muted-foreground/30" />
             </div>
@@ -140,7 +180,6 @@ export default function PaymentsPage() {
         </Card>
       </div>
 
-      {/* Tabs */}
       <Tabs defaultValue="dues">
         <TabsList>
           <TabsTrigger value="dues">Dues</TabsTrigger>
@@ -156,7 +195,7 @@ export default function PaymentsPage() {
             </CardHeader>
             <CardContent>
               {dues.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
+                <p className="py-8 text-center text-muted-foreground">
                   No dues found.
                 </p>
               ) : (
@@ -167,7 +206,8 @@ export default function PaymentsPage() {
                       <TableHead>Hall</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead>Issued</TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -176,23 +216,57 @@ export default function PaymentsPage() {
                         <TableCell className="font-medium">
                           {due.dueType}
                         </TableCell>
-                        <TableCell>{due.hall?.replace(/_/g, " ")}</TableCell>
+                        <TableCell>{due.hall.replace(/_/g, " ")}</TableCell>
                         <TableCell className="font-semibold">
-                          ৳{due.amount}
+                          BDT {due.amount}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant={
-                              due.dueStatus === "PAID"
-                                ? "default"
-                                : "destructive"
+                              due.dueStatus === "PAID" ? "default" : "destructive"
                             }
                           >
                             {due.dueStatus}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {new Date(due.createdAt).toLocaleDateString()}
+                          {new Date(due.createdAt).toLocaleDateString("en-GB")}
+                        </TableCell>
+                        <TableCell>
+                          {due.dueStatus === "PAID" ? (
+                            <span className="text-sm text-muted-foreground">
+                              Paid {due.paidAt ? new Date(due.paidAt).toLocaleDateString("en-GB") : ""}
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={dueMethods[due.id] ?? DEFAULT_METHOD}
+                                onChange={(event) =>
+                                  setDueMethods((prev) => ({
+                                    ...prev,
+                                    [due.id]: event.target.value as FinancePaymentMethod,
+                                  }))
+                                }
+                                className="flex h-9 rounded-md border border-input bg-background px-3 text-sm"
+                              >
+                                {FINANCE_PAYMENT_METHODS.map((method) => (
+                                  <option key={method} value={method}>
+                                    {method}
+                                  </option>
+                                ))}
+                              </select>
+                              <Button
+                                size="sm"
+                                onClick={() => handlePayDue(due)}
+                                disabled={payingDueId === due.id}
+                              >
+                                {payingDueId === due.id ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : null}
+                                Pay Now
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -206,33 +280,37 @@ export default function PaymentsPage() {
         <TabsContent value="payments">
           <Card>
             <CardHeader>
-              <CardTitle>Payment History</CardTitle>
+              <CardTitle>Hall Payment History</CardTitle>
             </CardHeader>
             <CardContent>
               {payments.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  No payments yet.
+                <p className="py-8 text-center text-muted-foreground">
+                  No hall payments yet.
                 </p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Hall</TableHead>
+                      <TableHead>Due ID</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Method</TableHead>
                       <TableHead>Date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell>{p.hall?.replace(/_/g, " ")}</TableCell>
-                        <TableCell className="font-semibold">
-                          ৳{p.amount}
+                    {payments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{payment.hall.replace(/_/g, " ")}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {payment.dueId ? `#${payment.dueId.slice(0, 8)}` : "-"}
                         </TableCell>
-                        <TableCell>{p.method}</TableCell>
+                        <TableCell className="font-semibold">
+                          BDT {payment.amount}
+                        </TableCell>
+                        <TableCell>{payment.method}</TableCell>
                         <TableCell className="text-muted-foreground">
-                          {new Date(p.createdAt).toLocaleDateString()}
+                          {new Date(payment.createdAt).toLocaleDateString("en-GB")}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -250,7 +328,7 @@ export default function PaymentsPage() {
             </CardHeader>
             <CardContent>
               {mealPayments.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
+                <p className="py-8 text-center text-muted-foreground">
                   No meal payments yet.
                 </p>
               ) : (
@@ -260,29 +338,29 @@ export default function PaymentsPage() {
                       <TableHead>Amount</TableHead>
                       <TableHead>Qty</TableHead>
                       <TableHead>Method</TableHead>
-                      <TableHead>Transaction</TableHead>
+                      <TableHead>Reference</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Refund</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mealPayments.map((mp) => (
-                      <TableRow key={mp.id}>
+                    {mealPayments.map((mealPayment) => (
+                      <TableRow key={mealPayment.id}>
                         <TableCell className="font-semibold">
-                          ৳{mp.amount}
+                          BDT {mealPayment.amount}
                         </TableCell>
-                        <TableCell>{mp.totalQuantity}</TableCell>
-                        <TableCell>{mp.paymentMethod}</TableCell>
+                        <TableCell>{mealPayment.totalQuantity}</TableCell>
+                        <TableCell>{mealPayment.paymentMethod}</TableCell>
                         <TableCell className="font-mono text-xs">
-                          {mp.transactionId}
+                          {mealPayment.transactionId}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {new Date(mp.paymentDate).toLocaleDateString()}
+                          {new Date(mealPayment.paymentDate).toLocaleDateString("en-GB")}
                         </TableCell>
                         <TableCell>
-                          {mp.refundAmount ? (
+                          {mealPayment.refundAmount ? (
                             <Badge variant="secondary">
-                              ৳{mp.refundAmount}
+                              BDT {mealPayment.refundAmount}
                             </Badge>
                           ) : (
                             "-"
@@ -304,7 +382,7 @@ export default function PaymentsPage() {
             </CardHeader>
             <CardContent>
               {tokenHistory.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
+                <p className="py-8 text-center text-muted-foreground">
                   No token history yet.
                 </p>
               ) : (
@@ -325,20 +403,18 @@ export default function PaymentsPage() {
                           {token.mealType}
                         </TableCell>
                         <TableCell>
-                          {new Date(token.mealDate).toLocaleDateString()}
+                          {new Date(token.mealDate).toLocaleDateString("en-GB")}
                         </TableCell>
                         <TableCell>{token.quantity}</TableCell>
                         <TableCell className="font-semibold">
-                          ৳{token.totalAmount}
+                          BDT {token.totalAmount}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant={
-                              token.status === "CONSUMED"
-                                ? "default"
-                                : token.status === "CANCELLED"
-                                  ? "destructive"
-                                  : "secondary"
+                              token.status === "CANCELLED"
+                                ? "destructive"
+                                : "secondary"
                             }
                           >
                             {token.status}

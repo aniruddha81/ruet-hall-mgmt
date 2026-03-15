@@ -1,4 +1,4 @@
-// =================== BACKEND ENUM MIRRORS ===================
+﻿// =================== BACKEND ENUM MIRRORS ===================
 export const ROLES = [
   "PROVOST",
   "ASST_FINANCE",
@@ -43,6 +43,7 @@ export const PAYMENT_METHODS = [
   "BANK",
   "CASH",
 ] as const;
+export const FINANCE_PAYMENT_METHODS = ["CASH", "BANK", "ONLINE"] as const;
 export const SEAT_APPLICATION_STATUSES = [
   "PENDING",
   "APPROVED",
@@ -59,6 +60,7 @@ export type Hall = (typeof HALLS)[number];
 export type MealType = (typeof MEAL_TYPES)[number];
 export type TokenStatus = (typeof TOKEN_STATUSES)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export type FinancePaymentMethod = (typeof FINANCE_PAYMENT_METHODS)[number];
 export type SeatApplicationStatus = (typeof SEAT_APPLICATION_STATUSES)[number];
 export type BedStatus = (typeof BED_STATUSES)[number];
 export type DueType = (typeof DUE_TYPES)[number];
@@ -71,6 +73,13 @@ export interface ApiResponse<T = unknown> {
   message: string;
   success: boolean;
   errors?: unknown[];
+}
+
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 // =================== AUTH TYPES ===================
@@ -136,7 +145,7 @@ export interface MealToken {
   id: string;
   studentId: string;
   menuId: string;
-  hall: Hall;
+  hall?: Hall;
   mealDate: string;
   mealType: MealType;
   quantity: number;
@@ -145,13 +154,17 @@ export interface MealToken {
   bookingTime: string;
   cancelledAt: string | null;
   status: TokenStatus;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  menuDescription?: string;
+  price?: number;
 }
 
 export interface MealPayment {
   id: string;
-  studentId: string;
+  studentId?: string;
+  studentName?: string;
+  rollNumber?: string;
   amount: number;
   totalQuantity: number;
   paymentMethod: PaymentMethod;
@@ -159,8 +172,19 @@ export interface MealPayment {
   paymentDate: string;
   refundedAt: string | null;
   refundAmount: number | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MealBookingReceipt {
+  tokenId: string;
+  paymentId: string;
+  quantity: number;
+  totalAmount: number;
+  mealType: MealType;
+  mealDate: string;
+  transactionId: string;
+  paymentMethod: PaymentMethod;
 }
 
 // =================== ADMISSION TYPES ===================
@@ -175,6 +199,10 @@ export interface SeatApplication {
   reviewedBy: string | null;
   reviewedAt: string | null;
   createdAt: string;
+  studentName?: string;
+  studentEmail?: string;
+  seatCharge?: StudentDue | null;
+  canAllocate?: boolean;
 }
 
 export interface SeatAllocation {
@@ -206,7 +234,7 @@ export interface Bed {
   roomId: string;
   bedLabel: string;
   bedStatus: BedStatus;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface Asset {
@@ -226,6 +254,7 @@ export interface DamageReport {
   hall: Hall;
   description: string;
   fineAmount: number | null;
+  fineDueId?: string | null;
   status: string;
   verifiedBy: string | null;
   createdAt: string;
@@ -242,16 +271,16 @@ export interface StudentDue {
   dueStatus: DueStatus;
   paidAt: string | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface Payment {
   id: string;
-  studentId: string;
+  studentId?: string;
   hall: Hall;
-  dueId: string;
+  dueId: string | null;
   amount: number;
-  method: string;
+  method: FinancePaymentMethod;
   createdAt: string;
 }
 
@@ -263,4 +292,21 @@ export interface Expense {
   category: string;
   approvedBy: string;
   createdAt: string;
+}
+
+export interface StudentLedger {
+  dues: StudentDue[];
+  payments: Payment[];
+  mealPayments: MealPayment[];
+  summary: { totalDue: number; totalPaid: number };
+}
+
+export interface DuePaymentReceipt {
+  paymentId: string;
+  dueId: string;
+  amount: number;
+  method: FinancePaymentMethod;
+  status: "PAID";
+  transactionId: string;
+  paidAt: string;
 }

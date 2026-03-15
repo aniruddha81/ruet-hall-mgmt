@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,36 +9,49 @@ import {
   applyForSeat,
   getMyApplicationStatus,
 } from "@/lib/services/admission.service";
-import { HALLS, type Hall, type SeatApplication } from "@/lib/types";
+import { payMyDue } from "@/lib/services/finance.service";
+import {
+  FINANCE_PAYMENT_METHODS,
+  HALLS,
+  type FinancePaymentMethod,
+  type Hall,
+  type SeatApplication,
+} from "@/lib/types";
 import { ClipboardList, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+
+const DEFAULT_METHOD: FinancePaymentMethod = "ONLINE";
 
 export default function AdmissionPage() {
   const { user } = useAuth();
   const [application, setApplication] = useState<SeatApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [payingSeatCharge, setPayingSeatCharge] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [hall, setHall] = useState<Hall | null>(null);
+  const [paymentMethod, setPaymentMethod] =
+    useState<FinancePaymentMethod>(DEFAULT_METHOD);
+
+  const fetchStatus = async () => {
+    try {
+      const res = await getMyApplicationStatus();
+      setApplication(res.data ?? null);
+    } catch {
+      setApplication(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await getMyApplicationStatus();
-        console.log("res : ", res);
-        setApplication(res.data ?? null);
-      } catch {
-        // No application yet
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStatus();
+    void fetchStatus();
   }, []);
 
-  const handleApply = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleApply = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     if (!user) {
       setError("User data not found");
       return;
@@ -51,19 +64,39 @@ export default function AdmissionPage() {
     setSubmitting(true);
     setError(null);
     setSuccess(null);
+
     try {
       await applyForSeat({
         hall,
         academicDepartment: user.academicDepartment,
         session: user.session,
       });
-      setSuccess("Application submitted successfully!");
-      const res = await getMyApplicationStatus();
-      setApplication(res.data ?? null);
+      setSuccess("Application submitted successfully.");
+      await fetchStatus();
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePaySeatCharge = async () => {
+    if (!application?.seatCharge || application.seatCharge.dueStatus === "PAID") {
+      return;
+    }
+
+    setPayingSeatCharge(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await payMyDue(application.seatCharge.id, { method: paymentMethod });
+      setSuccess(`Seat charge paid successfully. Reference: ${res.data.transactionId}`);
+      await fetchStatus();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setPayingSeatCharge(false);
     }
   };
 
@@ -78,33 +111,33 @@ export default function AdmissionPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground flex items-center gap-3">
+        <h2 className="flex items-center gap-3 text-3xl font-bold text-foreground">
           <ClipboardList className="h-8 w-8" />
           Seat Application
         </h2>
-        <p className="text-muted-foreground mt-1">
-          Apply for a hall seat or check your application status
+        <p className="mt-1 text-muted-foreground">
+          Apply for a hall seat, track approval, and pay the allocation charge once it is issued.
         </p>
       </div>
 
       {error && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
       {success && (
-        <div className="p-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg dark:text-green-400 dark:bg-green-950 dark:border-green-900">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400">
           {success}
         </div>
       )}
 
       {application ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Application</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Application</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
                 <Badge
@@ -115,86 +148,148 @@ export default function AdmissionPage() {
                         ? "destructive"
                         : "secondary"
                   }
-                  className="mt-1"
+                  className="mt-2"
                 >
                   {application.status}
                 </Badge>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Applied On</p>
-                <p className="font-medium mt-1">
-                  {application.createdAt
-                    ? new Date(application.createdAt).toLocaleDateString(
-                        "en-GB",
-                      )
-                    : "-"}
+                <p className="mt-2 font-medium">
+                  {new Date(application.createdAt).toLocaleDateString("en-GB")}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Hall</p>
-                <p className="font-medium mt-1">
-                  {application.hall?.replace(/_/g, " ")}
+                <p className="mt-2 font-medium">
+                  {application.hall.replace(/_/g, " ")}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Department</p>
-                <p className="font-medium mt-1">
-                  {application.academicDepartment}
-                </p>
+                <p className="mt-2 font-medium">{application.academicDepartment}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Session</p>
-                <p className="font-medium mt-1">{application.session}</p>
+                <p className="mt-2 font-medium">{application.session}</p>
               </div>
-              {application.reviewedAt && (
+              {application.reviewedAt ? (
                 <div>
                   <p className="text-sm text-muted-foreground">Reviewed On</p>
-                  <p className="font-medium mt-1">
-                    {new Date(application.reviewedAt).toLocaleDateString(
-                      "en-GB",
-                    )}
+                  <p className="mt-2 font-medium">
+                    {new Date(application.reviewedAt).toLocaleDateString("en-GB")}
                   </p>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          {application.status === "APPROVED" ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Seat Allocation Charge</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {application.seatCharge ? (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Charge Type</p>
+                        <p className="mt-2 font-medium">{application.seatCharge.dueType}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Amount</p>
+                        <p className="mt-2 text-2xl font-bold">
+                          BDT {application.seatCharge.amount}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Payment Status</p>
+                        <Badge
+                          variant={
+                            application.seatCharge.dueStatus === "PAID"
+                              ? "default"
+                              : "destructive"
+                          }
+                          className="mt-2"
+                        >
+                          {application.seatCharge.dueStatus}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {application.seatCharge.dueStatus === "PAID" ? (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400">
+                        Your seat charge is paid. The hall office can now allocate your bed.
+                      </div>
+                    ) : (
+                      <div className="space-y-4 rounded-lg border border-border/60 p-4">
+                        <label className="space-y-2 text-sm">
+                          <span className="font-medium">Payment Method</span>
+                          <select
+                            value={paymentMethod}
+                            onChange={(event) =>
+                              setPaymentMethod(event.target.value as FinancePaymentMethod)
+                            }
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm md:max-w-xs"
+                          >
+                            {FINANCE_PAYMENT_METHODS.map((method) => (
+                              <option key={method} value={method}>
+                                {method}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <Button onClick={handlePaySeatCharge} disabled={payingSeatCharge}>
+                          {payingSeatCharge ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          Pay Seat Charge
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
+                    Your application is approved. The hall office still needs to publish the seat allocation charge before you can pay it.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
       ) : (
         <Card>
           <CardHeader>
             <CardTitle>Apply for Hall Seat</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleApply} className="space-y-4 max-w-lg">
+            <form onSubmit={handleApply} className="max-w-lg space-y-4">
               <p className="text-sm text-muted-foreground">
-                Your application will be submitted with your profile details:
+                Your profile details will be used automatically for this application.
               </p>
-              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="text-xs text-muted-foreground">Hall</p>
-                  <p className="font-medium">
-                    <select
-                      id="hall"
-                      name="hall"
-                      required
-                      value={hall ?? ""}
-                      onChange={(e) => setHall(e.target.value as Hall)}
-                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="">Select a hall</option>
-                      {HALLS.map((h) => (
-                        <option key={h} value={h}>
-                          {h.replace(/_/g, " ")}
-                        </option>
-                      ))}
-                    </select>
-                  </p>
-                </div>
+              <div className="grid gap-4 rounded-lg bg-muted/50 p-4 md:grid-cols-2">
+                <label className="space-y-2 text-sm md:col-span-2">
+                  <span className="text-xs text-muted-foreground">Hall</span>
+                  <select
+                    id="hall"
+                    name="hall"
+                    required
+                    value={hall ?? ""}
+                    onChange={(event) => setHall(event.target.value as Hall)}
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">Select a hall</option>
+                    {HALLS.map((item) => (
+                      <option key={item} value={item}>
+                        {item.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <div>
                   <p className="text-xs text-muted-foreground">Department</p>
-                  <p className="font-medium">
-                    {user?.academicDepartment ?? "-"}
-                  </p>
+                  <p className="font-medium">{user?.academicDepartment ?? "-"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Session</p>
@@ -206,9 +301,7 @@ export default function AdmissionPage() {
                 </div>
               </div>
               <Button type="submit" disabled={submitting}>
-                {submitting && (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                )}
+                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Submit Application
               </Button>
             </form>
