@@ -1,13 +1,10 @@
 import api from "@/lib/api";
-import type { ApiResponse } from "@/lib/types";
+import type { AdminData, ApiResponse } from "@/lib/types";
 
 // =================== PROFILE ===================
 
 export async function getMyProfile() {
-  const res =
-    await api.get<ApiResponse<{ profile: Record<string, unknown> }>>(
-      "/profile/me",
-    );
+  const res = await api.get<ApiResponse<{ profile: AdminData }>>("/profile/me");
   return res.data;
 }
 
@@ -45,3 +42,4 @@ export async function uploadAvatar(file: File) {
   );
   return res.data;
 }
+

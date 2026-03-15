@@ -104,6 +104,7 @@ export interface AdminData {
   id: string;
   email: string;
   name: string;
+  avatarUrl: string | null;
   role: Role;
   academicDepartment: AcademicDepartment | null;
   phone: string;
@@ -310,3 +311,4 @@ export interface Pagination {
   total: number;
   totalPages: number;
 }
+
