@@ -8,7 +8,7 @@ body:
   type: json
   content: |-
     {
-        "email": "student1@gmail.com",
+        "email": "student3@gmail.com",
         "password": "StudentPass123!"
     }
 order: 2000
