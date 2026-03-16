@@ -1,11 +1,18 @@
-"use client";
+﻿"use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from "react";
 
 interface LayoutContextType {
   isSidebarPinned: boolean;
   isSidebarHovered: boolean;
   isMobileOpen: boolean;
+  hasHydratedSidebarPin: boolean;
   togglePin: () => void;
   setHovered: (hovered: boolean) => void;
   openMobile: () => void;
@@ -13,11 +20,13 @@ interface LayoutContextType {
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
+const SIDEBAR_PIN_STORAGE_KEY = "ruet-hall-web.sidebar-pinned";
 
 export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [hasHydratedSidebarPin, setHasHydratedSidebarPin] = useState(false);
 
   const togglePin = () => {
     setIsSidebarPinned((prev) => !prev);
@@ -34,6 +43,32 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const closeMobile = () => {
     setIsMobileOpen(false);
   };
+
+  useLayoutEffect(() => {
+    try {
+      const savedValue = window.localStorage.getItem(SIDEBAR_PIN_STORAGE_KEY);
+      setIsSidebarPinned(savedValue === "true");
+    } catch {
+      setIsSidebarPinned(false);
+    } finally {
+      setHasHydratedSidebarPin(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedSidebarPin) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        SIDEBAR_PIN_STORAGE_KEY,
+        String(isSidebarPinned),
+      );
+    } catch {
+      // Ignore storage errors so layout state still works in memory.
+    }
+  }, [hasHydratedSidebarPin, isSidebarPinned]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -52,6 +87,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         isSidebarPinned,
         isSidebarHovered,
         isMobileOpen,
+        hasHydratedSidebarPin,
         togglePin,
         setHovered,
         openMobile,

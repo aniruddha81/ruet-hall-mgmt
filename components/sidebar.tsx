@@ -1,12 +1,6 @@
-"use client";
+﻿"use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
 import {
@@ -29,6 +23,7 @@ export default function Sidebar() {
     isSidebarPinned,
     isSidebarHovered,
     isMobileOpen,
+    hasHydratedSidebarPin,
     togglePin,
     setHovered,
     closeMobile,
@@ -37,7 +32,13 @@ export default function Sidebar() {
   const { logout } = useAuth();
 
   const isExpanded = isSidebarPinned || isSidebarHovered;
-  const desktopLabelClass = `min-w-0 overflow-hidden whitespace-nowrap text-left transition-[max-width,opacity,margin,transform] duration-300 ease-out ${
+  const desktopTransitionClass = hasHydratedSidebarPin
+    ? "transition-[width] duration-300 ease-out"
+    : "transition-none";
+  const desktopLabelTransitionClass = hasHydratedSidebarPin
+    ? "transition-[max-width,opacity,margin,transform] duration-300 ease-out"
+    : "transition-none";
+  const desktopLabelClass = `min-w-0 overflow-hidden whitespace-nowrap text-left ${desktopLabelTransitionClass} ${
     isExpanded
       ? "ml-1 max-w-[160px] translate-x-0 opacity-100"
       : "ml-0 max-w-0 -translate-x-1 opacity-0"
@@ -83,7 +84,7 @@ export default function Sidebar() {
   };
 
   return (
-    <TooltipProvider>
+    <>
       {isMobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm animate-in fade-in md:hidden"
@@ -148,7 +149,7 @@ export default function Sidebar() {
       </aside>
 
       <aside
-        className={`fixed left-0 top-16 z-40 hidden h-[calc(100vh-4rem)] overflow-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ease-out md:block ${
+        className={`fixed left-0 top-16 z-40 hidden h-[calc(100vh-4rem)] overflow-hidden border-r border-sidebar-border bg-sidebar ${desktopTransitionClass} md:block ${
           isExpanded ? "w-64" : "w-16"
         }`}
         onMouseEnter={() => setHovered(true)}
@@ -156,25 +157,18 @@ export default function Sidebar() {
       >
         <div className="flex h-full flex-col py-4">
           <div className="mb-4 flex justify-end px-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={togglePin}
-                  className="h-10 w-10 text-sidebar-foreground hover:bg-sidebar-accent"
-                >
-                  {isSidebarPinned ? (
-                    <PinOff className="h-4 w-4" />
-                  ) : (
-                    <Pin className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                {isSidebarPinned ? "Unpin sidebar" : "Pin sidebar open"}
-              </TooltipContent>
-            </Tooltip>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={togglePin}
+              className="h-10 w-10 text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              {isSidebarPinned ? (
+                <PinOff className="h-4 w-4" />
+              ) : (
+                <Pin className="h-4 w-4" />
+              )}
+            </Button>
           </div>
 
           <nav className="flex-1 space-y-1 px-2">
@@ -183,51 +177,38 @@ export default function Sidebar() {
               const isActive = pathname === link.href;
 
               return (
-                <Tooltip key={link.href}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href={link.href}
-                      className={`flex h-11 items-center rounded-lg text-sm font-medium transition-colors ${
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                      } justify-start px-1`}
-                    >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center">
-                        <Icon className="h-5 w-5 shrink-0" />
-                      </span>
-                      <span className={desktopLabelClass}>{link.label}</span>
-                    </Link>
-                  </TooltipTrigger>
-                  {!isExpanded && (
-                    <TooltipContent side="right">{link.label}</TooltipContent>
-                  )}
-                </Tooltip>
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex h-11 items-center rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  } justify-start px-1`}
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center">
+                    <Icon className="h-5 w-5 shrink-0" />
+                  </span>
+                  <span className={desktopLabelClass}>{link.label}</span>
+                </Link>
               );
             })}
           </nav>
 
           <div className="border-t border-sidebar-border px-2 pt-4">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  onClick={logout}
-                  className="flex h-11 w-full items-center justify-start overflow-hidden px-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center">
-                    <LogOut className="h-5 w-5 shrink-0" />
-                  </span>
-                  <span className={desktopLabelClass}>Sign Out</span>
-                </Button>
-              </TooltipTrigger>
-              {!isExpanded && (
-                <TooltipContent side="right">Sign Out</TooltipContent>
-              )}
-            </Tooltip>
+            <Button
+              variant="ghost"
+              onClick={logout}
+              className="flex h-11 w-full items-center justify-start overflow-hidden px-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center">
+                <LogOut className="h-5 w-5 shrink-0" />
+              </span>
+              <span className={desktopLabelClass}>Sign Out</span>
+            </Button>
           </div>
         </div>
       </aside>
-    </TooltipProvider>
+    </>
   );
 }
