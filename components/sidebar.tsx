@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -79,6 +79,7 @@ export default function Sidebar() {
     isSidebarPinned,
     isSidebarHovered,
     isMobileOpen,
+    hasHydratedSidebarPin,
     togglePin,
     setHovered,
     closeMobile,
@@ -87,7 +88,13 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
 
   const isExpanded = isSidebarPinned || isSidebarHovered;
-  const desktopLabelClass = `min-w-0 overflow-hidden whitespace-nowrap text-left transition-[max-width,opacity,margin,transform] duration-300 ease-out ${
+  const desktopTransitionClass = hasHydratedSidebarPin
+    ? "transition-[width] duration-300 ease-out"
+    : "transition-none";
+  const desktopLabelTransitionClass = hasHydratedSidebarPin
+    ? "transition-[max-width,opacity,margin,transform] duration-300 ease-out"
+    : "transition-none";
+  const desktopLabelClass = `min-w-0 overflow-hidden whitespace-nowrap text-left ${desktopLabelTransitionClass} ${
     isExpanded
       ? "ml-1 max-w-[160px] translate-x-0 opacity-100"
       : "ml-0 max-w-0 -translate-x-1 opacity-0"
@@ -175,7 +182,7 @@ export default function Sidebar() {
       </aside>
 
       <aside
-        className={`fixed left-0 top-16 z-40 hidden h-[calc(100vh-4rem)] overflow-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ease-out md:block ${
+        className={`fixed left-0 top-16 z-40 hidden h-[calc(100vh-4rem)] overflow-hidden border-r border-sidebar-border bg-sidebar ${desktopTransitionClass} md:block ${
           isExpanded ? "w-64" : "w-16"
         }`}
         onMouseEnter={() => setHovered(true)}

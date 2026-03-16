@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Navbar from "@/components/navbar";
 import Sidebar from "@/components/sidebar";
@@ -9,16 +9,24 @@ interface DashboardShellProps {
 }
 
 export default function DashboardShell({ children }: DashboardShellProps) {
-  const { isSidebarPinned, isSidebarHovered, openMobile } = useLayout();
+  const {
+    isSidebarPinned,
+    isSidebarHovered,
+    hasHydratedSidebarPin,
+    openMobile,
+  } = useLayout();
 
   const isExpanded = isSidebarPinned || isSidebarHovered;
+  const mainTransitionClass = hasHydratedSidebarPin
+    ? "transition-all duration-300"
+    : "transition-none";
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar onMenuClick={openMobile} />
       <Sidebar />
       <main
-        className={`min-h-screen pt-16 transition-all duration-300 ${
+        className={`min-h-screen pt-16 ${mainTransitionClass} ${
           isExpanded ? "md:pl-64" : "md:pl-16"
         }`}
       >
