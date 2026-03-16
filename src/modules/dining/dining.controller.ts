@@ -22,22 +22,7 @@ import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 import { toDateString } from "../../utils/helpers.ts";
 import { createMealPayment } from "../finance/finance.service.ts";
-
-const requireStudentAccount = (req: Request) => {
-  if (req.authAccount?.kind !== "STUDENT") {
-    throw new ApiError(401, "Student authentication required");
-  }
-
-  return req.authAccount.student;
-};
-
-const requireAdminAccount = (req: Request) => {
-  if (req.authAccount?.kind !== "ADMIN") {
-    throw new ApiError(401, "Admin authentication required");
-  }
-
-  return req.authAccount.admin;
-};
+import { requireAdminAccount, requireStudentAccount } from "./dining.service.ts";
 
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
 
@@ -1035,4 +1020,3 @@ export const processRefund = async (req: Request, res: Response) => {
     )
   );
 };
-

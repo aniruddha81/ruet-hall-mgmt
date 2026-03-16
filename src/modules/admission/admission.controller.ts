@@ -9,50 +9,10 @@ import {
   uniStudents,
 } from "../../db/models/index.ts";
 import { beds } from "../../db/models/inventory.models.ts";
-import type { Hall, SeatApplicationStatus } from "../../types/enums.ts";
+import type { SeatApplicationStatus } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
-
-const getSeatChargeStartDate = (application: {
-  createdAt: Date;
-  reviewedAt: Date | null;
-}) => application.reviewedAt ?? application.createdAt;
-
-const getSeatChargeForApplication = async (application: {
-  studentId: string;
-  hall: Hall | null;
-  createdAt: Date;
-  reviewedAt: Date | null;
-}) => {
-  if (!application.hall) {
-    return null;
-  }
-
-  const [seatCharge] = await db
-    .select({
-      id: studentDues.id,
-      studentId: studentDues.studentId,
-      hall: studentDues.hall,
-      type: studentDues.type,
-      amount: studentDues.amount,
-      status: studentDues.status,
-      paidAt: studentDues.paidAt,
-      createdAt: studentDues.createdAt,
-    })
-    .from(studentDues)
-    .where(
-      and(
-        eq(studentDues.studentId, application.studentId),
-        eq(studentDues.hall, application.hall),
-        eq(studentDues.type, "RENT"),
-        gte(studentDues.createdAt, getSeatChargeStartDate(application))
-      )
-    )
-    .orderBy(desc(studentDues.createdAt))
-    .limit(1);
-
-  return seatCharge ?? null;
-};
+import { getSeatChargeForApplication } from "./admission.service.ts";
 
 // ========================
 // STUDENT
