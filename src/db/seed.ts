@@ -1,84 +1,160 @@
 import bcrypt from "bcrypt";
+import { eq, type InferInsertModel } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "./index.ts";
 import {
+  assets,
   beds,
+  damageReports,
+  expenses,
   hallAdmins,
   halls as hallsTable,
+  mealMenus,
+  mealPayments,
+  mealTokens,
+  payments,
+  refreshTokens,
   rooms,
+  seatAllocations,
+  seatApplications,
+  studentDues,
   uniStudents,
 } from "./models/index.ts";
+import {
+  ACADEMIC_DEPARTMENTS,
+  HALLS,
+  STAFF_ROLES,
+  type AcademicDepartment,
+  type Hall,
+  type StaffRole,
+} from "../types/enums.ts";
+
+const ADMIN_PASSWORD = "AdminPass123!";
+const STUDENT_PASSWORD = "StudentPass123!";
+const DEFAULT_SESSION = "2024-2025";
+const BED_LABELS = ["A", "B", "C", "D"] as const;
+
+const hallDetails: Record<
+  Hall,
+  { address: string; contactNumber: string; totalRooms: number }
+> = {
+  ZIA_HALL: {
+    address: "Block A, Main Campus",
+    contactNumber: "01710000001",
+    totalRooms: 8,
+  },
+  SELIM_HALL: {
+    address: "East Residential Zone",
+    contactNumber: "01710000002",
+    totalRooms: 8,
+  },
+  HAMID_HALL: {
+    address: "South Campus Road",
+    contactNumber: "01710000003",
+    totalRooms: 7,
+  },
+  SHAHIDUL_HALL: {
+    address: "North Academic Area",
+    contactNumber: "01710000004",
+    totalRooms: 7,
+  },
+  TIN_SHED_HALL: {
+    address: "West Residential Zone",
+    contactNumber: "01710000005",
+    totalRooms: 6,
+  },
+  FAZLUL_HUQ_HALL: {
+    address: "East Academic Area",
+    contactNumber: "01710000006",
+    totalRooms: 6,
+  },
+};
+
+const roleConfig: Record<
+  StaffRole,
+  { operationalUnit: "ALL" | "FINANCE" | "DINING" | "INVENTORY" }
+> = {
+  PROVOST: { operationalUnit: "ALL" },
+  ASST_FINANCE: { operationalUnit: "FINANCE" },
+  FINANCE_SECTION_OFFICER: { operationalUnit: "FINANCE" },
+  ASST_DINING: { operationalUnit: "DINING" },
+  DINING_MANAGER: { operationalUnit: "DINING" },
+  ASST_INVENTORY: { operationalUnit: "INVENTORY" },
+  INVENTORY_SECTION_OFFICER: { operationalUnit: "INVENTORY" },
+};
+
+const addDays = (date: Date, days: number) => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+const must = <T>(value: T | undefined | null, message: string): T => {
+  if (value == null) {
+    throw new Error(message);
+  }
+  return value;
+};
+
+const pickDepartment = (index: number): AcademicDepartment =>
+  must(
+    ACADEMIC_DEPARTMENTS[index % ACADEMIC_DEPARTMENTS.length],
+    `Missing department for index ${index}`
+  );
+
+async function clearDatabase() {
+  await db.delete(refreshTokens);
+  await db.delete(mealTokens);
+  await db.delete(mealPayments);
+  await db.delete(mealMenus);
+  await db.delete(seatAllocations);
+  await db.delete(seatApplications);
+  await db.delete(payments);
+  await db.delete(studentDues);
+  await db.delete(expenses);
+  await db.delete(damageReports);
+  await db.delete(assets);
+  await db.delete(beds);
+  await db.delete(rooms);
+  await db.delete(hallAdmins);
+  await db.delete(uniStudents);
+  await db.delete(hallsTable);
+}
 
 async function seed() {
-  const pass = await bcrypt.hash("AdminPass123!", 10);
+  await clearDatabase();
 
-  const hallsData = [
-    {
-      name: "ZIA_HALL" as const,
-      address: "Block A, Main Campus",
-      contactNumber: "01710000001",
-      totalCapacity: 80,
-      totalRooms: 20,
-      isActive: true,
-    },
-    {
-      name: "SELIM_HALL" as const,
-      address: "East Residential Zone",
-      contactNumber: "01710000002",
-      totalCapacity: 120,
-      totalRooms: 30,
-      isActive: true,
-    },
-    {
-      name: "HAMID_HALL" as const,
-      address: "South Campus Road",
-      contactNumber: "01710000003",
-      totalCapacity: 100,
-      totalRooms: 25,
-      isActive: true,
-    },
-    {
-      name: "SHAHIDUL_HALL" as const,
-      address: "North Academic Area",
-      contactNumber: "01710000004",
-      totalCapacity: 90,
-      totalRooms: 22,
-      isActive: true,
-    },
-    {
-      name: "TIN_SHED_HALL" as const,
-      address: "West Residential Zone",
-      contactNumber: "01710000005",
-      totalCapacity: 60,
-      totalRooms: 15,
-      isActive: true,
-    },
-    {
-      name: "FAZLUL_HUQ_HALL" as const,
-      address: "East Academic Area",
-      contactNumber: "01710000006",
-      totalCapacity: 80,
-      totalRooms: 20,
-      isActive: true,
-    },
-  ];
+  const adminPasswordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+  const studentPasswordHash = await bcrypt.hash(STUDENT_PASSWORD, 10);
+  const today = new Date();
+  const yesterday = addDays(today, -1);
+  const twoDaysAgo = addDays(today, -2);
+  const tomorrow = addDays(today, 1);
+
+  const hallsData = HALLS.map((hall) => ({
+    name: hall,
+    address: hallDetails[hall].address,
+    contactNumber: hallDetails[hall].contactNumber,
+    totalCapacity: hallDetails[hall].totalRooms * BED_LABELS.length,
+    totalRooms: hallDetails[hall].totalRooms,
+    isActive: true,
+  }));
   await db.insert(hallsTable).values(hallsData);
 
   const roomsData = hallsData.flatMap((hall) =>
-    Array.from({ length: hall.totalRooms }, (_, i) => ({
+    Array.from({ length: hall.totalRooms }, (_, index) => ({
       id: randomUUID(),
-      roomNumber: i + 1,
+      roomNumber: index + 101,
       hall: hall.name,
-      capacity: 4 as const,
+      capacity: BED_LABELS.length,
       currentOccupancy: 0,
       status: "AVAILABLE" as const,
     }))
   );
   await db.insert(rooms).values(roomsData);
 
-  const BED_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const bedsData = roomsData.flatMap((room) =>
-    BED_LABELS.slice(0, room.capacity).map((label) => ({
+    BED_LABELS.map((label) => ({
       id: randomUUID(),
       hall: room.hall,
       roomId: room.id,
@@ -88,76 +164,515 @@ async function seed() {
   );
   await db.insert(beds).values(bedsData);
 
-  const admins = [
-    {
-      email: "admin1@gmail.com",
-      name: "kuldip yadav",
-      hall: "ZIA_HALL" as const,
-    },
-    {
-      email: "admin2@gmail.com",
-      name: "Virat Kohli",
-      hall: "SELIM_HALL" as const,
-    },
-    {
-      email: "admin3@gmail.com",
-      name: "Rohit Sharma",
-      hall: "HAMID_HALL" as const,
-    },
-    {
-      email: "admin4@gmail.com",
-      name: "KL Rahul",
-      hall: "SHAHIDUL_HALL" as const,
-    },
-    {
-      email: "admin5@gmail.com",
-      name: "Suryakumar Yadav",
-      hall: "TIN_SHED_HALL" as const,
-    },
-    {
-      email: "admin6@gmail.com",
-      name: "Rishabh Pant",
-      hall: "FAZLUL_HUQ_HALL" as const,
-    },
-  ].map((admin) => ({
-    id: randomUUID(),
-    ...admin,
-    passwordHash: pass,
-    academicDepartment: "CSE" as const,
-    designation: "PROVOST" as const,
-    operationalUnit: "ALL" as const,
-    phone: "+8801712345678",
-    hallAdminStatus: "APPROVED" as const,
-    isActive: true,
-  }));
-  await db.insert(hallAdmins).values(admins);
+  const adminsData = HALLS.flatMap((hall, hallIndex) => {
+    const provostId = randomUUID();
+    return STAFF_ROLES.map((designation, roleIndex) => ({
+      id: designation === "PROVOST" ? provostId : randomUUID(),
+      email: `${hall.toLowerCase()}_${designation.toLowerCase()}@ruet.ac.bd`,
+      passwordHash: adminPasswordHash,
+      name: `${designation.replaceAll("_", " ")} ${hallIndex + 1}`,
+      phone: `+8801700${String(hallIndex * 10 + roleIndex + 1).padStart(6, "0")}`,
+      academicDepartment: pickDepartment(hallIndex + roleIndex),
+      hall,
+      designation,
+      operationalUnit: roleConfig[designation].operationalUnit,
+      reportingToId: designation === "PROVOST" ? null : provostId,
+      hallAdminStatus: "APPROVED" as const,
+      isActive: true,
+      avatarUrl: null,
+    }));
+  });
 
-  const studentPass = "StudentPass123!";
-  const studentPassHash = await bcrypt.hash(studentPass, 10);
-  const studentsData = Array.from({ length: 50 }, (_, i) => ({
+  const ziaProvostId = must(
+    adminsData.find(
+      (admin) => admin.hall === "ZIA_HALL" && admin.designation === "PROVOST"
+    )?.id,
+    "Missing ZIA_HALL provost"
+  );
+  const selimProvostId = must(
+    adminsData.find(
+      (admin) => admin.hall === "SELIM_HALL" && admin.designation === "PROVOST"
+    )?.id,
+    "Missing SELIM_HALL provost"
+  );
+
+  await db.insert(hallAdmins).values([
+    ...adminsData,
+    {
+      id: randomUUID(),
+      email: "pending.finance@ruet.ac.bd",
+      passwordHash: adminPasswordHash,
+      name: "Pending Finance Applicant",
+      phone: "+8801700999001",
+      academicDepartment: "CSE",
+      hall: "ZIA_HALL",
+      designation: "ASST_FINANCE",
+      operationalUnit: "FINANCE",
+      reportingToId: ziaProvostId,
+      hallAdminStatus: "PENDING",
+      isActive: true,
+      avatarUrl: null,
+    },
+    {
+      id: randomUUID(),
+      email: "rejected.inventory@ruet.ac.bd",
+      passwordHash: adminPasswordHash,
+      name: "Rejected Inventory Applicant",
+      phone: "+8801700999002",
+      academicDepartment: "EEE",
+      hall: "SELIM_HALL",
+      designation: "ASST_INVENTORY",
+      operationalUnit: "INVENTORY",
+      reportingToId: selimProvostId,
+      hallAdminStatus: "REJECTED",
+      isActive: false,
+      avatarUrl: null,
+    },
+  ]);
+
+  const roomByHall = Object.fromEntries(
+    HALLS.map((hall) => [hall, roomsData.filter((room) => room.hall === hall)])
+  ) as Record<Hall, (typeof roomsData)[number][]>;
+  const bedByRoomId = Object.fromEntries(
+    roomsData.map((room) => [room.id, bedsData.filter((bed) => bed.roomId === room.id)])
+  ) as Record<string, (typeof bedsData)[number][]>;
+
+  const studentsData: InferInsertModel<typeof uniStudents>[] = Array.from({ length: 24 }, (_, index) => ({
     id: randomUUID(),
-    email: `student${i + 1}@gmail.com`,
-    passwordHash: studentPassHash,
-    name: `Student ${i + 1}`,
-    phone: `+880171234567${String(i + 1).padStart(2, "0")}`,
-    rollNumber: String(i + 1).padStart(5, "0"),
-    academicDepartment: "CSE" as const,
+    email: `student${index + 1}@ruet.ac.bd`,
+    passwordHash: studentPasswordHash,
+    name: `Student ${index + 1}`,
+    phone: `+8801800${String(index + 1).padStart(6, "0")}`,
+    rollNumber: `24${String(index + 1).padStart(4, "0")}`,
+    academicDepartment: pickDepartment(index),
     isActive: true,
     avatarUrl: null,
     isAllocated: false,
-    session: "2024-2025",
+    session: DEFAULT_SESSION,
     hall: null,
     roomId: null,
-    status: "ACTIVE" as const,
+    status: index === 22 ? ("ALUMNI" as const) : index === 23 ? ("SUSPENDED" as const) : ("ACTIVE" as const),
   }));
   await db.insert(uniStudents).values(studentsData);
+
+  const approvedApplications = HALLS.map((hall, hallIndex) => {
+    const student = must(studentsData[hallIndex], `Missing student for ${hall}`);
+    return {
+      id: randomUUID(),
+      studentId: student.id,
+      rollNumber: student.rollNumber,
+      hall,
+      academicDepartment: student.academicDepartment,
+      session: DEFAULT_SESSION,
+      status: "APPROVED" as const,
+      reviewedBy: must(
+        adminsData.find(
+          (admin) => admin.hall === hall && admin.designation === "PROVOST"
+        )?.id,
+        `Missing provost for ${hall}`
+      ),
+      reviewedAt: yesterday,
+      createdAt: twoDaysAgo,
+    };
+  });
+
+  const pendingApplicationStudent = must(
+    studentsData[6],
+    "Missing pending application student"
+  );
+  const rejectedApplicationStudent = must(
+    studentsData[7],
+    "Missing rejected application student"
+  );
+
+  await db.insert(seatApplications).values([
+    ...approvedApplications,
+    {
+      id: randomUUID(),
+      studentId: pendingApplicationStudent.id,
+      rollNumber: pendingApplicationStudent.rollNumber,
+      hall: "ZIA_HALL",
+      academicDepartment: pendingApplicationStudent.academicDepartment,
+      session: DEFAULT_SESSION,
+      status: "PENDING",
+      reviewedBy: null,
+      reviewedAt: null,
+      createdAt: yesterday,
+    },
+    {
+      id: randomUUID(),
+      studentId: rejectedApplicationStudent.id,
+      rollNumber: rejectedApplicationStudent.rollNumber,
+      hall: "SELIM_HALL",
+      academicDepartment: rejectedApplicationStudent.academicDepartment,
+      session: DEFAULT_SESSION,
+      status: "REJECTED",
+      reviewedBy: selimProvostId,
+      reviewedAt: today,
+      createdAt: yesterday,
+    },
+  ]);
+
+  const seatAllocationsData = approvedApplications.map((application, index) => {
+    const hallRooms = must(roomByHall[application.hall], `Missing rooms for ${application.hall}`);
+    const targetRoom = must(hallRooms[0], `Missing target room for ${application.hall}`);
+    const roomBeds = must(bedByRoomId[targetRoom.id], `Missing beds for room ${targetRoom.id}`);
+    const targetBed = must(
+      roomBeds[index % BED_LABELS.length],
+      `Missing target bed for ${application.hall}`
+    );
+
+    return {
+      id: randomUUID(),
+      studentId: application.studentId,
+      rollNumber: application.rollNumber,
+      hall: application.hall,
+      roomId: targetRoom.id,
+      bedId: targetBed.id,
+      allocatedAt: today,
+      allocatedBy: must(
+        adminsData.find(
+          (admin) =>
+            admin.hall === application.hall && admin.designation === "PROVOST"
+        )?.id,
+        `Missing allocator for ${application.hall}`
+      ),
+    };
+  });
+  await db.insert(seatAllocations).values(seatAllocationsData);
+
+  for (const allocation of seatAllocationsData) {
+    const currentRoom = must(
+      roomsData.find((room) => room.id === allocation.roomId),
+      `Missing room ${allocation.roomId}`
+    );
+
+    await db
+      .update(uniStudents)
+      .set({
+        isAllocated: true,
+        hall: allocation.hall,
+        roomId: allocation.roomId,
+      })
+      .where(eq(uniStudents.id, allocation.studentId));
+
+    await db
+      .update(rooms)
+      .set({
+        currentOccupancy: currentRoom.currentOccupancy + 1,
+        status: "OCCUPIED",
+      })
+      .where(eq(rooms.id, allocation.roomId));
+
+    currentRoom.currentOccupancy += 1;
+
+    await db.update(beds).set({ status: "OCCUPIED" }).where(eq(beds.id, allocation.bedId));
+  }
+
+  const assetsData = HALLS.flatMap((hall) => [
+    {
+      id: randomUUID(),
+      hall,
+      name: `${hall.replaceAll("_", " ")} Water Filter`,
+      quantity: 2,
+      condition: "GOOD" as const,
+    },
+    {
+      id: randomUUID(),
+      hall,
+      name: `${hall.replaceAll("_", " ")} Study Table`,
+      quantity: 30,
+      condition: "FAIR" as const,
+    },
+    {
+      id: randomUUID(),
+      hall,
+      name: `${hall.replaceAll("_", " ")} Ceiling Fan`,
+      quantity: 20,
+      condition: "DAMAGED" as const,
+    },
+  ]);
+  await db.insert(assets).values(assetsData);
+
+  const assetByHall = Object.fromEntries(
+    HALLS.map((hall) => [hall, assetsData.filter((asset) => asset.hall === hall)])
+  ) as Record<Hall, (typeof assetsData)[number][]>;
+
+  const ziaFanAsset = must(assetByHall.ZIA_HALL[2], "Missing ZIA fan asset");
+  const selimTableAsset = must(assetByHall.SELIM_HALL[1], "Missing SELIM study table asset");
+  const ziaInventoryOfficerId = must(
+    adminsData.find(
+      (admin) =>
+        admin.hall === "ZIA_HALL" &&
+        admin.designation === "INVENTORY_SECTION_OFFICER"
+    )?.id,
+    "Missing ZIA inventory officer"
+  );
+  const firstAllocation = must(seatAllocationsData[0], "Missing first allocation");
+  const secondAllocation = must(seatAllocationsData[1], "Missing second allocation");
+
+  const damageReportsData = [
+    {
+      id: randomUUID(),
+      studentId: firstAllocation.studentId,
+      assetId: ziaFanAsset.id,
+      hall: "ZIA_HALL" as const,
+      description: "Fan regulator is damaged and needs replacement.",
+      fineAmount: 600,
+      status: "VERIFIED" as const,
+      verifiedBy: ziaInventoryOfficerId,
+    },
+    {
+      id: randomUUID(),
+      studentId: secondAllocation.studentId,
+      assetId: selimTableAsset.id,
+      hall: "SELIM_HALL" as const,
+      description: "Study table leg is loose and unstable.",
+      fineAmount: null,
+      status: "REPORTED" as const,
+      verifiedBy: null,
+    },
+  ];
+  await db.insert(damageReports).values(damageReportsData);
+
+  const expensesData = HALLS.map((hall) => ({
+    id: randomUUID(),
+    hall,
+    title: `${hall.replaceAll("_", " ")} Monthly Utility Bill`,
+    amount: 12000 + HALLS.indexOf(hall) * 1000,
+    category: "UTILITY",
+    approvedBy: must(
+      adminsData.find(
+        (admin) => admin.hall === hall && admin.designation === "PROVOST"
+      )?.id,
+      `Missing approvedBy admin for ${hall}`
+    ),
+    createdAt: yesterday,
+  }));
+  await db.insert(expenses).values(expensesData);
+
+  const extraPaidStudent = must(studentsData[8], "Missing extra paid student");
+  const verifiedDamageReport = must(damageReportsData[0], "Missing verified damage report");
+
+  const duesData = [
+    ...seatAllocationsData.map((allocation, index) => ({
+      id: randomUUID(),
+      studentId: allocation.studentId,
+      hall: allocation.hall,
+      type: "RENT" as const,
+      amount: 1200 + index * 50,
+      status: index < 3 ? ("PAID" as const) : ("UNPAID" as const),
+      paidAt: index < 3 ? yesterday : null,
+    })),
+    {
+      id: randomUUID(),
+      studentId: verifiedDamageReport.studentId,
+      hall: verifiedDamageReport.hall,
+      type: "FINE" as const,
+      amount: must(verifiedDamageReport.fineAmount, "Missing fine amount"),
+      status: "UNPAID" as const,
+      paidAt: null,
+    },
+    {
+      id: randomUUID(),
+      studentId: extraPaidStudent.id,
+      hall: "HAMID_HALL" as const,
+      type: "OTHER" as const,
+      amount: 450,
+      status: "PAID" as const,
+      paidAt: today,
+    },
+  ];
+  await db.insert(studentDues).values(duesData);
+
+  const paymentsData = duesData
+    .filter((due) => due.status === "PAID")
+    .map((due, index) => ({
+      id: randomUUID(),
+      studentId: due.studentId,
+      hall: due.hall,
+      dueId: due.id,
+      amount: due.amount,
+      method: index % 2 === 0 ? ("ONLINE" as const) : ("BANK" as const),
+      createdAt: due.paidAt ?? today,
+    }));
+  await db.insert(payments).values(paymentsData);
+
+  const menusData = HALLS.flatMap((hall) => {
+    const diningManagerId = must(
+      adminsData.find(
+        (admin) => admin.hall === hall && admin.designation === "DINING_MANAGER"
+      )?.id,
+      `Missing dining manager for ${hall}`
+    );
+
+    return [
+      {
+        id: randomUUID(),
+        hall,
+        mealDate: tomorrow,
+        mealType: "LUNCH" as const,
+        menuDescription: "Rice, Chicken Curry, Dal, Vegetable, Salad",
+        price: 50,
+        totalTokens: 150,
+        bookedTokens: 2,
+        createdBy: diningManagerId,
+      },
+      {
+        id: randomUUID(),
+        hall,
+        mealDate: tomorrow,
+        mealType: "DINNER" as const,
+        menuDescription: "Polao, Beef Bhuna, Dal, Dessert",
+        price: 70,
+        totalTokens: 120,
+        bookedTokens: 1,
+        createdBy: diningManagerId,
+      },
+    ];
+  });
+  await db.insert(mealMenus).values(menusData);
+
+  const lunchMenuByHall = Object.fromEntries(
+    HALLS.map((hall) => [
+      hall,
+      must(
+        menusData.find((menu) => menu.hall === hall && menu.mealType === "LUNCH"),
+        `Missing lunch menu for ${hall}`
+      ),
+    ])
+  ) as Record<Hall, (typeof menusData)[number]>;
+  const dinnerMenuByHall = Object.fromEntries(
+    HALLS.map((hall) => [
+      hall,
+      must(
+        menusData.find((menu) => menu.hall === hall && menu.mealType === "DINNER"),
+        `Missing dinner menu for ${hall}`
+      ),
+    ])
+  ) as Record<Hall, (typeof menusData)[number]>;
+
+  const thirdAllocation = must(seatAllocationsData[2], "Missing third allocation");
+
+  const mealPaymentsData = [
+    {
+      id: randomUUID(),
+      studentId: firstAllocation.studentId,
+      amount: 100,
+      totalQuantity: 2,
+      paymentMethod: "BKASH" as const,
+      transactionId: "MEALPAY-1001",
+      paymentDate: today,
+      refundedAt: null,
+      refundAmount: null,
+    },
+    {
+      id: randomUUID(),
+      studentId: secondAllocation.studentId,
+      amount: 70,
+      totalQuantity: 1,
+      paymentMethod: "NAGAD" as const,
+      transactionId: "MEALPAY-1002",
+      paymentDate: today,
+      refundedAt: null,
+      refundAmount: null,
+    },
+    {
+      id: randomUUID(),
+      studentId: thirdAllocation.studentId,
+      amount: 50,
+      totalQuantity: 1,
+      paymentMethod: "CASH" as const,
+      transactionId: "MEALPAY-1003",
+      paymentDate: today,
+      refundedAt: today,
+      refundAmount: 50,
+    },
+  ];
+  await db.insert(mealPayments).values(mealPaymentsData);
+
+  const firstMealPayment = must(mealPaymentsData[0], "Missing first meal payment");
+  const secondMealPayment = must(mealPaymentsData[1], "Missing second meal payment");
+  const thirdMealPayment = must(mealPaymentsData[2], "Missing third meal payment");
+
+  await db.insert(mealTokens).values([
+    {
+      id: randomUUID(),
+      studentId: firstAllocation.studentId,
+      menuId: lunchMenuByHall[firstAllocation.hall].id,
+      hall: firstAllocation.hall,
+      mealDate: tomorrow,
+      mealType: "LUNCH",
+      quantity: 2,
+      totalAmount: 100,
+      paymentId: firstMealPayment.id,
+      bookingTime: today,
+      cancelledAt: null,
+    },
+    {
+      id: randomUUID(),
+      studentId: secondAllocation.studentId,
+      menuId: dinnerMenuByHall[secondAllocation.hall].id,
+      hall: secondAllocation.hall,
+      mealDate: tomorrow,
+      mealType: "DINNER",
+      quantity: 1,
+      totalAmount: 70,
+      paymentId: secondMealPayment.id,
+      bookingTime: today,
+      cancelledAt: null,
+    },
+    {
+      id: randomUUID(),
+      studentId: thirdAllocation.studentId,
+      menuId: lunchMenuByHall[thirdAllocation.hall].id,
+      hall: thirdAllocation.hall,
+      mealDate: tomorrow,
+      mealType: "LUNCH",
+      quantity: 1,
+      totalAmount: 50,
+      paymentId: thirdMealPayment.id,
+      bookingTime: today,
+      cancelledAt: today,
+    },
+  ]);
+
+  const adminUser = must(adminsData[0], "Missing admin user for refresh token");
+  const studentUser = must(studentsData[0], "Missing student user for refresh token");
+
+  await db.insert(refreshTokens).values([
+    {
+      id: randomUUID(),
+      userId: adminUser.id,
+      tokenHash: "seed-admin-token-hash",
+      jti: "seed-admin-jti",
+      ip: "127.0.0.1",
+      userAgent: "Seed Script Admin Session",
+      expiresAt: addDays(today, 7),
+    },
+    {
+      id: randomUUID(),
+      userId: studentUser.id,
+      tokenHash: "seed-student-token-hash",
+      jti: "seed-student-jti",
+      ip: "127.0.0.1",
+      userAgent: "Seed Script Student Session",
+      expiresAt: addDays(today, 7),
+    },
+  ]);
+
+  console.log(
+    `Seed completed successfully.\nAdmin password: ${ADMIN_PASSWORD}\nStudent password: ${STUDENT_PASSWORD}`
+  );
 }
 
 try {
   await seed();
-  console.log("Seed completed successfully!");
   process.exit(0);
 } catch (error) {
   console.error("Seed failed:", error);
   process.exit(1);
 }
+
+
+
