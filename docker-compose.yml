@@ -1,9 +1,16 @@
 services:
   admin:
-    build: .
+    build:
+      context: .
+      args:
+        BACKEND_API_URL: ${BACKEND_API_URL:-http://host.docker.internal:8000}
     ports:
       - "4001:4001"
-
+    environment:
+      NODE_ENV: development
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://host.docker.internal:8000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     develop:
       watch:
         - action: sync
