@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const backendApiUrl = process.env.BACKEND_API_URL ?? "http://ruet-backend";
+const backendApiUrl = process.env.BACKEND_API_URL ?? "http://backend:8000";
 
 const nextConfig: NextConfig = {
   output: "standalone",
