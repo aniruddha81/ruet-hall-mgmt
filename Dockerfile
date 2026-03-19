@@ -1,17 +1,16 @@
-FROM oven/bun:1.2.22-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
 ARG BACKEND_API_URL=http://backend:8000
-ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BACKEND_API_URL=${BACKEND_API_URL}
 
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+COPY package*.json ./
+RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
-RUN bun run build
+RUN npm run build
 
 FROM node:22-alpine AS runner
 
