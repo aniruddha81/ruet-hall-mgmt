@@ -8,7 +8,6 @@ ENV PORT=8000
 COPY package*.json ./
 RUN npm ci --include=dev && npm cache clean --force
 
-COPY tsconfig.json ./
 COPY src ./src
 
 EXPOSE 8000

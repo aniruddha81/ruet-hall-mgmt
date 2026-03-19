@@ -6,10 +6,17 @@ import { handleError } from "./middlewares/errorHandling.middleware.ts";
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.STUDENT_URL,
+  process.env.ADMIN_URL,
+  "http://localhost:3001",
+  "http://localhost:4001",
+].filter(Boolean) as string[];
+
 app.use(
   cors({
-    // origin: ["http://localhost:3000", "https://your-frontend.com"],
-    // credentials: true,
+    origin: allowedOrigins,
+    credentials: true,
   })
 );
 

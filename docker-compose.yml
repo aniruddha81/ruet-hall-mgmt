@@ -2,45 +2,51 @@ services:
   backend:
     build:
       context: .
+    container_name: hallmgmt-backend
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${BACKEND_PUBLIC_PORT:-8000}:${BACKEND_PORT:-8000}"
     depends_on:
       mysql:
         condition: service_healthy
     env_file:
       - .env
     environment:
-      PORT: 8000
-      NODE_ENV: development
-      DATABASE_URL: mysql://root:1234@mysql:3306/hall_db
-    develop:
-      watch:
-        - action: sync
-          path: .
-          target: /app
-          ignore:
-            - node_modules/
-            - .git/
-            - drizzle/
-        - action: rebuild
-          path: package.json
-        - action: rebuild
-          path: package-lock.json
+      PORT: ${BACKEND_PORT:-8000}
+      NODE_ENV: production
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-1234}@mysql:3306/${MYSQL_DATABASE:-hall_db}
+      PAYMENT_SERVER_URL: ${PAYMENT_SERVER_URL:-http://payment-server:8080}
+    networks:
+      - hallnet
 
   mysql:
     image: mysql:8.0
-    container_name: mysql-db
+    container_name: hallmgmt-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: 1234
-      MYSQL_DATABASE: hall_db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-1234}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-hall_db}
     ports:
-      - "3307:3306"
+      - "${MYSQL_PUBLIC_PORT:-3307}:3306"
     volumes:
-      - ../mysql-data:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD:-1234}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
+    networks:
+      - hallnet
+
+networks:
+  hallnet:
+    name: hallnet
+    driver: bridge
+
+volumes:
+  mysql-data:
