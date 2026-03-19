@@ -3,24 +3,19 @@ services:
     build:
       context: .
       args:
-        BACKEND_API_URL: ${BACKEND_API_URL:-http://host.docker.internal:8000}
+        BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+    container_name: hallmgmt-admin-web
+    restart: unless-stopped
     ports:
-      - "4001:4001"
+      - "${ADMIN_PUBLIC_PORT:-4001}:4001"
     environment:
-      NODE_ENV: development
-      BACKEND_API_URL: ${BACKEND_API_URL:-http://host.docker.internal:8000}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    develop:
-      watch:
-        - action: sync
-          path: .
-          target: /app
-          ignore:
-            - node_modules/
-            - .next/
-            - .git/
-        - action: rebuild
-          path: package.json
-        - action: rebuild
-          path: bun.lock
+      NODE_ENV: production
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+      PORT: 4001
+    networks:
+      - hallnet
+
+networks:
+  hallnet:
+    name: hallnet
+    driver: bridge
