@@ -1,12 +1,12 @@
 ---
 name: premium-nextjs-design
-description: "Design premium admin Next.js interfaces in ruet-hall-man-admin with an elegant corporate direction. Use for data-dense dashboards, management views, workflow forms, and advanced visual hierarchy improvements."
+description: "Design premium admin Next.js interfaces in the admin service with an elegant corporate direction. Use for data-dense dashboards, management views, workflow forms, and advanced visual hierarchy improvements."
 argument-hint: "Which admin screen should be upgraded?"
 ---
 
 # Premium Next.js Design (Admin)
 
-Use this skill for admin-facing UI work in `ruet-hall-man-admin`.
+Use this skill for admin-facing UI work in `admin` service.
 
 ## Default Visual Direction
 

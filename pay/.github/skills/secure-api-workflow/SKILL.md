@@ -1,12 +1,12 @@
 ---
 name: secure-api-workflow
-description: "Harden payment-server APIs. Use for payload validation, CORS tightening, robust transaction ID handling, safe response contracts, and defensive updates to payment simulation endpoints."
+description: "Harden pay service APIs. Use for payload validation, CORS tightening, robust transaction ID handling, safe response contracts, and defensive updates to payment simulation endpoints."
 argument-hint: "Which payment endpoint should be secured?"
 ---
 
-# Secure API Workflow (Payment Server)
+# Secure API Workflow (Payment Service)
 
-Use this skill for `payment-server` endpoint changes.
+Use this skill for `pay` service endpoint changes.
 
 ## Security Baseline (Balanced Strictness)
 

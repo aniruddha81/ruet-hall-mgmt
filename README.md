@@ -23,17 +23,17 @@ Core modules:
 
 Main folders:
 
-- [ruet-hall-man-web](ruet-hall-man-web)
-- [ruet-hall-man-admin](ruet-hall-man-admin)
-- [ruet-hall-man-backend](ruet-hall-man-backend)
-- [payment-server](payment-server)
+- [web](web)
+- [admin](admin)
+- [backend](backend)
+- [pay](pay)
 - [nginx](nginx)
 - [docker-compose.yml](docker-compose.yml)
 - [.env](.env)
 
 Runtime model in this repository:
 
-- web, admin, payment-server use Bun-based Docker images
+- web, admin, pay use Bun-based Docker images
 - backend uses Node Docker image
 - deployment entry point is root [docker-compose.yml](docker-compose.yml)
 
@@ -60,7 +60,7 @@ Minimum required values:
 Security baseline:
 
 ```bash
-cd ~/hall-management
+cd ~/ruet-hall-mgmt
 grep -qxF ".env" .gitignore || echo ".env" >> .gitignore
 chmod 600 .env
 ```
@@ -70,11 +70,11 @@ chmod 600 .env
 For small machines (for example 4 GB VM), build services in sequence:
 
 ```bash
-cd ~/hall-management
+cd ~/ruet-hall-mgmt
 docker compose build web
 docker compose build admin
 docker compose build backend
-docker compose build payment-server
+docker compose build pay
 docker compose up -d
 docker compose ps
 ```
@@ -144,19 +144,19 @@ Nginx API route includes request limiting to reduce abuse risk.
 
 Current config source:
 
-- [nginx/ruet-hall-management.conf](nginx/ruet-hall-management.conf)
+- [nginx/ruet-hall-management.conf](nginx/ruet-hall-management.conf) (Nginx reverse proxy configuration)
 
 ## 10. Operations and Maintenance
 
 Daily update routine:
 
 ```bash
-cd ~/hall-management
+cd ~/ruet-hall-mgmt
 git pull
 docker compose build web
 docker compose build admin
 docker compose build backend
-docker compose build payment-server
+docker compose build pay
 docker compose up -d
 docker image prune -f
 ```
@@ -166,7 +166,7 @@ After VM reboot:
 ```bash
 sudo systemctl is-enabled docker
 sudo systemctl is-active docker
-cd ~/hall-management
+cd ~/ruet-hall-mgmt
 docker compose ps
 docker compose up -d
 ```

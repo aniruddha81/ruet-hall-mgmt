@@ -14,8 +14,8 @@ It assumes Ubuntu 24.04 on Azure VM and domains:
 
 ```bash
 cd ~
-if [ -d hall-management ]; then
-  cd hall-management
+if [ -d ruet-hall-mgmt ]; then
+  cd ruet-hall-mgmt
   docker compose down -v --remove-orphans || true
 fi
 
@@ -26,7 +26,7 @@ docker image prune -af
 docker builder prune -af
 
 sudo rm -rf /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt
-rm -rf ~/hall-management
+rm -rf ~/ruet-hall-mgmt
 sudo systemctl restart docker
 ```
 
@@ -54,18 +54,18 @@ Expected pass:
 
 ```bash
 cd ~
-git clone https://github.com/aniruddha81/ruet-hall-mgmt.git hall-management
-cd hall-management
+git clone https://github.com/aniruddha81/ruet-hall-mgmt.git
+cd ruet-hall-mgmt
 ```
 
-If you are not using git, upload and extract project into `~/hall-management`.
+If you are not using git, upload and extract project into `~/ruet-hall-mgmt`.
 
 ## 3. Create `.env`
 
 Create file:
 
 ```bash
-nano ~/hall-management/.env
+nano ~/ruet-hall-mgmt/.env
 ```
 
 Use this template and replace placeholders:
@@ -103,7 +103,7 @@ Important:
 Protect secrets on VM:
 
 ```bash
-cd ~/hall-management
+cd ~/ruet-hall-mgmt
 grep -qxF ".env" .gitignore || echo ".env" >> .gitignore
 chmod 600 .env
 ```
@@ -131,11 +131,11 @@ Expected pass:
 On small VM, build frontends first:
 
 ```bash
-cd ~/hall-management
+cd ~/ruet-hall-mgmt
 docker compose build web
 docker compose build admin
 docker compose build backend
-docker compose build payment-server
+docker compose build pay
 ```
 
 Start:
@@ -154,7 +154,7 @@ Expected pass demo:
 
 - `hallmgmt-mysql` is `Up (...) (healthy)`
 - `hallmgmt-backend` is `Up`
-- `hallmgmt-payment-server` is `Up`
+- `hallmgmt-pay-server` is `Up`
 - `hallmgmt-student-web` is `Up`
 - `hallmgmt-admin-web` is `Up`
 - `hallmgmt-nginx` is `Up`
@@ -271,7 +271,7 @@ Expected pass:
 ### 8.4 Replace nginx config with SSL blocks
 
 ```bash
-cat > ~/hall-management/nginx/ruet-hall-management.conf <<'EOF'
+cat > ~/ruet-hall-mgmt/nginx/ruet-hall-management.conf <<'EOF'
 limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/m;
 
 server {
@@ -401,13 +401,13 @@ sudo crontab -e
 Add:
 
 ```cron
-0 3 * * * certbot renew --quiet --standalone --pre-hook "docker compose -f /home/azureuser/hall-management/docker-compose.yml stop nginx" --post-hook "docker compose -f /home/azureuser/hall-management/docker-compose.yml up -d nginx"
+0 3 * * * certbot renew --quiet --standalone --pre-hook "docker compose -f /home/azureuser/ruet-hall-mgmt/docker-compose.yml stop nginx" --post-hook "docker compose -f /home/azureuser/ruet-hall-mgmt/docker-compose.yml up -d nginx"
 ```
 
 Test:
 
 ```bash
-sudo certbot renew --dry-run --standalone --pre-hook "docker compose -f /home/azureuser/hall-management/docker-compose.yml stop nginx" --post-hook "docker compose -f /home/azureuser/hall-management/docker-compose.yml up -d nginx"
+sudo certbot renew --dry-run --standalone --pre-hook "docker compose -f /home/azureuser/ruet-hall-mgmt/docker-compose.yml stop nginx" --post-hook "docker compose -f /home/azureuser/ruet-hall-mgmt/docker-compose.yml up -d nginx"
 ```
 
 Expected pass:
@@ -420,12 +420,12 @@ Expected pass:
 Update deployment:
 
 ```bash
-cd ~/hall-management
+cd ~/ruet-hall-mgmt
 git pull
 docker compose build web
 docker compose build admin
 docker compose build backend
-docker compose build payment-server
+docker compose build pay
 docker compose up -d
 docker image prune -f
 ```
@@ -451,14 +451,14 @@ Quick verification after VM boot:
 ```bash
 sudo systemctl is-enabled docker
 sudo systemctl is-active docker
-cd ~/hall-management
+cd ~/ruet-hall-mgmt
 docker compose ps
 ```
 
 If any service is not running, bring everything up:
 
 ```bash
-cd ~/hall-management
+cd ~/ruet-hall-mgmt
 docker compose up -d
 ```
 

@@ -29,10 +29,10 @@ services:
     networks:
       - hallnet
 
-  payment-server:
+  pay:
     build:
-      context: ./payment-server
-    container_name: hallmgmt-payment-server
+      context: ./pay
+    container_name: hallmgmt-pay-server
     restart: unless-stopped
     environment:
       PORT: ${PAYMENT_SERVER_PORT:-8080}
@@ -45,21 +45,19 @@ services:
 
   backend:
     build:
-      context: ./ruet-hall-man-backend
+      context: ./backend
     container_name: hallmgmt-backend
     restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
-      payment-server:
+      pay:
         condition: service_started
-    env_file:
-      - ./ruet-hall-man-backend/.env
     environment:
       PORT: ${BACKEND_PORT:-8000}
       NODE_ENV: production
       DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
-      PAYMENT_SERVER_URL: http://payment-server:${PAYMENT_SERVER_PORT:-8080}
+      PAYMENT_SERVER_URL: http://pay:${PAYMENT_SERVER_PORT:-8080}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
@@ -76,7 +74,7 @@ services:
 
   admin:
     build:
-      context: ./ruet-hall-man-admin
+      context: ./admin
       args:
         BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
     container_name: hallmgmt-admin-web
@@ -95,7 +93,7 @@ services:
 
   web:
     build:
-      context: ./ruet-hall-man-web
+      context: ./web
       args:
         BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
     container_name: hallmgmt-student-web

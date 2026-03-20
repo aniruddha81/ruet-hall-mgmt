@@ -1,12 +1,12 @@
 ---
 name: secure-api-workflow
-description: "Implement secure API changes in ruet-hall-man-backend. Use for auth, role authorization, schema validation, secure cookie handling, CORS hardening, and safe endpoint evolution under existing module conventions."
+description: "Implement secure API changes in the backend service. Use for auth, role authorization, schema validation, secure cookie handling, CORS hardening, and safe endpoint evolution under existing module conventions."
 argument-hint: "Which endpoint or module needs a secure change?"
 ---
 
 # Secure API Workflow (Main Backend)
 
-Use this skill for `ruet-hall-man-backend` security-sensitive changes.
+Use this skill for `backend` service security-sensitive changes.
 
 ## Security Baseline (Balanced Strictness)
 

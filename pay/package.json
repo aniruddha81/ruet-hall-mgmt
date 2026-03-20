@@ -1,5 +1,5 @@
 {
-  "name": "payment-server",
+  "name": "pay-server",
   "module": "index.ts",
   "type": "module",
   "private": true,

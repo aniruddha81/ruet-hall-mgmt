@@ -1,12 +1,12 @@
 ---
 name: premium-nextjs-design
-description: "Design premium Next.js pages for ruet-hall-man-web using an elegant corporate style. Use for layout upgrades, typography systems, component polish, responsive refinement, and production-grade UX quality checks."
+description: "Design premium Next.js pages for the web service using an elegant corporate style. Use for layout upgrades, typography systems, component polish, responsive refinement, and production-grade UX quality checks."
 argument-hint: "Which student-facing page or flow should be redesigned?"
 ---
 
 # Premium Next.js Design (Student Web)
 
-Use this skill for student-facing UI work in `ruet-hall-man-web`.
+Use this skill for student-facing UI work in `web` service.
 
 ## Default Visual Direction
 
