@@ -44,7 +44,7 @@ Core Modules:
 
 Language & Runtime:
   • TypeScript 5.9+ for type safety
-  • Bun as JavaScript runtime and package manager
+  • Node.js as JavaScript runtime and npm as package manager
   • Node.js compatible runtime
 
 Framework & Libraries:
@@ -713,44 +713,44 @@ FINANCE Module:
 
 ## Prerequisites
 ────────────────────────────────────────────────────────────────────────────────
-  • Bun runtime (https://bun.sh)
+  • Node.js runtime (https://nodejs.org)
   • MySQL database running
   • Environment variables configured (.env)
 
 ## Setup Steps
 ────────────────────────────────────────────────────────────────────────────────
 
-  1. Install dependencies:
-       $ bun install
+    1. Install dependencies:
+      $ npm install
 
   2. Create .env file (copy from .env.sample):
        $ cp .env.sample .env
        # Edit .env with your database credentials
 
-  3. Generate migrations:
-       $ bun db:generate
+    3. Generate migrations:
+      $ npm run db:generate
 
-  4. Run migrations:
-       $ bun db:migrate
+    4. Run migrations:
+      $ npm run db:migrate
 
-  5. Seed initial data (halls & rooms):
-       $ bun db:seed
+    5. Seed initial data (halls & rooms):
+      $ npm run db:seed
 
-  6. Seed beds (requires step 5 first):
-       $ bun src/db/seedBeds.ts
+    6. Seed beds (requires step 5 first):
+      $ npm run db:seed:beds
 
-  7. Start development server:
-       $ bun dev
+    7. Start development server:
+      $ npm run dev
 
   8. Server runs on: http://localhost:8000/api/v1
 
 ## Database Commands
 ────────────────────────────────────────────────────────────────────────────────
-  $ bun db:generate              # Generate migration from schema changes
-  $ bun db:migrate               # Apply pending migrations
-  $ bun db                       # Generate + migrate (combined)
-  $ bun db:seed                  # Seed halls & rooms
-  $ bun src/db/seedBeds.ts       # Seed beds (run after db:seed)
+  $ npm run db:generate          # Generate migration from schema changes
+  $ npm run db:migrate           # Apply pending migrations
+  $ npm run db                   # Generate + migrate (combined)
+  $ npm run db:seed              # Seed halls & rooms
+  $ npm run db:seed:beds         # Seed beds (run after db:seed)
 
 
 ================================================================================

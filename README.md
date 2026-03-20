@@ -15,7 +15,7 @@ Core modules:
 - Student portal (Next.js): admissions, dining, finance, profile workflows
 - Admin portal (Next.js): administration dashboard and management tools
 - Backend API (Node + Express + Drizzle): authentication, business logic, database access
-- Payment service (Bun + Express): payment-related processing flow
+- Payment service (Node.js + Express): payment-related processing flow
 - MySQL: persistent data storage
 - Nginx: reverse proxy, SSL termination, domain routing
 
@@ -33,15 +33,14 @@ Main folders:
 
 Runtime model in this repository:
 
-- web, admin, pay use Bun-based Docker images
-- backend uses Node Docker image
+- web, admin, backend, pay use Node.js Docker images
 - deployment entry point is root [docker-compose.yml](docker-compose.yml)
 
 ## 3. Tech Stack
 
 - Frontend: Next.js 16, React 19, TypeScript
 - Backend: Node.js, Express, Drizzle ORM, MySQL
-- Payment service: Bun, Express
+- Payment service: Node.js, Express
 - Infra: Docker Compose, Nginx, Certbot
 - Hosting target: Azure Ubuntu VM
 

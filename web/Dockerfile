@@ -1,4 +1,4 @@
-FROM oven/bun:1.2.22-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -6,13 +6,13 @@ ARG BACKEND_API_URL=http://backend:8000
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BACKEND_API_URL=${BACKEND_API_URL}
 
-COPY package.json ./
-RUN bun install
+COPY package*.json ./
+RUN npm ci
 
 COPY . .
-RUN bun run build
+RUN npm run build
 
-FROM oven/bun:1.2.22-alpine AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
@@ -27,4 +27,4 @@ COPY --from=builder /app/public ./public
 
 EXPOSE 3001
 
-CMD ["bun", "server.js"]
+CMD ["node", "server.js"]

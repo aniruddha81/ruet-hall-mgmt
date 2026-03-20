@@ -20,7 +20,7 @@ Use this skill for `pay` service endpoint changes.
 3. Generate transaction IDs with stable prefixes and low collision risk.
 4. Tighten CORS for non-local deployments.
 5. Keep success/error envelopes consistent and non-leaky.
-6. Validate via `bun run build` and `bun run health-check`.
+6. Validate via `npm run build` and `npm run health-check`.
 
 ## Completion Checks
 

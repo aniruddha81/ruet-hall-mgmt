@@ -23,7 +23,7 @@ Use this skill for `backend` service security-sensitive changes.
 4. Keep controller logic fail-closed with consistent `ApiError` and `ApiResponse` use.
 5. Verify hall/resource ownership checks for protected resources.
 6. Review CORS and cookie security behavior for target environment.
-7. Validate with running server (`bun dev`) and postman collection checks.
+7. Validate with running server (`npm run dev`) and postman collection checks.
 
 ## Completion Checks
 

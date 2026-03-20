@@ -11,8 +11,8 @@ Mock payment service for the RUET Hall Management workspace.
 ## Local run
 
 ```bash
-bun install
-bun run dev
+npm install
+npm run dev
 ```
 
 ## Docker
