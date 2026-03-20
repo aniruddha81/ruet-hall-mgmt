@@ -6,7 +6,7 @@
     "dev": "node --watch src/index.ts",
     "start": "node src/index.ts",
     "db": "npx drizzle-kit generate --config=drizzle.config.ts && npx drizzle-kit migrate --config=drizzle.config.ts",
-    "db-all": "npx drizzle-kit generate --config=drizzle.config.ts && npx drizzle-kit migrate --config=drizzle.config.ts && node src/db/seed.ts"
+    "db-all": "npx drizzle-kit generate --config=drizzle.config.ts && npx drizzle-kit migrate --config=drizzle.config.ts && npx tsx src/db/seed.ts"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
