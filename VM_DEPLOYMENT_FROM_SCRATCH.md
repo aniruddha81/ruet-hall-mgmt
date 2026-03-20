@@ -54,7 +54,7 @@ Expected pass:
 
 ```bash
 cd ~
-git clone <YOUR_REPO_URL> hall-management
+git clone https://github.com/aniruddha81/ruet-hall-mgmt.git hall-management
 cd hall-management
 ```
 
