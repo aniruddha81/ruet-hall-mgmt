@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/inventory/damage/:id/verify"
+method: PATCH
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+pathVariables:
+  id: 96b0eb96-fcce-4021-bc0b-af1ba20ed794
+body:
+  type: json
+  content: |-
+    {
+      "fineAmount": 500
+    }
+order: 6000

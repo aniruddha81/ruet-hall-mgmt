@@ -1,0 +1,15 @@
+$kind: http-request
+name: Upload Avatar
+url: "{{BASE_URL}}/api/profile/upload-image"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+body:
+  type: formdata
+  content:
+    - type: file
+      key: avatar
+      src:
+        - /C:/Users/arroy/Pictures/Screenshots/Screenshot 2026-03-13 013116.png
+      disabled: false
+order: 1000

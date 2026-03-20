@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{BASE_URL}}/ap/dining/payment/:paymentId/refund"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+pathVariables:
+  paymentId: payment-uuid-here
+body:
+  type: json
+  content: |-
+    {
+      "refundAmount": 500,
+      "refundReason": "Student cancelled the meal booking"
+    }
+order: 19000

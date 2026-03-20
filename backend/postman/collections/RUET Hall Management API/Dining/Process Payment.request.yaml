@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/dining/payment/process"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 500,
+      "paymentMethod": "BKASH",
+      "transactionId": "TXN123456789",
+      "totalQuantity": 10
+    }
+order: 17000

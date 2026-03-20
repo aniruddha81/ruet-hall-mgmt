@@ -1,0 +1,256 @@
+notation crows-foot
+typeface mono
+colorMode pastel
+
+/// --- Halls & Infrastructure ---
+halls [icon: building, color: blue] {
+  name enum [pk]
+  address text
+  contact_number varchar
+  total_capacity int
+  total_rooms int
+  is_active boolean
+  created_at datetime
+  updated_at datetime
+}
+
+rooms [icon: door-open, color: blue] {
+  id varchar [pk]
+  room_number smallint
+  hall enum
+  capacity tinyint
+  current_occupancy smallint
+  room_status enum
+  created_at datetime
+  updated_at datetime
+}
+
+beds [icon: bed, color: blue] {
+  id varchar [pk]
+  hall enum
+  room_id varchar
+  bed_label varchar
+  bed_status enum
+  created_at datetime
+}
+
+assets [icon: package, color: red] {
+  id varchar [pk]
+  hall enum
+  name varchar
+  quantity int
+  asset_condition enum
+  created_at datetime
+  updated_at datetime
+}
+
+// --- Users & Auth ---
+uni_students [icon: users, color: green] {
+  id varchar [pk]
+  email varchar
+  password_hash varchar
+  name varchar
+  phone varchar
+  roll_number varchar
+  academic_department enum
+  is_active boolean
+  avatar_url varchar
+  is_allocated boolean
+  session varchar
+  hall enum
+  room_id varchar
+  student_status enum
+  created_at datetime
+  updated_at datetime
+}
+
+hall_admins [icon: user-check, color: green] {
+  id varchar [pk]
+  email varchar
+  password_hash varchar
+  name varchar
+  phone varchar
+  academic_department enum
+  hall enum
+  admin_designation enum
+  operational_unit enum
+  reporting_to_id varchar
+  is_active boolean
+  avatar_url varchar
+  created_at datetime
+  updated_at datetime
+}
+
+refresh_tokens [icon: key, color: green] {
+  id varchar [pk]
+  user_id varchar
+  token_hash varchar
+  jti varchar
+  ip varchar
+  user_agent varchar
+  expires_at datetime
+  created_at datetime
+}
+
+// --- Seat Management ---
+seat_applications [icon: file-text, color: blue] {
+  id varchar [pk]
+  student_id varchar
+  roll_number varchar
+  hall enum
+  academic_department enum
+  session varchar
+  seat_application_status enum
+  reviewed_by varchar
+  reviewed_at datetime
+  created_at datetime
+}
+
+seat_allocations [icon: check-square, color: blue] {
+  id varchar [pk]
+  student_id varchar
+  roll_number varchar
+  hall enum
+  room_id varchar
+  bed_id varchar
+  allocated_at datetime
+  allocated_by varchar
+}
+
+// --- Dining Management ---
+meal_menus [icon: list, color: amber] {
+  id varchar [pk]
+  hall enum
+  meal_date date
+  meal_type enum
+  menu_description text
+  price tinyint
+  total_tokens int
+  booked_tokens int
+  available_tokens int
+  created_by varchar
+  created_at datetime
+  updated_at datetime
+}
+
+meal_tokens [icon: ticket, color: amber] {
+  id varchar [pk]
+  student_id varchar
+  menu_id varchar
+  hall enum
+  meal_date date
+  meal_type enum
+  quantity tinyint
+  total_amount int
+  payment_id varchar
+  booking_time datetime
+  cancelled_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+meal_payments [icon: credit-card, color: amber] {
+  id varchar [pk]
+  student_id varchar
+  amount int
+  total_quantity tinyint
+  payment_method enum
+  transaction_id varchar
+  payment_date datetime
+  refunded_at datetime
+  refund_amount int
+  created_at datetime
+  updated_at datetime
+}
+
+// --- Finance & Expenses ---
+student_dues [icon: alert-circle, color: red] {
+  id varchar [pk]
+  student_id varchar
+  due_type enum
+  hall enum
+  amount int
+  due_status enum
+  paid_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+payments [color: red, icon: dollar-sign] {
+  id varchar [pk]
+  student_id varchar
+  hall enum
+  due_id varchar
+  amount int
+  method enum
+  created_at datetime
+}
+expenses [icon: trending-down, color: red] {
+  id varchar [pk]
+  hall enum
+  title varchar
+  amount int
+  category varchar
+  approved_by varchar
+  created_at datetime
+}
+
+damage_reports [icon: alert-triangle, color: red] {
+  id varchar [pk]
+  student_id varchar
+  asset_id varchar
+  hall enum
+  description text
+  fine_amount int
+  damage_report_status enum
+  verified_by varchar
+  created_at datetime
+  updated_at datetime
+}
+
+// ---------------------------------------------------------
+// RELATIONSHIPS
+// ---------------------------------------------------------
+
+// Infrastructure Connections
+halls.name < rooms.hall
+halls.name < beds.hall
+rooms.id < beds.room_id
+halls.name < assets.hall
+
+// User & Admin Connections
+halls.name - uni_students.hall
+rooms.id < uni_students.room_id
+halls.name < hall_admins.hall
+hall_admins.id > hall_admins.reporting_to_id
+
+// Seat Management Connections
+uni_students.id < seat_applications.student_id
+hall_admins.id < seat_applications.reviewed_by
+uni_students.id - seat_allocations.student_id
+rooms.id < seat_allocations.room_id
+beds.id - seat_allocations.bed_id
+halls.name < seat_applications.hall
+halls.name < seat_allocations.hall
+
+
+// Dining & Payments Connections
+halls.name <> meal_menus.hall
+uni_students.id < meal_tokens.student_id
+meal_menus.id < meal_tokens.menu_id
+meal_payments.id < meal_tokens.payment_id
+meal_tokens.hall < halls.name
+meal_payments.student_id > uni_students.id
+
+// Finance & Damage Connections
+uni_students.id < student_dues.student_id
+halls.name < expenses.hall
+expenses.approved_by > hall_admins.id
+uni_students.id <> damage_reports.student_id
+assets.id > damage_reports.asset_id
+student_dues.hall < halls.name
+payments.student_id > uni_students.id
+halls.name < payments.hall 
+payments.due_id - student_dues.id
+halls.name < damage_reports.hall
+hall_admins.id < damage_reports.verified_by

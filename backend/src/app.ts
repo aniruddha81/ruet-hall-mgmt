@@ -1,0 +1,60 @@
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
+import morgan from "morgan";
+import { handleError } from "./middlewares/errorHandling.middleware.ts";
+
+const app = express();
+
+const allowedOrigins = [
+  process.env.STUDENT_URL,
+  process.env.ADMIN_URL,
+  "http://localhost:3001",
+  "http://localhost:4001",
+].filter(Boolean) as string[];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(express.static("public"));
+app.use(cookieParser());
+app.use(morgan("dev"));
+
+if (process.env.NODE_ENV === "development") {
+  import("./utils/run-any-script.ts").then(() => {
+    console.log("Executed run-any-script.ts for development.");
+  });
+}
+//routes import
+import admissionRouter from "./modules/admission/admission.routes.ts";
+import authRouter from "./modules/auth/auth.routes.ts";
+import diningRouter from "./modules/dining/dining.routes.ts";
+import financeRouter from "./modules/finance/finance.routes.ts";
+import inventoryRouter from "./modules/inventory/inventory.routes.ts";
+import profileRouter from "./modules/profile/profile.route.ts";
+import ApiResponse from "./utils/ApiResponse.ts";
+
+//routes declaration
+app.use("/api/auth", authRouter);
+app.use("/api/profile", profileRouter);
+app.use("/api/dining", diningRouter);
+app.use("/api/admission", admissionRouter);
+app.use("/api/inventory", inventoryRouter);
+app.use("/api/finance", financeRouter);
+
+app.get("/", (req, res) => {
+  res
+    .status(200)
+    .json(new ApiResponse(200, null, "Welcome to RUET Hall Management API"));
+});
+
+// Error handling middleware
+app.use(handleError);
+
+export { app };

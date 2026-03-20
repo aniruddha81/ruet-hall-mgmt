@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/dining/my-active-tokens"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+order: 3000

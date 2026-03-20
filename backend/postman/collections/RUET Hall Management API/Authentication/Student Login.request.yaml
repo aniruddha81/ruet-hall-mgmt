@@ -1,0 +1,14 @@
+$kind: http-request
+name: Student Login
+url: "{{BASE_URL}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "email": "student3@gmail.com",
+        "password": "StudentPass123!"
+    }
+order: 2000
