@@ -6,8 +6,8 @@ ARG BACKEND_API_URL=http://backend:8000
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BACKEND_API_URL=${BACKEND_API_URL}
 
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+COPY package.json ./
+RUN bun install
 
 COPY . .
 RUN bun run build
