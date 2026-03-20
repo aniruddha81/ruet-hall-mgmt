@@ -139,8 +139,8 @@ export default function AdminDashboard() {
     <div className="space-y-8">
 
       {/* ── Welcome Banner ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-sky-900 to-cyan-900 px-6 py-7 text-white shadow-xl md:px-10 md:py-9">
-        <div className="pointer-events-none absolute inset-0 opacity-15 [background:linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.22)_50%,transparent_100%)] [background-size:250%_250%] [animation:shine_12s_linear_infinite]" />
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-slate-900 via-sky-900 to-cyan-900 px-6 py-7 text-white shadow-xl md:px-10 md:py-9">
+        <div className="pointer-events-none absolute inset-0 opacity-15 [background:linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.22)_50%,transparent_100%)] bg-size-[250%_250%] animate-[shine_12s_linear_infinite]" />
         <div className="relative z-10 space-y-1">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/50 bg-emerald-300/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">
             <CheckCircle2 className="h-3.5 w-3.5" />

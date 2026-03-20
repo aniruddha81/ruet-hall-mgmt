@@ -343,7 +343,7 @@ export default function AdmissionsManagement() {
                       ) : null}
 
                       {application.status === "APPROVED" && !application.seatCharge ? (
-                        <div className="flex min-w-[260px] items-center gap-2">
+                        <div className="flex min-w-65 items-center gap-2">
                           <Input
                             type="number"
                             min={1}
@@ -377,7 +377,7 @@ export default function AdmissionsManagement() {
                       ) : null}
 
                       {application.status === "APPROVED" && application.canAllocate ? (
-                        <div className="flex min-w-[280px] items-center gap-2">
+                        <div className="flex min-w-70 items-center gap-2">
                           <select
                             value={selectedBeds[application.id] ?? ""}
                             onChange={(event) =>
