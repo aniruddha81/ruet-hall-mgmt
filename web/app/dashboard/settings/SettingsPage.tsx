@@ -34,7 +34,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h2 className="text-4xl font-bold text-foreground">Settings</h2>
+        <h2 className="text-3xl font-bold text-foreground">Settings</h2>
         <p className="text-muted-foreground mt-1">
           Manage your account settings and preferences
         </p>

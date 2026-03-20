@@ -1,125 +1,130 @@
 name: Deploy to Azure VM
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
-    push:
-        branches: [deploy]
-        paths:
-            - web/**
-            - admin/**
-            - backend/**
-            - pay/**
-            - nginx/**
-            - docker-compose.yml
-            - .github/workflows/deploy.yml
-    workflow_dispatch:
+  push:
+    branches: [deploy]
+    paths:
+      - web/**
+      - admin/**
+      - backend/**
+      - pay/**
+      - nginx/**
+      - docker-compose.yml
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
 
 concurrency:
-    group: azure-vm-deploy
-    cancel-in-progress: true
+  group: azure-vm-deploy
+  cancel-in-progress: true
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        timeout-minutes: 30
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-            - name: Detect changed services
-              id: changes
-              shell: bash
-              run: |
-                  set -euo pipefail
+      - name: Detect changed services
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
 
-                  BEFORE="${{ github.event.before }}"
-                  AFTER="${{ github.sha }}"
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
 
-                  if [[ -z "$BEFORE" || "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
-                    # First push on branch or unknown before SHA: compare to previous commit when possible.
-                    RANGE="HEAD~1..HEAD"
-                  else
-                    RANGE="$BEFORE..$AFTER"
-                  fi
+          if [[ -z "$BEFORE" || "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+            # First push on branch or unknown before SHA: compare to previous commit when possible.
+            RANGE="HEAD~1..HEAD"
+          else
+            RANGE="$BEFORE..$AFTER"
+          fi
 
-                  CHANGED="$(git diff --name-only $RANGE || true)"
+          CHANGED="$(git diff --name-only $RANGE || true)"
 
-                  echo "Changed files in range $RANGE:"
-                  echo "$CHANGED"
+          echo "Changed files in range $RANGE:"
+          echo "$CHANGED"
 
-                  has_changed() {
-                    local pattern="$1"
-                    if echo "$CHANGED" | grep -qE "$pattern"; then
-                      echo true
-                    else
-                      echo false
-                    fi
-                  }
+          has_changed() {
+            local pattern="$1"
+            if echo "$CHANGED" | grep -qE "$pattern"; then
+              echo true
+            else
+              echo false
+            fi
+          }
 
-                  echo "web=$(has_changed '^web/')" >> "$GITHUB_OUTPUT"
-                  echo "admin=$(has_changed '^admin/')" >> "$GITHUB_OUTPUT"
-                  echo "backend=$(has_changed '^backend/')" >> "$GITHUB_OUTPUT"
-                  echo "migrate=$(has_changed '^backend/(drizzle/|src/db/|drizzle\.config\.ts$)')" >> "$GITHUB_OUTPUT"
-                  echo "pay=$(has_changed '^pay/')" >> "$GITHUB_OUTPUT"
-                  echo "nginx=$(has_changed '^nginx/')" >> "$GITHUB_OUTPUT"
-                  echo "compose=$(has_changed '^docker-compose\.yml$')" >> "$GITHUB_OUTPUT"
+          echo "web=$(has_changed '^web/')" >> "$GITHUB_OUTPUT"
+          echo "admin=$(has_changed '^admin/')" >> "$GITHUB_OUTPUT"
+          echo "backend=$(has_changed '^backend/')" >> "$GITHUB_OUTPUT"
+          echo "migrate=$(has_changed '^backend/(drizzle/|src/db/|drizzle\.config\.ts$)')" >> "$GITHUB_OUTPUT"
+          echo "pay=$(has_changed '^pay/')" >> "$GITHUB_OUTPUT"
+          echo "nginx=$(has_changed '^nginx/')" >> "$GITHUB_OUTPUT"
+          echo "compose=$(has_changed '^docker-compose\.yml$')" >> "$GITHUB_OUTPUT"
 
-            - name: Deploy over SSH
-              uses: appleboy/ssh-action@v1.2.1
-              with:
-                  host: ${{ secrets.VM_HOST }}
-                  username: ${{ secrets.VM_USER }}
-                  key: ${{ secrets.VM_SSH_KEY }}
-                  command_timeout: 30m
-                  script: |
-                      set -euo pipefail
-                      cd ~/ruet-hall-mgmt
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+            cd ~/ruet-hall-mgmt
 
-                      git fetch origin deploy
-                      git checkout deploy
-                      git pull --ff-only origin deploy
+            git fetch origin deploy
+            git checkout deploy
+            git pull --ff-only origin deploy
 
-                      if [ "${{ steps.changes.outputs.web }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
-                        echo "Building web..."
-                        docker compose build web
-                      fi
+            if [ "${{ steps.changes.outputs.web }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
+              echo "Building web..."
+              docker compose build web
+            fi
 
-                      if [ "${{ steps.changes.outputs.admin }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
-                        echo "Building admin..."
-                        docker compose build admin
-                      fi
+            if [ "${{ steps.changes.outputs.admin }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
+              echo "Building admin..."
+              docker compose build admin
+            fi
 
-                      if [ "${{ steps.changes.outputs.backend }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
-                        echo "Building backend..."
-                        docker compose build backend
-                      fi
+            if [ "${{ steps.changes.outputs.backend }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
+              echo "Building backend..."
+              docker compose build backend
+            fi
 
-                      if [ "${{ steps.changes.outputs.pay }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
-                        echo "Building pay..."
-                        docker compose build pay
-                      fi
+            if [ "${{ steps.changes.outputs.pay }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
+              echo "Building pay..."
+              docker compose build pay
+            fi
 
-                      docker compose up -d
+            docker compose up -d
 
-                      if [ "${{ steps.changes.outputs.nginx }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
-                        echo "Recreating nginx..."
-                        docker compose up -d --force-recreate nginx
-                      fi
+            if [ "${{ steps.changes.outputs.nginx }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
+              echo "Recreating nginx..."
+              docker compose up -d --force-recreate nginx
+            fi
 
-                      # Run backend migrations only when migration/schema files changed.
-                      if [ "${{ steps.changes.outputs.migrate }}" = "true" ]; then
-                        echo "Running backend migrations..."
-                        docker compose exec -T backend npm run db
-                      fi
+            # Run backend migrations only when migration/schema files changed.
+            if [ "${{ steps.changes.outputs.migrate }}" = "true" ]; then
+              echo "Running backend migrations..."
+              docker compose exec -T backend npm run db
+            fi
 
-                      docker image prune -f
+            docker image prune -f
 
-                      echo "Deployment complete!"
+            echo "Deployment complete!"
 
-            - name: Notify on failure
-              if: failure()
-              shell: bash
-              run: |
-                  echo "Deployment FAILED at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+      - name: Notify on failure
+        if: failure()
+        shell: bash
+        run: |
+          echo "Deployment FAILED at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
