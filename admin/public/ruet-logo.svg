@@ -1,0 +1,24 @@
+<svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">RUET Logo Placeholder</title>
+  <desc id="logoDesc">A clean emblem style placeholder logo for RUET.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#dbeafe"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+  </defs>
+  <circle cx="120" cy="120" r="112" fill="url(#bg)"/>
+  <circle cx="120" cy="120" r="90" fill="url(#inner)" stroke="#0f172a" stroke-width="2"/>
+  <path d="M120 55 L165 132 L120 210 L75 132 Z" fill="none" stroke="#0f172a" stroke-width="2" opacity="0.7"/>
+  <circle cx="120" cy="100" r="16" fill="none" stroke="#0f172a" stroke-width="2"/>
+  <path d="M104 100c12-9 20-9 32 0M104 100c12 9 20 9 32 0" fill="none" stroke="#0f172a" stroke-width="2"/>
+  <circle cx="88" cy="145" r="20" fill="none" stroke="#0f172a" stroke-width="2"/>
+  <path d="M68 145h40M88 125v40" stroke="#0f172a" stroke-width="1.5"/>
+  <path d="M140 152c10-8 21-8 31 0M140 162c10-8 21-8 31 0M140 172c10-8 21-8 31 0" fill="none" stroke="#0f172a" stroke-width="2"/>
+  <rect x="40" y="188" width="160" height="36" rx="4" fill="#ffffff" stroke="#0f172a" stroke-width="2"/>
+  <text x="120" y="212" font-size="24" font-family="Georgia, serif" text-anchor="middle" letter-spacing="6" fill="#0f172a">RUET</text>
+</svg>
