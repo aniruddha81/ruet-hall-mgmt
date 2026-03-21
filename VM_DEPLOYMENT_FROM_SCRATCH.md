@@ -10,6 +10,52 @@ It assumes Ubuntu 24.04 on Azure VM and domains:
 - `admin.aniruddha81.tech`
 - `api.aniruddha81.tech`
 
+---
+
+## 🔁 Partial Reset (Certs + Crontab Already Set Up)
+
+Use this path if you had a VM issue and need to redeploy **without** wiping SSL certs or the certbot crontab. The certificates in `/etc/letsencrypt` and the crontab entry survive VM restarts and re-clones — they live on the VM filesystem, not in Docker.
+
+**Skip:** Steps 0, 8.1–8.3, and 9.
+
+**Run these in order:**
+
+```bash
+# 1. Prep VM tools (only if wiped)
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y git certbot docker-compose-plugin
+sudo systemctl enable docker
+
+# 2. Clone repo
+cd ~
+git clone https://github.com/aniruddha81/ruet-hall-mgmt.git
+cd ruet-hall-mgmt
+
+# 3. Recreate .env (always needed — it's gitignored)
+nano ~/ruet-hall-mgmt/.env
+chmod 600 .env
+
+# 4. Build and start
+docker compose build web
+docker compose build admin
+docker compose build backend
+docker compose build pay
+docker compose up -d
+
+# 5. Init DB (only if data was lost)
+docker compose exec mysql sh -lc \
+  'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
+docker compose exec backend npm run db-all
+
+# 6. Re-apply SSL nginx.conf (certs already exist, just reload config)
+#    Paste your SSL nginx.conf content here or use the one from Step 8.4
+docker compose up -d --force-recreate nginx
+```
+
+Expected result: all services up, HTTPS working with the existing cert.
+
+---
+
 ## 0. Full Reset on VM (Optional but clean)
 
 ```bash
