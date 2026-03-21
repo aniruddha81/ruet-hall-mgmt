@@ -26,10 +26,19 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y git certbot docker-compose-plugin
 sudo systemctl enable docker
 
-# 2. Clone repo
-cd ~
-git clone https://github.com/aniruddha81/ruet-hall-mgmt.git
-cd ruet-hall-mgmt
+# 2. Pull latest code (repo already exists on VM)
+cd ~/ruet-hall-mgmt
+docker compose down -v --remove-orphans || true
+
+docker rm -f $(docker ps -aq) 2>/dev/null || true
+docker volume prune -f
+docker network prune -f
+docker image prune -af
+docker builder prune -af
+
+git fetch origin deploy
+git checkout deploy
+git reset --hard origin/deploy
 
 # 3. Recreate .env (always needed — it's gitignored)
 nano ~/ruet-hall-mgmt/.env
