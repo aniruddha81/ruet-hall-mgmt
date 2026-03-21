@@ -115,9 +115,9 @@ async function clearDatabase() {
   await db.delete(damageReports);
   await db.delete(assets);
   await db.delete(beds);
+  await db.delete(uniStudents); // must be before rooms (room_id FK)
   await db.delete(rooms);
-  await db.delete(hallAdmins);
-  await db.delete(uniStudents);
+  await db.delete(hallAdmins);  // must be before halls if hall FK exists
   await db.delete(hallsTable);
 }
 
