@@ -143,7 +143,7 @@ Nginx API route includes request limiting to reduce abuse risk.
 
 Current config source:
 
-- [nginx/ruet-hall-management.conf](nginx/ruet-hall-management.conf) (Nginx reverse proxy configuration)
+- [nginx.conf](nginx.conf) (Nginx reverse proxy configuration)
 
 ## 10. Operations and Maintenance
 
@@ -181,4 +181,4 @@ docker compose up -d
 
 - Read this file for overall project lifecycle and architecture
 - Use [VM_DEPLOYMENT_FROM_SCRATCH.md](VM_DEPLOYMENT_FROM_SCRATCH.md) for exact VM deployment steps
-- Keep [docker-compose.yml](docker-compose.yml) and [nginx/ruet-hall-management.conf](nginx/ruet-hall-management.conf) as the source of truth for runtime behavior
+- Keep [docker-compose.yml](docker-compose.yml) and [nginx.conf](nginx.conf) as the source of truth for runtime behavior

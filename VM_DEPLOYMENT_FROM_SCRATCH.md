@@ -114,12 +114,12 @@ Expected pass:
 
 ## 4. Ensure HTTP Nginx Config First
 
-Before SSL, keep `nginx/ruet-hall-management.conf` in HTTP-only mode (listen 80 only).
+Before SSL, keep `nginx.conf` in HTTP-only mode (listen 80 only).
 
 Quick check:
 
 ```bash
-grep -nE "listen 443|ssl_certificate|options-ssl-nginx" nginx/ruet-hall-management.conf
+grep -nE "listen 443|ssl_certificate|options-ssl-nginx" nginx.conf
 ```
 
 Expected pass:
@@ -271,7 +271,7 @@ Expected pass:
 ### 8.4 Replace nginx config with SSL blocks
 
 ```bash
-cat > ~/ruet-hall-mgmt/nginx/ruet-hall-management.conf <<'EOF'
+cat > ~/ruet-hall-mgmt/nginx.conf <<'EOF'
 limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/m;
 
 server {
