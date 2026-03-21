@@ -136,7 +136,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-8">
 
       {/* ── Welcome Banner ── */}
       <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-slate-900 via-sky-900 to-cyan-900 px-6 py-7 text-white shadow-xl md:px-10 md:py-9">
