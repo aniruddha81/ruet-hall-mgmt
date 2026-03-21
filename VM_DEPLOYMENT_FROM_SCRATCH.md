@@ -27,6 +27,10 @@ docker builder prune -af
 
 sudo rm -rf /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt
 rm -rf ~/ruet-hall-mgmt
+
+# Remove certbot auto-renewal crontab entry
+sudo crontab -l 2>/dev/null | grep -v 'certbot renew' | sudo crontab -
+
 sudo systemctl restart docker
 ```
 
