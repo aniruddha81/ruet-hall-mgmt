@@ -11,7 +11,7 @@ on:
       - admin/**
       - backend/**
       - pay/**
-      - nginx/**
+      - nginx.conf
       - docker-compose.yml
       - .github/workflows/deploy.yml
   workflow_dispatch:
@@ -68,7 +68,7 @@ jobs:
           echo "backend=$(has_changed '^backend/')" >> "$GITHUB_OUTPUT"
           echo "migrate=$(has_changed '^backend/(drizzle/|src/db/|drizzle\.config\.ts$)')" >> "$GITHUB_OUTPUT"
           echo "pay=$(has_changed '^pay/')" >> "$GITHUB_OUTPUT"
-          echo "nginx=$(has_changed '^nginx/')" >> "$GITHUB_OUTPUT"
+          echo "nginx=$(has_changed '^nginx\.conf$')" >> "$GITHUB_OUTPUT"
           echo "compose=$(has_changed '^docker-compose\.yml$')" >> "$GITHUB_OUTPUT"
 
       - name: Deploy over SSH
@@ -84,7 +84,7 @@ jobs:
 
             git fetch origin deploy
             git checkout deploy
-            git pull --ff-only origin deploy
+            git reset --hard origin/deploy
 
             if [ "${{ steps.changes.outputs.web }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
               echo "Building web..."
