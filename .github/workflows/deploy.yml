@@ -125,6 +125,7 @@ jobs:
             fi
 
             docker image prune -f
+            docker builder prune -f --keep-storage=2g
 
             echo "Deployment complete!"
 

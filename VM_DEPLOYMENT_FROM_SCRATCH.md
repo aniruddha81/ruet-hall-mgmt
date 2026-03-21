@@ -442,7 +442,23 @@ docker compose build backend
 docker compose build pay
 docker compose up -d --force-recreate
 docker image prune -f
+docker builder prune -f --keep-storage=2g
 ```
+
+Monitor disk usage (important on 30 GB disk):
+
+```bash
+df -h /
+docker system df
+```
+
+If disk is above 80%, run a deeper clean:
+
+```bash
+docker system prune -af --volumes
+```
+
+Warning: this removes ALL unused images, not just dangling ones. You will need to rebuild all services after this.
 
 Useful logs:
 
