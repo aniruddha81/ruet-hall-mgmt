@@ -159,20 +159,6 @@ Expected pass demo:
 - `hallmgmt-admin-web` is `Up`
 - `hallmgmt-nginx` is `Up`
 
-Verify security hardening is active:
-
-```bash
-docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' hallmgmt-backend
-docker inspect --format '{{.HostConfig.SecurityOpt}}' hallmgmt-backend
-docker stats --no-stream
-```
-
-Expected pass:
-
-- ReadonlyRootfs returns `true`
-- SecurityOpt includes `no-new-privileges`
-- `docker stats` shows memory limits (MEM LIMIT column) are set, not `0B`
-
 ### 5.1 Initialize DB Schema and Seed Data (First time only)
 
 Create database if missing:
@@ -488,43 +474,3 @@ docker compose up -d --force-recreate
 Important:
 
 - If you had manually run `docker compose stop ...` before shutting down the VM, those stopped containers may stay stopped after reboot. Use `docker compose up -d --force-recreate` to start them.
-
-## 12. Security Hardening Notes
-
-All containers run with these protections enabled via `docker-compose.yml`:
-
-- **Read-only root filesystem** (`read_only: true`): Containers cannot write to their own filesystem. Writable paths (`/tmp`, `/run`, etc.) are provided via `tmpfs` mounts with `noexec,nosuid` flags.
-- **No privilege escalation** (`no-new-privileges:true`): Processes cannot gain new privileges via setuid/setgid binaries.
-- **Resource limits**: Each container has `mem_limit`, `cpus`, and `pids_limit` set to prevent any single service from exhausting VM resources.
-- **Init process** (`init: true`): All Node.js services use tini as PID 1 to properly reap zombie processes.
-
-### Troubleshooting read-only filesystem errors
-
-If a service fails to start with a `read-only file system` error:
-
-```bash
-docker compose logs <service-name> --tail=50
-```
-
-Identify the path it tried to write to and add it as a tmpfs mount in `docker-compose.yml`:
-
-```yaml
-tmpfs:
-  - /path/that/needs/write:noexec,nosuid,size=64M
-```
-
-Common candidates:
-
-- Next.js cache: `/app/.next/cache`
-- Node.js temp: `/tmp` (already mounted)
-
-### Troubleshooting OOM kills
-
-If a container keeps restarting, check if it was killed for exceeding memory:
-
-```bash
-docker inspect --format '{{.State.OOMKilled}}' <container-name>
-docker stats --no-stream
-```
-
-If `OOMKilled` is `true`, increase `mem_limit` for that service in `docker-compose.yml`.
