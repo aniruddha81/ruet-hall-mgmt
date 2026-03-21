@@ -1,4 +1,6 @@
-FROM alpine:3.23 AS builder
+FROM node:22-alpine AS builder
+
+RUN apk upgrade --no-cache
 
 WORKDIR /app
 
@@ -14,7 +16,9 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM alpine:3.23 AS runner
+FROM node:22-alpine AS runner
+
+RUN apk upgrade --no-cache
 
 WORKDIR /app
 
