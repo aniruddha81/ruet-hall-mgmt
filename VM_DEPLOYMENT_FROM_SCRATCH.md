@@ -52,6 +52,8 @@ docker compose build pay
 docker compose up -d
 
 # 5. Init DB (only if data was lost)
+#    Wait for MySQL to fully initialize (healthcheck passes before user setup completes)
+sleep 15
 docker compose exec mysql sh -lc \
   'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
 docker compose exec backend npm run db-all
@@ -221,6 +223,8 @@ Expected pass demo:
 ### 5.1 Initialize DB Schema and Seed Data (First time only)
 
 Create database if missing:
+
+Wait ~15 seconds after `docker compose up -d` for MySQL to fully initialize users/grants on a fresh volume. The healthcheck passes before this completes.
 
 ```bash
 docker compose exec mysql \
