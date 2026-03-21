@@ -182,13 +182,6 @@ docker compose exec mysql \
   sh -lc 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
 ```
 
-Rebuild backend after pulling latest backend Dockerfile/script updates:
-
-```bash
-docker compose build backend
-docker compose up -d backend
-```
-
 Generate migrations, migrate, and seed:
 
 ```bash

@@ -11,6 +11,7 @@ COPY package*.json ./
 RUN npm ci --include=dev && npm cache clean --force
 
 COPY drizzle.config.ts ./
+COPY drizzle ./drizzle
 COPY src ./src
 
 EXPOSE 8000
