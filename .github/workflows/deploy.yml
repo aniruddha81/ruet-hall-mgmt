@@ -106,12 +106,7 @@ jobs:
               docker compose build pay
             fi
 
-            docker compose up -d
-
-            if [ "${{ steps.changes.outputs.nginx }}" = "true" ] || [ "${{ steps.changes.outputs.compose }}" = "true" ]; then
-              echo "Recreating nginx..."
-              docker compose up -d --force-recreate nginx
-            fi
+            docker compose up -d --force-recreate
 
             # Run backend migrations only when migration/schema files changed.
             if [ "${{ steps.changes.outputs.migrate }}" = "true" ]; then
