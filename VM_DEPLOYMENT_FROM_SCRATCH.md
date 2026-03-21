@@ -60,7 +60,7 @@ docker compose exec backend npm run db-all
 
 # 6. Re-apply SSL nginx.conf (certs already exist, just reload config)
 #    Paste your SSL nginx.conf content here or use the one from Step 8.4
-docker compose up -d --force-recreate nginx
+docker compose up -d nginx
 ```
 
 Expected result: all services up, HTTPS working with the existing cert.
@@ -202,7 +202,7 @@ docker compose build pay
 Start:
 
 ```bash
-docker compose up -d --force-recreate
+docker compose up -d
 ```
 
 Check:
@@ -414,7 +414,7 @@ EOF
 ### 8.5 Start nginx and validate logs
 
 ```bash
-docker compose up -d --force-recreate nginx
+docker compose up -d nginx
 docker compose logs nginx --tail=100
 ```
 
@@ -482,7 +482,7 @@ docker compose build web
 docker compose build admin
 docker compose build backend
 docker compose build pay
-docker compose up -d --force-recreate
+docker compose up -d
 docker image prune -f
 docker builder prune -f --keep-storage=2g
 ```
@@ -531,9 +531,9 @@ If any service is not running, bring everything up:
 
 ```bash
 cd ~/ruet-hall-mgmt
-docker compose up -d --force-recreate
+docker compose up -d
 ```
 
 Important:
 
-- If you had manually run `docker compose stop ...` before shutting down the VM, those stopped containers may stay stopped after reboot. Use `docker compose up -d --force-recreate` to start them.
+- If you had manually run `docker compose stop ...` before shutting down the VM, those stopped containers may stay stopped after reboot. Use `docker compose up -d` to start them.
