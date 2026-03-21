@@ -131,6 +131,9 @@ jobs:
 
             # Run backend migrations only when migration/schema files changed.
             if [ "$CHANGED_MIGRATE" = "true" ]; then
+              echo "Ensuring database exists..."
+              docker compose exec -T mysql sh -lc \
+                'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
               echo "Running backend migrations..."
               docker compose exec -T backend npm run db
             fi

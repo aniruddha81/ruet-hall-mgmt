@@ -72,7 +72,6 @@ services:
     read_only: true
     tmpfs:
       - /tmp:noexec,nosuid,size=64M
-      - /app/drizzle:noexec,nosuid,size=32M
     security_opt:
       - no-new-privileges:true
     mem_limit: 512m
