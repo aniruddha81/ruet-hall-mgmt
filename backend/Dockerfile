@@ -8,7 +8,7 @@ ENV NODE_ENV=production
 ENV PORT=8000
 
 COPY package*.json ./
-RUN npm ci && npm cache clean --force
+RUN npm ci --include=dev && npm cache clean --force
 
 COPY drizzle.config.ts ./
 COPY src ./src
