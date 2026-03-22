@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -159,7 +159,7 @@ export default function StudentDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Seat App.</p>
-                <p className="text-lg font-bold mt-2">
+                <div className="text-lg font-bold mt-2">
                   {applicationStatus ? (
                     <Badge
                       variant={
@@ -175,7 +175,7 @@ export default function StudentDashboard() {
                   ) : (
                     <span className="text-muted-foreground">None</span>
                   )}
-                </p>
+                </div>
               </div>
               <div className="w-12 h-12 bg-destructive/10 rounded-xl flex items-center justify-center">
                 <ClipboardList className="w-6 h-6 text-destructive" />
