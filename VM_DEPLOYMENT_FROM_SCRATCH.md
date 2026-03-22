@@ -40,27 +40,127 @@ git fetch origin deploy
 git checkout deploy
 git reset --hard origin/deploy
 
-# 3. Recreate .env (always needed — it's gitignored)
-nano ~/ruet-hall-mgmt/.env
-chmod 600 .env
-
-# 4. Build and start
+# 3. Build and start
 docker compose build web
 docker compose build admin
 docker compose build backend
 docker compose build pay
 docker compose up -d
 
-# 5. Init DB (only if data was lost)
+# 4. Init DB (only if data was lost)
 #    Wait for MySQL to fully initialize (healthcheck passes before user setup completes)
 sleep 15
 docker compose exec mysql sh -lc \
   'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
 docker compose exec backend npm run db-all
 
-# 6. Re-apply SSL nginx.conf (certs already exist, just reload config)
-#    Paste your SSL nginx.conf content here or use the one from Step 8.4
-docker compose up -d nginx
+# 5. Re-apply SSL nginx.conf
+#    (git reset in step 2 wiped local changes to this file)
+cat > ~/ruet-hall-mgmt/nginx.conf <<'EOF'
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/m;
+
+server {
+  listen 80;
+  server_name app.aniruddha81.tech;
+
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name app.aniruddha81.tech;
+
+  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
+
+  location / {
+    proxy_pass         http://web:3001;
+    proxy_http_version 1.1;
+    proxy_set_header   Upgrade $http_upgrade;
+    proxy_set_header   Connection "upgrade";
+    proxy_set_header   Host $host;
+    proxy_set_header   X-Real-IP $remote_addr;
+    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    proxy_cache_bypass $http_upgrade;
+  }
+}
+
+server {
+  listen 80;
+  server_name admin.aniruddha81.tech;
+
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name admin.aniruddha81.tech;
+
+  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
+
+  location / {
+    proxy_pass         http://admin:4001;
+    proxy_http_version 1.1;
+    proxy_set_header   Upgrade $http_upgrade;
+    proxy_set_header   Connection "upgrade";
+    proxy_set_header   Host $host;
+    proxy_set_header   X-Real-IP $remote_addr;
+    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    proxy_cache_bypass $http_upgrade;
+  }
+}
+
+server {
+  listen 80;
+  server_name api.aniruddha81.tech;
+
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl;
+  server_name api.aniruddha81.tech;
+
+  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
+
+  location / {
+    limit_req          zone=api_limit burst=10 nodelay;
+    proxy_pass         http://backend:8000;
+    proxy_http_version 1.1;
+    proxy_set_header   Upgrade $http_upgrade;
+    proxy_set_header   Connection "upgrade";
+    proxy_set_header   Host $host;
+    proxy_set_header   X-Real-IP $remote_addr;
+    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    proxy_cache_bypass $http_upgrade;
+  }
+}
+EOF
+
+docker compose up -d --force-recreate nginx
 ```
 
 Expected result: all services up, HTTPS working with the existing cert.
