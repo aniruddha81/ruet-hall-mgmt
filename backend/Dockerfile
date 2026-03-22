@@ -15,4 +15,4 @@ COPY src ./src
 
 EXPOSE 8000
 
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["npm", "run", "start"]

@@ -82,11 +82,8 @@ docker network prune -f
 docker image prune -af
 docker builder prune -af
 
-sudo rm -rf /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt
+cd ~
 rm -rf ~/ruet-hall-mgmt
-
-# Remove certbot auto-renewal crontab entry
-sudo crontab -l 2>/dev/null | grep -v 'certbot renew' | sudo crontab -
 
 sudo systemctl restart docker
 ```
@@ -244,15 +241,6 @@ docker compose exec mysql \
   sh -lc 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -D "$MYSQL_DATABASE" -e "SHOW TABLES;"'
 ```
 
-Notes:
-
-- MySQL may print `Using a password on the command line interface can be insecure.` This warning is expected in this workflow.
-- If seed data already exists, `db-all` can fail due to duplicates. In that case run only:
-
-```bash
-docker compose exec backend npm run db
-```
-
 ## 6. VM-side Routing Tests
 
 Run on VM:
@@ -306,7 +294,7 @@ docker compose stop nginx
 ### 8.2 Issue or update one certificate for all 3 domains
 
 ```bash
-sudo certbot certonly --standalone --cert-name app.aniruddha81.tech \
+sudo certbot certonly --standalone --cert-name aniruddha81.tech \
   -d app.aniruddha81.tech \
   -d admin.aniruddha81.tech \
   -d api.aniruddha81.tech
@@ -315,13 +303,13 @@ sudo certbot certonly --standalone --cert-name app.aniruddha81.tech \
 ### 8.3 Verify certificate files exist
 
 ```bash
-sudo ls -l /etc/letsencrypt/live/app.aniruddha81.tech/fullchain.pem
+sudo ls -l /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem
 sudo certbot certificates
 ```
 
 Expected pass:
 
-- fullchain.pem exists under `app.aniruddha81.tech`
+- fullchain.pem exists under `aniruddha81.tech`
 - certificate includes all 3 domains in SAN list
 
 ### 8.4 Replace nginx config with SSL blocks
@@ -340,8 +328,8 @@ server {
   listen 443 ssl;
   server_name app.aniruddha81.tech;
 
-  ssl_certificate     /etc/letsencrypt/live/app.aniruddha81.tech/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/app.aniruddha81.tech/privkey.pem;
+  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
 
   location / {
     proxy_pass         http://web:3001;
@@ -366,8 +354,8 @@ server {
   listen 443 ssl;
   server_name admin.aniruddha81.tech;
 
-  ssl_certificate     /etc/letsencrypt/live/app.aniruddha81.tech/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/app.aniruddha81.tech/privkey.pem;
+  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
 
   location / {
     proxy_pass         http://admin:4001;
@@ -392,8 +380,8 @@ server {
   listen 443 ssl;
   server_name api.aniruddha81.tech;
 
-  ssl_certificate     /etc/letsencrypt/live/app.aniruddha81.tech/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/app.aniruddha81.tech/privkey.pem;
+  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
 
   location / {
     limit_req          zone=api_limit burst=10 nodelay;
