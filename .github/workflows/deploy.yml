@@ -135,7 +135,7 @@ jobs:
               docker compose exec -T mysql sh -lc \
                 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
               echo "Running backend migrations..."
-              docker compose exec -T backend npm run db
+              docker compose exec -T backend npm run db-all
             fi
 
             docker image prune -f
