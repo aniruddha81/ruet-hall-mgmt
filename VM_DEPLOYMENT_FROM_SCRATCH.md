@@ -515,7 +515,7 @@ Expected pass:
 
 ### How auto-renewal works
 
-```
+```text
 Snap certbot timer runs twice daily
          │
          ▼
