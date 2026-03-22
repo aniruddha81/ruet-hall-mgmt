@@ -226,11 +226,7 @@ git clone https://github.com/aniruddha81/ruet-hall-mgmt.git
 cd ruet-hall-mgmt
 ```
 
-If you are not using git, upload and extract project into `~/ruet-hall-mgmt`.
-
 ## 3. Create `.env`
-
-Create file:
 
 ```bash
 nano ~/ruet-hall-mgmt/.env
@@ -248,6 +244,8 @@ BACKEND_PORT=8000
 PAYMENT_SERVER_PORT=8080
 BACKEND_API_URL=http://backend:8000
 
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=change-me-encryption-key
+
 NGINX_HTTP_PORT=80
 NGINX_HTTPS_PORT=443
 
@@ -264,11 +262,18 @@ REFRESH_TOKEN_SECRET=change-me-refresh-secret
 REFRESH_TOKEN_EXPIRY=10d
 ```
 
+Generate secrets:
+
+```bash
+# Run this 3 times — once each for ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"
+```
+
 Important:
 
 - Do not set `MYSQL_USER=root`.
 
-Protect secrets on VM:
+Protect secrets:
 
 ```bash
 cd ~/ruet-hall-mgmt
@@ -306,7 +311,7 @@ Expected pass:
 
 ## 5. Build and Start Stack
 
-On small VM, build frontends first:
+On small VM, build frontends one at a time to avoid RAM spike:
 
 ```bash
 cd ~/ruet-hall-mgmt
@@ -328,7 +333,7 @@ Check:
 docker compose ps
 ```
 
-Expected pass demo:
+Expected pass:
 
 - `hallmgmt-mysql` is `Up (...) (healthy)`
 - `hallmgmt-backend` is `Up`
@@ -339,9 +344,7 @@ Expected pass demo:
 
 ### 5.1 Initialize DB Schema and Seed Data (First time only)
 
-Create database if missing:
-
-Wait ~15 seconds after `docker compose up -d` for MySQL to fully initialize users/grants on a fresh volume. The healthcheck passes before this completes.
+Wait ~15 seconds after `docker compose up -d` for MySQL to fully initialize:
 
 ```bash
 docker compose exec mysql \
@@ -361,9 +364,15 @@ docker compose exec mysql \
   sh -lc 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -D "$MYSQL_DATABASE" -e "SHOW TABLES;"'
 ```
 
-## 6. VM-side Routing Tests
+Notes:
 
-Run on VM:
+- If seed data already exists, `db-all` can fail due to duplicates. Run only migrations:
+
+```bash
+docker compose exec backend npm run db
+```
+
+## 6. VM-side Routing Tests
 
 ```bash
 curl -I -H "Host: app.aniruddha81.tech" http://127.0.0.1
@@ -371,7 +380,7 @@ curl -I -H "Host: admin.aniruddha81.tech" http://127.0.0.1
 curl -I -H "Host: api.aniruddha81.tech" http://127.0.0.1
 ```
 
-Expected pass demo:
+Expected pass:
 
 - app: `HTTP/1.1 200 OK`
 - admin: `HTTP/1.1 200 OK` or `HTTP/1.1 307 Temporary Redirect`
@@ -407,7 +416,7 @@ If not opening:
 
 ### 8.1 Issue certificate using webroot (no nginx downtime)
 
-Nginx stays running the entire time — certbot writes challenge files to `/var/www/certbot` on the VM, which is mounted read-only into the nginx container.
+Nginx stays running the entire time. Certbot writes challenge files to `/var/www/certbot` on the VM, which is mounted read-only into the nginx container.
 
 ```bash
 sudo certbot certonly --webroot \
@@ -427,12 +436,10 @@ sudo certbot certificates
 
 Expected pass:
 
-- fullchain.pem exists under `aniruddha81.tech`
-- certificate includes all 3 domains in SAN list
+- `fullchain.pem` exists under `aniruddha81.tech`
+- Certificate includes all 3 domains in SAN list
 
 ### 8.3 Replace nginx config with SSL blocks
-
-The HTTP blocks now redirect to HTTPS **but keep the ACME challenge location** so future webroot renewals work without switching configs.
 
 ```bash
 cat > ~/ruet-hall-mgmt/nginx.conf <<'EOF'
@@ -559,7 +566,7 @@ curl -I --resolve admin.aniruddha81.tech:443:127.0.0.1 https://admin.aniruddha81
 curl -I --resolve api.aniruddha81.tech:443:127.0.0.1 https://api.aniruddha81.tech
 ```
 
-Expected pass demo:
+Expected pass:
 
 - app: `HTTP/1.1 200 OK`
 - admin: `HTTP/1.1 200 OK` or `HTTP/1.1 307 Temporary Redirect`
@@ -573,7 +580,7 @@ curl -I https://admin.aniruddha81.tech
 curl -I https://api.aniruddha81.tech
 ```
 
-Expected pass demo:
+Expected pass:
 
 - 200/301/307 responses with valid certificate chain in browser.
 
@@ -617,17 +624,17 @@ Expected pass:
 
 ```text
 Snap certbot timer runs twice daily
-         │
-         ▼
+         |
+         v
 cert expiring within 30 days?
-         │
-         ├── No  → do nothing
-         └── Yes → renew using webroot
-                        │
-                        ├── nginx serves /.well-known/acme-challenge/ ← no downtime
-                        ├── cert renewed
-                        └── renew_hook fires → docker compose restart nginx
-                                                    ← picks up new cert
+         |
+         |-- No  -> do nothing
+         +-- Yes -> renew using webroot
+                        |
+                        |-- nginx serves /.well-known/acme-challenge/  <- no downtime
+                        |-- cert renewed
+                        +-- renew_hook fires -> docker compose restart nginx
+                                                    <- picks up new cert
 ```
 
 Zero downtime. No cron. No stopping nginx.
@@ -688,7 +695,7 @@ cd ~/ruet-hall-mgmt
 docker compose ps
 ```
 
-If any service is not running, bring everything up:
+If any service is not running:
 
 ```bash
 cd ~/ruet-hall-mgmt
@@ -698,3 +705,140 @@ docker compose up -d
 Important:
 
 - If you had manually run `docker compose stop ...` before shutting down the VM, those stopped containers may stay stopped after reboot. Use `docker compose up -d` to start them.
+
+## 12. MySQL Backup to Private GitHub Repo
+
+Regular backups protect your data if the VM is destroyed or the volume is lost.
+
+### One-time Setup
+
+**Create a private GitHub repo** named `ruet-hall-backups`.
+
+**Generate a GitHub Personal Access Token:**
+
+1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Click **Generate new token (classic)**
+3. Name: `ruet-hall-backup`
+4. Expiry: No expiration (or 1 year)
+5. Scope: check only `repo`
+6. Click **Generate token** → copy it immediately
+
+**On the VM — clone the backup repo:**
+
+```bash
+cd ~
+git clone https://github.com/aniruddha81/ruet-hall-backups.git db-backups
+cd db-backups
+
+git config user.email "ar.roy564@gmail.com"
+git config user.name "Aniruddha Roy"
+
+# Store token so git push works without prompting
+git remote set-url origin https://<YOUR_GITHUB_TOKEN>@github.com/aniruddha81/ruet-hall-backups.git
+```
+
+### Create the Backup Script
+
+```bash
+nano ~/backup-db.sh
+```
+
+Paste:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+BACKUP_DIR=~/db-backups
+DATE=$(date +%Y-%m-%d_%H-%M)
+FILENAME="hall_db_$DATE.sql"
+COMPOSE_DIR=~/ruet-hall-mgmt
+
+# Dump database
+docker exec hallmgmt-mysql mysqldump \
+  -u halladmin -p"$(grep MYSQL_PASSWORD $COMPOSE_DIR/.env | cut -d= -f2)" \
+  hall_db > "$BACKUP_DIR/$FILENAME"
+
+echo "Backup created: $FILENAME"
+
+# Keep only last 7 backups
+cd "$BACKUP_DIR"
+ls -t hall_db_*.sql | tail -n +8 | xargs -r rm --
+
+# Push to GitHub
+git add .
+git commit -m "backup: $DATE"
+git push origin main
+
+echo "Backup pushed to GitHub!"
+```
+
+Make executable and test:
+
+```bash
+chmod +x ~/backup-db.sh
+bash ~/backup-db.sh
+```
+
+Check your GitHub repo — a `.sql` file should be committed. ✅
+
+### Automate — Daily at 2 AM
+
+```bash
+crontab -e
+```
+
+Add:
+
+```cron
+0 2 * * * /bin/bash /home/azureuser/backup-db.sh >> /home/azureuser/backup.log 2>&1
+```
+
+Check logs anytime:
+
+```bash
+cat ~/backup.log
+```
+
+## 13. Restore DB Backup on New VM
+
+When rebuilding the VM, restore the latest backup:
+
+```bash
+# Clone backup repo on new VM
+git clone https://github.com/aniruddha81/ruet-hall-backups.git ~/db-backups
+
+# Start stack first
+cd ~/ruet-hall-mgmt
+docker compose up -d
+
+# Wait for MySQL to be healthy
+sleep 20
+
+# Restore latest backup
+LATEST=$(ls -t ~/db-backups/hall_db_*.sql | head -1)
+echo "Restoring: $LATEST"
+
+docker exec -i hallmgmt-mysql mysql \
+  -u halladmin -pYOUR_PASSWORD hall_db < "$LATEST"
+
+echo "Restore complete!"
+```
+
+## 14. Full VM Rebuild Checklist
+
+If you destroy the VM and create a new one:
+
+- [ ] New VM created (Ubuntu 24.04, B2als v2, Central India)
+- [ ] Public IP set to Static in Azure Portal (or reassign old static IP)
+- [ ] DNS A records updated at registrar if IP changed:
+  - `app`   → new VM IP
+  - `admin` → new VM IP
+  - `api`   → new VM IP
+- [ ] DNS propagation verified (`nslookup app.aniruddha81.tech`)
+- [ ] SSH into new VM working
+- [ ] Steps 1–9 of this runbook completed
+- [ ] DB restored from backup repo (Step 13)
+- [ ] HTTPS working on all 3 subdomains ✅
+- [ ] Backup script re-cloned and cron re-added (Step 12)
+- [ ] `sudo systemctl list-timers | grep certbot` shows timer ✅
