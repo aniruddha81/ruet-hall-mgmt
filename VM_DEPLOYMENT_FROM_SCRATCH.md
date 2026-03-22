@@ -12,18 +12,18 @@ It assumes Ubuntu 24.04 on Azure VM and domains:
 
 ---
 
-## 🔁 Partial Reset (Certs + Crontab Already Set Up)
+## 🔁 Partial Reset (Certs + Snap Certbot Already Set Up)
 
-Use this path if you had a VM issue and need to redeploy **without** wiping SSL certs or the certbot crontab. The certificates in `/etc/letsencrypt` and the crontab entry survive VM restarts and re-clones — they live on the VM filesystem, not in Docker.
+Use this path if you had a VM issue and need to redeploy **without** wiping SSL certs or the certbot snap. The certificates in `/etc/letsencrypt` and the snap certbot timer survive VM restarts and re-clones — they live on the VM filesystem, not in Docker.
 
-**Skip:** Steps 0, 8.1–8.3, and 9.
+**Skip:** Steps 0, 8.1–8.4, and 9.
 
 **Run these in order:**
 
 ```bash
 # 1. Prep VM tools (only if wiped)
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git certbot docker-compose-plugin
+sudo apt install -y git docker-compose-plugin
 sudo systemctl enable docker
 
 # 2. Pull latest code (repo already exists on VM)
@@ -96,8 +96,17 @@ Expected pass:
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git certbot docker-compose-plugin
+sudo apt install -y git docker-compose-plugin
 sudo systemctl enable docker
+
+# Install certbot via snap (auto-renewal timer included)
+sudo apt remove certbot -y 2>/dev/null || true
+sudo snap install core && sudo snap refresh core
+sudo snap install --classic certbot
+sudo ln -sf /snap/bin/certbot /usr/bin/certbot
+
+# Create webroot directory for ACME challenges
+sudo mkdir -p /var/www/certbot
 
 docker --version
 docker compose version
@@ -107,6 +116,7 @@ certbot --version
 Expected pass:
 
 - All three version commands print valid versions.
+- `certbot --version` shows the snap-installed version.
 
 ## 2. Get Project on VM
 
@@ -172,7 +182,7 @@ Expected pass:
 
 ## 4. Ensure HTTP Nginx Config First
 
-Before SSL, keep `nginx.conf` in HTTP-only mode (listen 80 only).
+Before SSL, keep `nginx.conf` in HTTP-only mode (listen 80 only). It should already contain `location /.well-known/acme-challenge/` blocks for certbot webroot validation.
 
 Quick check:
 
@@ -182,7 +192,17 @@ grep -nE "listen 443|ssl_certificate|options-ssl-nginx" nginx.conf
 
 Expected pass:
 
-- No output.
+- No output (no SSL directives yet).
+
+Verify ACME challenge blocks are present:
+
+```bash
+grep -c "acme-challenge" nginx.conf
+```
+
+Expected pass:
+
+- Output is `3` (one per server block).
 
 ## 5. Build and Start Stack
 
@@ -285,22 +305,20 @@ If not opening:
 
 ## 8. Enable SSL (After HTTP Works)
 
-### 8.1 Stop nginx (free port 80 for certbot)
+### 8.1 Issue certificate using webroot (no nginx downtime)
+
+Nginx stays running the entire time — certbot writes challenge files to `/var/www/certbot` on the VM, which is mounted read-only into the nginx container.
 
 ```bash
-docker compose stop nginx
-```
-
-### 8.2 Issue or update one certificate for all 3 domains
-
-```bash
-sudo certbot certonly --standalone --cert-name aniruddha81.tech \
+sudo certbot certonly --webroot \
+  --webroot-path /var/www/certbot \
+  --cert-name aniruddha81.tech \
   -d app.aniruddha81.tech \
   -d admin.aniruddha81.tech \
   -d api.aniruddha81.tech
 ```
 
-### 8.3 Verify certificate files exist
+### 8.2 Verify certificate files exist
 
 ```bash
 sudo ls -l /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem
@@ -312,7 +330,9 @@ Expected pass:
 - fullchain.pem exists under `aniruddha81.tech`
 - certificate includes all 3 domains in SAN list
 
-### 8.4 Replace nginx config with SSL blocks
+### 8.3 Replace nginx config with SSL blocks
+
+The HTTP blocks now redirect to HTTPS **but keep the ACME challenge location** so future webroot renewals work without switching configs.
 
 ```bash
 cat > ~/ruet-hall-mgmt/nginx.conf <<'EOF'
@@ -321,7 +341,14 @@ limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/m;
 server {
   listen 80;
   server_name app.aniruddha81.tech;
-  return 301 https://$host$request_uri;
+
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
 }
 
 server {
@@ -347,7 +374,14 @@ server {
 server {
   listen 80;
   server_name admin.aniruddha81.tech;
-  return 301 https://$host$request_uri;
+
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
 }
 
 server {
@@ -373,7 +407,14 @@ server {
 server {
   listen 80;
   server_name api.aniruddha81.tech;
-  return 301 https://$host$request_uri;
+
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
 }
 
 server {
@@ -399,10 +440,10 @@ server {
 EOF
 ```
 
-### 8.5 Start nginx and validate logs
+### 8.4 Start nginx and validate logs
 
 ```bash
-docker compose up -d nginx
+docker compose up -d --force-recreate nginx
 docker compose logs nginx --tail=100
 ```
 
@@ -410,7 +451,7 @@ Expected pass:
 
 - No `[emerg]` errors.
 
-### 8.6 VM-side HTTPS tests (authoritative)
+### 8.5 VM-side HTTPS tests (authoritative)
 
 ```bash
 curl -I --resolve app.aniruddha81.tech:443:127.0.0.1 https://app.aniruddha81.tech
@@ -424,7 +465,7 @@ Expected pass demo:
 - admin: `HTTP/1.1 200 OK` or `HTTP/1.1 307 Temporary Redirect`
 - api: `HTTP/1.1 200 OK`
 
-### 8.7 Public HTTPS tests
+### 8.6 Public HTTPS tests
 
 ```bash
 curl -I https://app.aniruddha81.tech
@@ -436,28 +477,60 @@ Expected pass demo:
 
 - 200/301/307 responses with valid certificate chain in browser.
 
-## 9. Auto-renew SSL
+## 9. Auto-renew SSL (Snap handles it — no cron needed)
+
+The snap-installed certbot includes a systemd timer that runs twice daily. If any cert is within 30 days of expiry, it renews automatically using webroot. No manual crontab entry needed.
+
+Add a `renew_hook` so nginx reloads the new cert after each successful renewal:
 
 ```bash
-sudo crontab -e
+sudo nano /etc/letsencrypt/renewal/aniruddha81.tech.conf
 ```
 
-Add:
+Add this line at the bottom of the `[renewalparams]` section:
 
-```cron
-0 3 * * * certbot renew --quiet --standalone --pre-hook "docker compose -f /home/azureuser/ruet-hall-mgmt/docker-compose.yml stop nginx" --post-hook "docker compose -f /home/azureuser/ruet-hall-mgmt/docker-compose.yml up -d nginx"
+```ini
+renew_hook = docker compose -f /home/azureuser/ruet-hall-mgmt/docker-compose.yml restart nginx
 ```
 
-Test:
+Verify the timer is active:
 
 ```bash
-sudo certbot renew --dry-run --standalone --pre-hook "docker compose -f /home/azureuser/ruet-hall-mgmt/docker-compose.yml stop nginx" --post-hook "docker compose -f /home/azureuser/ruet-hall-mgmt/docker-compose.yml up -d nginx"
+sudo systemctl list-timers | grep certbot
+```
+
+Expected pass:
+
+- A `snap.certbot.renew.timer` entry is listed.
+
+Dry-run test:
+
+```bash
+sudo certbot renew --dry-run
 ```
 
 Expected pass:
 
 - `Congratulations, all simulated renewals succeeded`
-- `Hook 'pre-hook' ran with error output` or `Hook 'post-hook' ran with error output` can still be acceptable when containers stop/start successfully; Docker Compose may write normal status lines to stderr.
+
+### How auto-renewal works
+
+```
+Snap certbot timer runs twice daily
+         │
+         ▼
+cert expiring within 30 days?
+         │
+         ├── No  → do nothing
+         └── Yes → renew using webroot
+                        │
+                        ├── nginx serves /.well-known/acme-challenge/ ← no downtime
+                        ├── cert renewed
+                        └── renew_hook fires → docker compose restart nginx
+                                                    ← picks up new cert
+```
+
+Zero downtime. No cron. No stopping nginx.
 
 ## 10. Daily Ops
 
