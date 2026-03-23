@@ -1,4 +1,4 @@
-FROM node:24.10.0-alpine3.23 AS builder
+FROM node:24.14.0-alpine3.23 AS builder
 
 RUN apk upgrade --no-cache
 
@@ -17,7 +17,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:24.10.0-alpine3.23 AS runner
+FROM node:24.14.0-alpine3.23 AS runner
 
 RUN apk upgrade --no-cache
 
