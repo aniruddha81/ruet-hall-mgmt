@@ -8,6 +8,7 @@ import {
   refreshTokens,
   uniStudents,
 } from "../../db/models/index.ts";
+import { type OperationalUnit } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 import { hashToken } from "../../utils/helpers.ts";
@@ -186,7 +187,6 @@ export const adminRegister = async (req: Request, res: Response) => {
     academicDepartment,
     hall,
     designation,
-    operationalUnit,
     phone,
   } = req.body;
 
@@ -199,6 +199,19 @@ export const adminRegister = async (req: Request, res: Response) => {
       .from(hallAdmins)
       .where(eq(hallAdmins.email, email))
       .limit(1);
+
+    let operationalUnit: OperationalUnit;
+
+    // setting operational unit based on the designation
+    if (designation === "INVENTORY_SECTION_OFFICER" || designation === "ASST_INVENTORY") {
+      operationalUnit = "INVENTORY";
+    } else if (designation === "DINING_MANAGER" || designation === "ASST_DINING") {
+      operationalUnit = "DINING";
+    } else if (designation === "FINANCE_SECTION_OFFICER" || designation === "ASST_FINANCE") {
+      operationalUnit = "FINANCE";
+    } else {
+      operationalUnit = "ALL"; // For PROVOST or any other unhandled roles
+    }
 
     if (existingUser) {
       if (existingUser.hallAdminStatus !== "REJECTED") {

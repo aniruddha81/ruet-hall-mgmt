@@ -117,6 +117,7 @@ export default function SignupPage() {
                 fill
                 className="object-cover"
                 priority
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 50vw"
               />
 
               {/* Overlay */}
@@ -213,7 +214,7 @@ export default function SignupPage() {
                         name="academicDepartment"
                         value={formData.academicDepartment}
                         onChange={handleChange}
-                        className="w-full border rounded-md h-10 px-3"
+                        className="w-full border rounded-md h-10 px-3 dark:bg-gray-800 dark:text-white"
                         required
                       >
                         <option value="">Select</option>
@@ -303,7 +304,7 @@ export default function SignupPage() {
 
                 <div className="relative my-6">
                   <Separator />
-                  <span className="absolute left-1/2 top-1/2 bg-white px-2 text-xs -translate-x-1/2 -translate-y-1/2">
+                  <span className="absolute left-1/2 top-1/2 bg-white dark:bg-gray-800 px-2 text-xs -translate-x-1/2 -translate-y-1/2">
                     Student Registration
                   </span>
                 </div>

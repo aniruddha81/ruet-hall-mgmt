@@ -6,7 +6,6 @@ import type {
   AdminRegisterResponse,
   ApiResponse,
   Hall,
-  OperationalUnit,
   StaffRole,
 } from "@/lib/types";
 
@@ -20,7 +19,6 @@ export async function adminRegister(data: {
   academicDepartment?: AcademicDepartment;
   hall: Hall;
   designation: StaffRole;
-  operationalUnit: OperationalUnit;
   phone: string;
 }) {
   const res = await api.post<ApiResponse<AdminRegisterResponse>>(

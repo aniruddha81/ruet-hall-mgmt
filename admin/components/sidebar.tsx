@@ -100,7 +100,7 @@ export default function Sidebar() {
       : "ml-0 max-w-0 -translate-x-1 opacity-0"
   }`;
 
-  const navLinks = useMemo(() => {
+  const navLinks = () => {
     const role = user?.designation;
     if (!role) return allNavLinks.filter((link) => link.roles === "all");
     if (role === "PROVOST") return allNavLinks;
@@ -108,7 +108,7 @@ export default function Sidebar() {
     return allNavLinks.filter(
       (link) => link.roles === "all" || link.roles.includes(role),
     );
-  }, [user?.designation]);
+  };
 
   const handleLinkClick = () => {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
@@ -146,7 +146,7 @@ export default function Sidebar() {
           </div>
 
           <nav className="flex-1 space-y-1 px-3">
-            {navLinks.map((link) => {
+            {navLinks().map((link) => {
               const isActive = pathname === link.href;
               const Icon = link.icon;
 
@@ -205,7 +205,7 @@ export default function Sidebar() {
           </div>
 
           <nav className="flex-1 space-y-1 px-2 overflow-y-auto">
-            {navLinks.map((link) => {
+            {navLinks().map((link) => {
               const isActive = pathname === link.href;
               const Icon = link.icon;
 

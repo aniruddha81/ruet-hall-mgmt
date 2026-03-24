@@ -4,7 +4,6 @@ import { clearAuthData, getStoredUser, saveAuthData } from "@/lib/auth";
 import { getMyProfile } from "@/lib/services/profile.service";
 import {
   logout as logoutApi,
-  renewAccessToken,
   studentLogin,
 } from "@/lib/services/auth.service";
 import type { StudentData } from "@/lib/types";
@@ -28,34 +27,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/** Renew access token every 13 minutes (before the 15-minute expiry) */
-const TOKEN_RENEWAL_INTERVAL = 13 * 60 * 1000;
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<StudentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Restore user from localStorage on mount
+  // Hydrate user from localStorage on mount, then validate against backend.
+  // If the access token is expired, the axios 401 interceptor will
+  // transparently renew it using the refresh-token cookie before the
+  // getMyProfile request completes — no manual renewal call needed.
   useEffect(() => {
     (async () => {
       try {
         const storedUser = getStoredUser();
         if (!storedUser) return;
 
+        // Show cached user immediately while we validate
         setUser(storedUser);
 
-        // Refresh the access token, then hydrate the latest profile from backend.
-        const renewSucceeded = await renewAccessToken()
-          .then(() => true)
-          .catch(() => false);
-
-        if (!renewSucceeded) {
-          clearAuthData();
-          setUser(null);
-          return;
-        }
-
+        // Fetch the latest profile from backend.
+        // If accessToken is expired, the axios interceptor will
+        // automatically renew it via refreshToken and retry this request.
         const profileRes = await getMyProfile().catch(() => null);
 
         if (profileRes?.data.profile) {
@@ -63,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        // Profile fetch failed even after interceptor retry — session invalid
         clearAuthData();
         setUser(null);
       } catch {
@@ -74,22 +67,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  // Sync user to localStorage and manage proactive token renewal
+  // Sync user to localStorage
   useEffect(() => {
     if (user) {
       saveAuthData(user);
-
-      // Start proactive access-token renewal interval
-      const intervalId = setInterval(async () => {
-        try {
-          await renewAccessToken();
-        } catch {
-          // If renewal fails, the axios interceptor will handle 401s
-          // and redirect to login if the refresh token is also expired
-        }
-      }, TOKEN_RENEWAL_INTERVAL);
-
-      return () => clearInterval(intervalId);
     } else {
       clearAuthData();
     }

@@ -3,7 +3,6 @@ import {
   ACADEMIC_DEPARTMENTS,
   HALL_ADMIN_STATUSES,
   HALLS,
-  OPERATIONAL_UNITS,
   STAFF_ROLES,
 } from "../../types/enums.ts";
 
@@ -68,7 +67,6 @@ const adminRegisterSchema = {
       academicDepartment: z.enum(ACADEMIC_DEPARTMENTS).optional(),
       hall: z.enum(HALLS),
       designation: z.enum(STAFF_ROLES_WITHOUT_PROVOST),
-      operationalUnit: z.enum(OPERATIONAL_UNITS),
       phone: z.string().max(20),
     })
     .refine((data) => data.password === data.confirmPassword, {

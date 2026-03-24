@@ -14,18 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { getApiErrorMessage } from "@/lib/api";
 import { adminRegister } from "@/lib/services/auth.service";
-import type {
-  AcademicDepartment,
-  Hall,
-  OperationalUnit,
-  StaffRole,
-} from "@/lib/types";
-import {
-  ACADEMIC_DEPARTMENTS,
-  HALLS,
-  OPERATIONAL_UNITS,
-  STAFF_ROLES,
-} from "@/lib/types";
+import type { AcademicDepartment, Hall, StaffRole } from "@/lib/types";
+import { ACADEMIC_DEPARTMENTS, HALLS, STAFF_ROLES } from "@/lib/types";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -39,7 +29,6 @@ export default function SignupPage() {
     academicDepartment: "" as AcademicDepartment | "",
     hall: "" as Hall | "",
     designation: "" as StaffRole | "",
-    operationalUnit: "" as OperationalUnit | "",
     password: "",
     confirmPassword: "",
   });
@@ -58,7 +47,7 @@ export default function SignupPage() {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -67,12 +56,7 @@ export default function SignupPage() {
       return;
     }
 
-    if (
-      !formData.hall ||
-      !formData.designation ||
-      !formData.operationalUnit ||
-      !formData.academicDepartment
-    ) {
+    if (!formData.hall || !formData.designation) {
       setError("Please fill in all required fields");
       return;
     }
@@ -85,10 +69,10 @@ export default function SignupPage() {
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
-        academicDepartment: formData.academicDepartment as AcademicDepartment,
+        academicDepartment: (formData.academicDepartment ||
+          undefined) as AcademicDepartment,
         hall: formData.hall as Hall,
         designation: formData.designation as StaffRole,
-        operationalUnit: formData.operationalUnit as OperationalUnit,
         phone: formData.phone,
       });
       router.push("/login?signup=success");
@@ -197,12 +181,11 @@ export default function SignupPage() {
                       <select
                         id="academicDepartment"
                         name="academicDepartment"
-                        required
                         value={formData.academicDepartment}
                         onChange={handleChange}
                         className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        <option value="">Select</option>
+                        <option value="">Select (Optional)</option>
                         {ACADEMIC_DEPARTMENTS.map((d) => (
                           <option key={d} value={d}>
                             {d}
@@ -242,27 +225,9 @@ export default function SignupPage() {
                         className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <option value="">Select</option>
-                        {STAFF_ROLES.map((r) => (
+                        {STAFF_ROLES.filter((r) => r !== "PROVOST").map((r) => (
                           <option key={r} value={r}>
                             {r.replace(/_/g, " ")}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="operationalUnit">Unit</Label>
-                      <select
-                        id="operationalUnit"
-                        name="operationalUnit"
-                        required
-                        value={formData.operationalUnit}
-                        onChange={handleChange}
-                        className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <option value="">Select</option>
-                        {OPERATIONAL_UNITS.map((u) => (
-                          <option key={u} value={u}>
-                            {u}
                           </option>
                         ))}
                       </select>

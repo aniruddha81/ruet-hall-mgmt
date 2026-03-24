@@ -12,7 +12,7 @@ It assumes Ubuntu 24.04 on Azure VM and domains:
 
 ---
 
-## 🔁 Partial Reset (Certs + Snap Certbot Already Set Up)
+## Partial Reset (Certs + Snap Certbot Already Set Up)
 
 Use this path if you had a VM issue and need to redeploy **without** wiping SSL certs or the certbot snap. The certificates in `/etc/letsencrypt` and the snap certbot timer survive VM restarts and re-clones — they live on the VM filesystem, not in Docker.
 
