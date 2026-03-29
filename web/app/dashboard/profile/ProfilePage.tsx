@@ -24,7 +24,7 @@ import {
   School,
   User,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -32,6 +32,13 @@ export default function ProfilePage() {
 
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setPhone(user.phone ?? "");
+    }
+  }, [user]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);

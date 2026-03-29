@@ -24,7 +24,7 @@ import {
   Save,
   Shield,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -32,6 +32,14 @@ export default function ProfilePage() {
 
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setPhone(user.phone ?? "");
+    }
+  }, [user]);
+
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -119,7 +127,10 @@ export default function ProfilePage() {
           <div className="flex items-center gap-6">
             <div className="relative">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.name || ""} />
+                <AvatarImage
+                  src={user?.avatarUrl ?? undefined}
+                  alt={user?.name || ""}
+                />
                 <AvatarFallback className="text-xl bg-primary/10 text-primary">
                   {user?.name
                     ?.split(" ")
@@ -311,4 +322,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

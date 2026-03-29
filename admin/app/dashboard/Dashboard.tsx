@@ -20,20 +20,17 @@ import {
 } from "@/lib/services/dining.service";
 import type { MealMenu, SeatApplication, StaffRole } from "@/lib/types";
 import {
-  ArrowRight,
   Building,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
   CreditCard,
   Loader2,
-  ShieldCheck,
-  TrendingUp,
   UtensilsCrossed,
   Wrench,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const DINING_ROLES: StaffRole[] = ["DINING_MANAGER", "ASST_DINING"];
 const ADMISSION_ROLES: StaffRole[] = [
@@ -62,22 +59,13 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const canDining = useMemo(
-    () => hasAccess(user?.designation, DINING_ROLES),
-    [user?.designation],
-  );
-  const canAdmissions = useMemo(
-    () => hasAccess(user?.designation, ADMISSION_ROLES),
-    [user?.designation],
-  );
-  const canInventory = useMemo(
-    () => hasAccess(user?.designation, INVENTORY_ROLES),
-    [user?.designation],
-  );
-  const canFinance = useMemo(
-    () => hasAccess(user?.designation, FINANCE_ROLES),
-    [user?.designation],
-  );
+  const canDining = hasAccess(user?.designation, DINING_ROLES);
+
+  const canAdmissions = hasAccess(user?.designation, ADMISSION_ROLES);
+
+  const canInventory = hasAccess(user?.designation, INVENTORY_ROLES);
+
+  const canFinance = hasAccess(user?.designation, FINANCE_ROLES);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,7 +91,7 @@ export default function AdminDashboard() {
 
         let idx = 0;
         for (const key of keys) {
-          const res = results[idx];
+          const res = results[idx++];
           if (res?.status === "fulfilled") {
             const val = res.value as { data?: Record<string, unknown> };
             if (key === "today")
@@ -115,7 +103,6 @@ export default function AdminDashboard() {
                 (val.data?.applications as SeatApplication[]) ?? [],
               );
           }
-          idx++;
         }
       } catch (err) {
         setError(getApiErrorMessage(err));
@@ -137,7 +124,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-
       {/* ── Welcome Banner ── */}
       <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-slate-900 via-sky-900 to-cyan-900 px-6 py-7 text-white shadow-xl md:px-10 md:py-9">
         <div className="pointer-events-none absolute inset-0 opacity-15 [background:linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.22)_50%,transparent_100%)] bg-size-[250%_250%] animate-[shine_12s_linear_infinite]" />
@@ -148,7 +134,9 @@ export default function AdminDashboard() {
           </div>
           <h2 className="text-2xl font-bold md:text-3xl">
             Welcome,{" "}
-            <span className="text-cyan-200">{user?.name ?? "Administrator"}</span>
+            <span className="text-cyan-200">
+              {user?.name ?? "Administrator"}
+            </span>
           </h2>
           <p className="text-sm text-cyan-100/80">
             {user?.designation?.replace(/_/g, " ")} &mdash;{" "}
@@ -157,8 +145,12 @@ export default function AdminDashboard() {
         </div>
         <style jsx>{`
           @keyframes shine {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
+            0% {
+              background-position: 0% 50%;
+            }
+            100% {
+              background-position: 200% 50%;
+            }
           }
         `}</style>
       </div>
@@ -404,7 +396,6 @@ export default function AdminDashboard() {
           </Button>
         </Link>
       </div>
-
     </div>
   );
 }
