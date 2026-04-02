@@ -23,7 +23,6 @@ import {
   getTomorrowMenusList,
   markTokensAsConsumed,
   // Payment Controllers
-  processPayment,
   processRefund,
   updateTomorrowMenu,
 } from "./dining.controller.ts";
@@ -41,7 +40,6 @@ import {
   getTokenByIdSchema,
   getTokenHistorySchema,
   markTokensConsumedSchema,
-  processPaymentSchema,
   processRefundSchema,
   updateMenuSchema,
 } from "./dining.validators.ts";
@@ -199,15 +197,6 @@ diningRouter.get(
 // ==============================================================
 // PAYMENT ROUTES - SHARED BY STUDENTS & MANAGERS
 // ==============================================================
-
-// Process payment for meal token bookings
-diningRouter.post(
-  "/payment/process",
-  authenticateToken,
-  authorizeRoles("STUDENT"),
-  validateRequest(processPaymentSchema),
-  processPayment
-);
 
 // Get payment details by payment ID
 diningRouter.get(

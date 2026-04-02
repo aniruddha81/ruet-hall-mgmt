@@ -21,7 +21,11 @@ import {
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 import { toDateString } from "../../utils/helpers.ts";
-import { createMealPayment } from "../finance/finance.service.ts";
+import {
+  requestPayment,
+  getStudentInfo,
+  sendReceiptEmail,
+} from "../finance/finance.service.ts";
 import { requireAdminAccount, requireStudentAccount } from "./dining.service.ts";
 
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
@@ -73,45 +77,56 @@ export const bookMealTokens = async (req: Request, res: Response) => {
     throw new ApiError(400, "You do not have an assigned hall yet");
   }
 
-  const [menu] = await db
-    .select()
-    .from(mealMenus)
-    .where(and(eq(mealMenus.id, menuId), eq(mealMenus.hall, student.hall)))
-    .limit(1);
-
-  if (!menu) {
-    throw new ApiError(404, "Menu not found");
-  }
-
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
-  const menuDateStr = toDateString(new Date(menu.mealDate));
-
-  if (menuDateStr !== tomorrowDate) {
-    throw new ApiError(400, "Can only book tokens for tomorrow's meals");
-  }
-
-  if (menu.availableTokens < quantity) {
-    throw new ApiError(
-      400,
-      `Only ${menu.availableTokens} tokens available. Cannot book ${quantity} tokens.`
-    );
-  }
-
-  const totalAmount = menu.price * quantity;
-
-  // Process payment through finance service
-  const payment = await createMealPayment({
-    studentId: student.id,
-    amount: totalAmount,
-    totalQuantity: quantity,
-    paymentMethod,
-    mealType: menu.mealType,
-    mealDate: menuDateStr,
-  });
-
   const tokenId = randomUUID();
+  const paymentId = randomUUID();
 
-  await db.transaction(async (trx) => {
+  // Phase 1: Atomic reservation (lock + check + reserve in one transaction).
+  // The conditional UPDATE on booked_tokens prevents race-condition overbooking.
+  const reservation = await db.transaction(async (trx) => {
+    const [menu] = await trx
+      .select()
+      .from(mealMenus)
+      .where(and(eq(mealMenus.id, menuId), eq(mealMenus.hall, student.hall!)))
+      .limit(1);
+
+    if (!menu) {
+      throw new ApiError(404, "Menu not found");
+    }
+
+    const menuDateStr = toDateString(new Date(menu.mealDate));
+    if (menuDateStr !== tomorrowDate) {
+      throw new ApiError(400, "Can only book tokens for tomorrow's meals");
+    }
+
+    const totalAmount = menu.price * quantity;
+
+    // Atomic availability check + reserve: only succeeds if enough tokens exist.
+    // Two concurrent requests cannot both pass this — MySQL row lock on UPDATE.
+    const updateResult = await trx.execute(
+      sql`UPDATE meal_menus
+          SET booked_tokens = booked_tokens + ${quantity}
+          WHERE id = ${menuId}
+          AND (total_tokens - booked_tokens) >= ${quantity}`
+    );
+
+    if ((updateResult as any)[0]?.affectedRows === 0) {
+      throw new ApiError(
+        400,
+        `Not enough tokens available. Cannot book ${quantity} tokens.`
+      );
+    }
+
+    // Insert payment record (transactionId filled after gateway call)
+    await trx.insert(mealPayments).values({
+      id: paymentId,
+      studentId: student.id,
+      amount: totalAmount,
+      totalQuantity: quantity,
+      paymentMethod,
+    });
+
+    // Insert token record
     await trx.insert(mealTokens).values({
       id: tokenId,
       studentId: student.id,
@@ -121,13 +136,61 @@ export const bookMealTokens = async (req: Request, res: Response) => {
       mealType: menu.mealType,
       quantity,
       totalAmount,
-      paymentId: payment.id,
+      paymentId,
     });
 
-    await trx
-      .update(mealMenus)
-      .set({ bookedTokens: sql`${mealMenus.bookedTokens} + ${quantity}` })
-      .where(eq(mealMenus.id, menuId));
+    return { totalAmount, mealType: menu.mealType, mealDate: menuDateStr };
+  });
+
+  // Phase 2: Process payment gateway (outside transaction, lock released).
+  let transactionId: string;
+  try {
+    transactionId =
+      paymentMethod !== "CASH"
+        ? await requestPayment("/pay-api/meal-payment", {
+            studentId: student.id,
+            amount: reservation.totalAmount,
+            totalQuantity: quantity,
+            paymentMethod,
+          })
+        : `TXN-MEAL-${student.id}-${Date.now()}`;
+
+    await db
+      .update(mealPayments)
+      .set({ transactionId })
+      .where(eq(mealPayments.id, paymentId));
+  } catch (error) {
+    // Phase 3: Compensate — undo reservation on payment failure.
+    await db.transaction(async (trx) => {
+      await trx.delete(mealTokens).where(eq(mealTokens.id, tokenId));
+      await trx.delete(mealPayments).where(eq(mealPayments.id, paymentId));
+      await trx
+        .update(mealMenus)
+        .set({ bookedTokens: sql`${mealMenus.bookedTokens} - ${quantity}` })
+        .where(eq(mealMenus.id, menuId));
+    });
+    throw error;
+  }
+
+  // Fire-and-forget receipt email
+  getStudentInfo(student.id).then((studentInfo) => {
+    if (studentInfo) {
+      sendReceiptEmail({
+        type: "MEAL",
+        studentName: studentInfo.name,
+        studentEmail: studentInfo.email,
+        rollNumber: studentInfo.rollNumber,
+        hall: studentInfo.hall || "N/A",
+        paymentId,
+        transactionId,
+        paymentMethod,
+        amount: reservation.totalAmount,
+        totalQuantity: quantity,
+        mealType: reservation.mealType,
+        mealDate: reservation.mealDate,
+        paymentDate: new Date(),
+      });
+    }
   });
 
   res.status(201).json(
@@ -135,12 +198,12 @@ export const bookMealTokens = async (req: Request, res: Response) => {
       201,
       {
         tokenId,
-        paymentId: payment.id,
+        paymentId,
         quantity,
-        totalAmount,
-        mealType: menu.mealType,
-        mealDate: menuDateStr,
-        transactionId: payment.transactionId,
+        totalAmount: reservation.totalAmount,
+        mealType: reservation.mealType,
+        mealDate: reservation.mealDate,
+        transactionId,
         paymentMethod,
       },
       "Meal tokens booked successfully"
@@ -211,43 +274,47 @@ export const cancelMealToken = async (req: Request, res: Response) => {
     throw new ApiError(400, "Token has already been cancelled");
   }
 
+  // Cancellation deadline: must be before midnight on the day before the meal
   const now = new Date();
-  const midnightToday = new Date(now);
-  midnightToday.setHours(23, 59, 59, 999);
+  const mealDay = new Date(token.mealDate);
+  mealDay.setHours(0, 0, 0, 0);
 
-  if (now > midnightToday) {
+  if (now >= mealDay) {
     throw new ApiError(
       400,
-      "Cannot cancel token after midnight on booking day"
+      "Cannot cancel token on or after the meal date"
     );
   }
 
-  await db
-    .update(mealTokens)
-    .set({ cancelledAt: now })
-    .where(eq(mealTokens.id, tokenId));
+  // All cancel operations in a single transaction for atomicity
+  await db.transaction(async (trx) => {
+    await trx
+      .update(mealTokens)
+      .set({ cancelledAt: now })
+      .where(eq(mealTokens.id, tokenId));
 
-  await db
-    .update(mealMenus)
-    .set({ bookedTokens: sql`${mealMenus.bookedTokens} - ${token.quantity}` })
-    .where(eq(mealMenus.id, token.menuId));
+    await trx
+      .update(mealMenus)
+      .set({ bookedTokens: sql`${mealMenus.bookedTokens} - ${token.quantity}` })
+      .where(eq(mealMenus.id, token.menuId));
 
-  const [payment] = await db
-    .select()
-    .from(mealPayments)
-    .where(eq(mealPayments.id, token.paymentId))
-    .limit(1);
+    const [payment] = await trx
+      .select()
+      .from(mealPayments)
+      .where(eq(mealPayments.id, token.paymentId))
+      .limit(1);
 
-  if (payment) {
-    const newRefundAmount = (payment.refundAmount || 0) + token.totalAmount;
-    await db
-      .update(mealPayments)
-      .set({
-        refundAmount: newRefundAmount,
-        refundedAt: now,
-      })
-      .where(eq(mealPayments.id, token.paymentId));
-  }
+    if (payment) {
+      const newRefundAmount = (payment.refundAmount || 0) + token.totalAmount;
+      await trx
+        .update(mealPayments)
+        .set({
+          refundAmount: newRefundAmount,
+          refundedAt: now,
+        })
+        .where(eq(mealPayments.id, token.paymentId));
+    }
+  });
 
   res.status(200).json(
     new ApiResponse(

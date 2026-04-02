@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
-import { PAYMENT_SERVER_URL } from "../../Constants.ts";
+import { eq, sql } from "drizzle-orm";
+import { PAY_SERVICE_SECRET, PAYMENT_SERVER_URL } from "../../Constants.ts";
 import { db } from "../../db/index.ts";
 import { uniStudents } from "../../db/models/auth.models.ts";
 import { mealPayments } from "../../db/models/dining.models.ts";
@@ -19,7 +19,7 @@ import type {
   MealPaymentResult,
 } from "./finance.d.ts";
 
-async function requestPayment(
+export async function requestPayment(
   endpoint: string,
   payload: Record<string, unknown>
 ): Promise<string> {
@@ -30,6 +30,7 @@ async function requestPayment(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Pay-Secret": PAY_SERVICE_SECRET,
       },
       body: JSON.stringify(payload),
     });
@@ -58,7 +59,7 @@ async function requestPayment(
   return transactionId;
 }
 
-async function getStudentInfo(studentId: string) {
+export async function getStudentInfo(studentId: string) {
   const [student] = await db
     .select({
       name: uniStudents.name,
@@ -73,7 +74,7 @@ async function getStudentInfo(studentId: string) {
   return student ?? null;
 }
 
-function sendReceiptEmail(receiptData: MealReceiptData | DueReceiptData): void {
+export function sendReceiptEmail(receiptData: MealReceiptData | DueReceiptData): void {
   const html = generateReceiptHTML(receiptData);
 
   sendMail({
@@ -165,7 +166,8 @@ export async function createMealPayment(
 }
 
 /**
- * Creates a due payment record and settles the due
+ * Creates a due payment record and settles the due.
+ * Uses atomic conditional UPDATE to prevent double-payment race conditions.
  */
 export async function createDuePayment(
   params: CreateDuePaymentParams
@@ -176,22 +178,20 @@ export async function createDuePayment(
     throw new ApiError(400, "Payment amount must be greater than 0");
   }
 
-  const transactionId =
-    paymentMethod !== "CASH"
-      ? await requestPayment("/pay-api/hall-charge-payment", {
-          dueId,
-          studentId,
-          hall,
-          amount,
-          paymentMethod,
-          chargeType: dueType,
-        })
-      : `TXN-DUE-${dueId}-${Date.now()}`;
-
   const paymentId = randomUUID();
   const paidAt = new Date();
 
+  // Phase 1: Atomically claim the due + insert payment record.
+  // The conditional UPDATE ensures only one concurrent request succeeds.
   await db.transaction(async (trx) => {
+    const result = await trx.execute(
+      sql`UPDATE student_dues SET status = 'PAID', paid_at = ${paidAt} WHERE id = ${dueId} AND status = 'UNPAID'`
+    );
+
+    if ((result as any)[0]?.affectedRows === 0) {
+      throw new ApiError(400, "Due is already paid or not found");
+    }
+
     await trx.insert(payments).values({
       id: paymentId,
       studentId,
@@ -200,12 +200,33 @@ export async function createDuePayment(
       amount,
       method: paymentMethod,
     });
-
-    await trx
-      .update(studentDues)
-      .set({ status: "PAID", paidAt })
-      .where(eq(studentDues.id, dueId));
   });
+
+  // Phase 2: Process payment gateway (outside transaction, lock released).
+  let transactionId: string;
+  try {
+    transactionId =
+      paymentMethod !== "CASH"
+        ? await requestPayment("/pay-api/hall-charge-payment", {
+            dueId,
+            studentId,
+            hall,
+            amount,
+            paymentMethod,
+            chargeType: dueType,
+          })
+        : `TXN-DUE-${dueId}-${Date.now()}`;
+  } catch (error) {
+    // Phase 3: Compensate — revert due and delete payment on gateway failure.
+    await db.transaction(async (trx) => {
+      await trx.delete(payments).where(eq(payments.id, paymentId));
+      await trx
+        .update(studentDues)
+        .set({ status: "UNPAID", paidAt: null })
+        .where(eq(studentDues.id, dueId));
+    });
+    throw error;
+  }
 
   // Generate receipt & email
   getStudentInfo(studentId).then((student) => {

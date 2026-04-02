@@ -16,3 +16,5 @@ export const NODE_ENV = process.env.NODE_ENV || "development";
 
 export const PAYMENT_SERVER_URL =
   process.env.PAYMENT_SERVER_URL || "http://localhost:8080";
+export const PAY_SERVICE_SECRET =
+  process.env.PAY_SERVICE_SECRET || "dev-pay-secret-change-in-production";

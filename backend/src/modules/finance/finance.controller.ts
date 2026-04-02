@@ -1,4 +1,4 @@
-﻿import { randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
@@ -73,21 +73,22 @@ export const payDue = async (req: Request, res: Response) => {
 
   const paymentId = randomUUID();
 
-  // Create payment record
-  await db.insert(payments).values({
-    id: paymentId,
-    studentId: due.studentId,
-    hall: due.hall,
-    dueId: id,
-    amount: due.amount,
-    method: method as FinancePaymentMethod,
-  });
+  // Atomic: create payment record + mark due as paid
+  await db.transaction(async (trx) => {
+    await trx.insert(payments).values({
+      id: paymentId,
+      studentId: due.studentId,
+      hall: due.hall,
+      dueId: id,
+      amount: due.amount,
+      method: method as FinancePaymentMethod,
+    });
 
-  // Mark due as paid
-  await db
-    .update(studentDues)
-    .set({ status: "PAID", paidAt: new Date() })
-    .where(eq(studentDues.id, id));
+    await trx
+      .update(studentDues)
+      .set({ status: "PAID", paidAt: new Date() })
+      .where(eq(studentDues.id, id));
+  });
 
   res
     .status(200)

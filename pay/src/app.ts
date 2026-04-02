@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
+import { PAY_SERVICE_SECRET } from "./Constants.js";
 import { handleError } from "./middlewares/errorHandling.middleware.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
@@ -18,6 +19,16 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 app.use(morgan("dev"));
+
+// Shared secret auth for all /pay-api/* routes
+app.use("/pay-api", (req, res, next) => {
+  const secret = req.headers["x-pay-secret"];
+  if (secret !== PAY_SERVICE_SECRET) {
+    res.status(401).json(new ApiResponse(401, null, "Unauthorized: invalid service secret"));
+    return;
+  }
+  next();
+});
 
 const buildTransactionId = (
   prefix: string,
