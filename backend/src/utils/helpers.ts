@@ -9,6 +9,7 @@ export function createJti() {
 }
 
 export const toDateString = (d: Date) => {
+  // en-CA format is YYYY-MM-DD, ideal for mysql
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Dhaka",
     year: "numeric",

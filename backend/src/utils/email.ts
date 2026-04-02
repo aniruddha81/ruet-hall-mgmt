@@ -1,10 +1,10 @@
 import nodemailer from "nodemailer";
 
-const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
-const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
-const SMTP_USER = process.env.SMTP_USER || "";
-const SMTP_PASS = process.env.SMTP_PASS || "";
-const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || "noreply@ruet-hall.edu";
+const SMTP_HOST = process.env.BREVO_SMTP_HOST || "smtp-relay.brevo.com";
+const SMTP_PORT = Number(process.env.BREVO_SMTP_PORT || 587);
+const SMTP_USER = process.env.BREVO_SMTP_USER || "";
+const SMTP_PASS = process.env.BREVO_SMTP_PASS || "";
+const SMTP_FROM = process.env.EMAIL_FROM || "noreply@ruet-hall.edu";
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -12,7 +12,7 @@ function getTransporter() {
   if (!transporter) {
     if (!SMTP_USER || !SMTP_PASS) {
       console.warn(
-        "[Email] SMTP_USER / SMTP_PASS not configured – emails will be logged to console instead."
+        "[Email] BREVO_SMTP_USER / BREVO_SMTP_PASS not configured – emails will be logged to console instead."
       );
       return null;
     }
@@ -37,11 +37,6 @@ export interface SendMailOptions {
   html: string;
 }
 
-/**
- * Sends an email. If SMTP is not configured, logs the email to the console.
- * This function never throws – failures are logged silently so payment
- * flows are not blocked by email issues.
- */
 export async function sendMail(options: SendMailOptions): Promise<boolean> {
   try {
     const t = getTransporter();
