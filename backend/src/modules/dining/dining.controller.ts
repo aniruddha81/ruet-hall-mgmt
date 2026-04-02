@@ -276,10 +276,10 @@ export const cancelMealToken = async (req: Request, res: Response) => {
 
   // Cancellation deadline: must be before midnight on the day before the meal
   const now = new Date();
-  const mealDay = new Date(token.mealDate);
-  mealDay.setHours(0, 0, 0, 0);
+  const nowStr = toDateString(now);
+  const mealDayStr = toDateString(new Date(token.mealDate));
 
-  if (now >= mealDay) {
+  if (nowStr >= mealDayStr) {
     throw new ApiError(
       400,
       "Cannot cancel token on or after the meal date"
