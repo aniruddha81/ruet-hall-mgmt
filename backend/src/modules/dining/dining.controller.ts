@@ -1,4 +1,4 @@
-﻿import { randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 import {
   and,
   count,
@@ -105,6 +105,8 @@ export const bookMealTokens = async (req: Request, res: Response) => {
     amount: totalAmount,
     totalQuantity: quantity,
     paymentMethod,
+    mealType: menu.mealType,
+    mealDate: menuDateStr,
   });
 
   const tokenId = randomUUID();

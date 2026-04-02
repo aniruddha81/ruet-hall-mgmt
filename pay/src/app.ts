@@ -1,4 +1,4 @@
-﻿import cookieParser from "cookie-parser";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
@@ -26,8 +26,7 @@ const buildTransactionId = (
 
 //routes declaration
 app.post("/pay-api/meal-payment", async (req, res) => {
-  const payload = req.body?.params ?? req.body;
-  const { studentId, amount, totalQuantity, paymentMethod } = payload;
+  const { studentId, amount, totalQuantity, paymentMethod } = req.body;
 
   const transactionId = buildTransactionId("MEAL", [
     studentId,

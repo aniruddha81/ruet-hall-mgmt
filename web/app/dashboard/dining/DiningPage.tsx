@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import PaymentSuccessModal from "@/components/PaymentSuccessModal";
+import type { PaymentSuccessData } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +52,8 @@ export default function DiningPage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] =
+    useState<PaymentSuccessData | null>(null);
 
   const getBookingOptions = (menuId: string) =>
     bookingState[menuId] ?? {
@@ -119,9 +123,20 @@ export default function DiningPage() {
         paymentMethod: options.paymentMethod,
       });
 
-      setSuccess(
-        `Meal token booked successfully. Reference: ${res.data.transactionId}`,
-      );
+      // Show payment success modal
+      setPaymentSuccess({
+        type: "MEAL",
+        amount: res.data.totalAmount,
+        transactionId: res.data.transactionId,
+        paymentMethod: options.paymentMethod,
+        details: {
+          "Meal Type": res.data.mealType?.replace(/_/g, " ") || "N/A",
+          "Meal Date": res.data.mealDate || "Tomorrow",
+          Tokens: String(res.data.quantity),
+          Menu: menu.menuDescription || "N/A",
+        },
+      });
+
       await fetchData();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -227,7 +242,9 @@ export default function DiningPage() {
                     </div>
                     <Button
                       onClick={() => handleBook(menu)}
-                      disabled={bookingMenuId === menu.id || menu.availableTokens <= 0}
+                      disabled={
+                        bookingMenuId === menu.id || menu.availableTokens <= 0
+                      }
                     >
                       {bookingMenuId === menu.id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -260,7 +277,8 @@ export default function DiningPage() {
           Dining
         </h2>
         <p className="mt-1 text-muted-foreground">
-          Pay for tomorrow&apos;s meals while booking, then manage your active and past tokens.
+          Pay for tomorrow&apos;s meals while booking, then manage your active
+          and past tokens.
         </p>
       </div>
 
@@ -422,6 +440,11 @@ export default function DiningPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <PaymentSuccessModal
+        data={paymentSuccess}
+        onClose={() => setPaymentSuccess(null)}
+      />
     </div>
   );
 }

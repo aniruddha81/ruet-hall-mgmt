@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import PaymentSuccessModal from "@/components/PaymentSuccessModal";
+import type { PaymentSuccessData } from "@/lib/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,7 +48,11 @@ export default function PaymentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [payingDueId, setPayingDueId] = useState<string | null>(null);
-  const [dueMethods, setDueMethods] = useState<Record<string, FinancePaymentMethod>>({});
+  const [dueMethods, setDueMethods] = useState<
+    Record<string, FinancePaymentMethod>
+  >({});
+  const [paymentSuccess, setPaymentSuccess] =
+    useState<PaymentSuccessData | null>(null);
 
   const fetchData = async () => {
     try {
@@ -89,7 +95,21 @@ export default function PaymentsPage() {
 
     try {
       const res = await payMyDue(due.id, { method });
-      setSuccess(`Payment completed. Reference: ${res.data.transactionId}`);
+
+      // Show payment success modal
+      setPaymentSuccess({
+        type: "DUE",
+        amount: res.data.amount,
+        transactionId: res.data.transactionId,
+        paymentMethod: method,
+        details: {
+          "Due Type": due.dueType,
+          Hall: due.hall.replace(/_/g, " "),
+          "Due Reference": `#${due.id.slice(0, 8)}`,
+          Status: "PAID",
+        },
+      });
+
       await fetchData();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -113,7 +133,8 @@ export default function PaymentsPage() {
           Payments & Finance
         </h2>
         <p className="mt-1 text-muted-foreground">
-          Pay hall dues, review completed transactions, and keep track of meal purchases.
+          Pay hall dues, review completed transactions, and keep track of meal
+          purchases.
         </p>
       </div>
 
@@ -223,7 +244,9 @@ export default function PaymentsPage() {
                         <TableCell>
                           <Badge
                             variant={
-                              due.dueStatus === "PAID" ? "default" : "destructive"
+                              due.dueStatus === "PAID"
+                                ? "default"
+                                : "destructive"
                             }
                           >
                             {due.dueStatus}
@@ -235,7 +258,12 @@ export default function PaymentsPage() {
                         <TableCell>
                           {due.dueStatus === "PAID" ? (
                             <span className="text-sm text-muted-foreground">
-                              Paid {due.paidAt ? new Date(due.paidAt).toLocaleDateString("en-GB") : ""}
+                              Paid{" "}
+                              {due.paidAt
+                                ? new Date(due.paidAt).toLocaleDateString(
+                                    "en-GB",
+                                  )
+                                : ""}
                             </span>
                           ) : (
                             <div className="flex items-center gap-2">
@@ -244,7 +272,8 @@ export default function PaymentsPage() {
                                 onChange={(event) =>
                                   setDueMethods((prev) => ({
                                     ...prev,
-                                    [due.id]: event.target.value as FinancePaymentMethod,
+                                    [due.id]: event.target
+                                      .value as FinancePaymentMethod,
                                   }))
                                 }
                                 className="flex h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -303,14 +332,18 @@ export default function PaymentsPage() {
                       <TableRow key={payment.id}>
                         <TableCell>{payment.hall.replace(/_/g, " ")}</TableCell>
                         <TableCell className="font-mono text-xs">
-                          {payment.dueId ? `#${payment.dueId.slice(0, 8)}` : "-"}
+                          {payment.dueId
+                            ? `#${payment.dueId.slice(0, 8)}`
+                            : "-"}
                         </TableCell>
                         <TableCell className="font-semibold">
                           BDT {payment.amount}
                         </TableCell>
                         <TableCell>{payment.method}</TableCell>
                         <TableCell className="text-muted-foreground">
-                          {new Date(payment.createdAt).toLocaleDateString("en-GB")}
+                          {new Date(payment.createdAt).toLocaleDateString(
+                            "en-GB",
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -355,7 +388,9 @@ export default function PaymentsPage() {
                           {mealPayment.transactionId}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {new Date(mealPayment.paymentDate).toLocaleDateString("en-GB")}
+                          {new Date(mealPayment.paymentDate).toLocaleDateString(
+                            "en-GB",
+                          )}
                         </TableCell>
                         <TableCell>
                           {mealPayment.refundAmount ? (
@@ -429,6 +464,11 @@ export default function PaymentsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <PaymentSuccessModal
+        data={paymentSuccess}
+        onClose={() => setPaymentSuccess(null)}
+      />
     </div>
   );
 }

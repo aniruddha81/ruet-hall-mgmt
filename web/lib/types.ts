@@ -284,6 +284,20 @@ export interface Payment {
   createdAt: string;
 }
 
+export interface PaymentSuccessData {
+  type: "MEAL" | "DUE";
+  amount: number;
+  transactionId: string;
+  /** Payment method label (e.g. BKASH, ONLINE, CASH) */
+  paymentMethod: string;
+  details: Record<string, string>;
+}
+
+export interface PaymentSuccessProps {
+  data: PaymentSuccessData | null;
+  onClose: () => void;
+}
+
 export interface Expense {
   id: string;
   hall: Hall;

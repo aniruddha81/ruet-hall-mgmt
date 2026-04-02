@@ -1,10 +1,17 @@
-﻿import { randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { PAYMENT_SERVER_URL } from "../../Constants.ts";
 import { db } from "../../db/index.ts";
+import { uniStudents } from "../../db/models/auth.models.ts";
 import { mealPayments } from "../../db/models/dining.models.ts";
 import { payments, studentDues } from "../../db/models/finance.models.ts";
 import ApiError from "../../utils/ApiError.ts";
+import { sendMail } from "../../utils/email.ts";
+import {
+  generateReceiptHTML,
+  type MealReceiptData,
+  type DueReceiptData,
+} from "../../utils/receiptTemplate.ts";
 import type {
   CreateDuePaymentParams,
   CreateMealPaymentParams,
@@ -12,14 +19,7 @@ import type {
   MealPaymentResult,
 } from "./finance.d.ts";
 
-type DummyGatewayResponse = {
-  data?: {
-    transactionId?: string;
-  };
-  transactionId?: string;
-};
-
-async function requestDummyPayment(
+async function requestPayment(
   endpoint: string,
   payload: Record<string, unknown>
 ): Promise<string> {
@@ -41,15 +41,48 @@ async function requestDummyPayment(
     throw new ApiError(502, "Dummy payment server rejected the payment");
   }
 
-  const payloadData = (await response.json()) as DummyGatewayResponse;
-  const transactionId =
-    payloadData.data?.transactionId ?? payloadData.transactionId;
+  const payloadData = (await response.json()) as {
+    data: {
+      transactionId: string;
+    };
+  };
+  const transactionId = payloadData.data.transactionId;
 
   if (!transactionId) {
-    throw new ApiError(502, "Dummy payment server did not return a transaction ID");
+    throw new ApiError(
+      502,
+      "Dummy payment server did not return a transaction ID"
+    );
   }
 
   return transactionId;
+}
+
+async function getStudentInfo(studentId: string) {
+  const [student] = await db
+    .select({
+      name: uniStudents.name,
+      email: uniStudents.email,
+      rollNumber: uniStudents.rollNumber,
+      hall: uniStudents.hall,
+    })
+    .from(uniStudents)
+    .where(eq(uniStudents.id, studentId))
+    .limit(1);
+
+  return student ?? null;
+}
+
+function sendReceiptEmail(receiptData: MealReceiptData | DueReceiptData): void {
+  const html = generateReceiptHTML(receiptData);
+
+  sendMail({
+    to: receiptData.studentEmail,
+    subject: `Payment Receipt – BDT ${receiptData.amount} (${receiptData.type === "MEAL" ? "Meal Token" : "Hall Due"})`,
+    html,
+  }).catch((err) => {
+    console.error("[Receipt] Email dispatch failed:", err);
+  });
 }
 
 /**
@@ -57,23 +90,28 @@ async function requestDummyPayment(
  * Centralized payment processing for meal tokens
  */
 export async function createMealPayment(
-  params: CreateMealPaymentParams
+  params: CreateMealPaymentParams & { mealType?: string; mealDate?: string }
 ): Promise<MealPaymentResult> {
-  const { studentId, amount, totalQuantity, paymentMethod } = params;
+  const {
+    studentId,
+    amount,
+    totalQuantity,
+    paymentMethod,
+    mealType,
+    mealDate,
+  } = params;
 
-  // Validate amount
   if (amount <= 0) {
     throw new ApiError(400, "Payment amount must be greater than 0");
   }
 
-  // Validate quantity
   if (totalQuantity <= 0) {
     throw new ApiError(400, "Total quantity must be greater than 0");
   }
 
   const transactionId =
     paymentMethod !== "CASH"
-      ? await requestDummyPayment("/pay-api/meal-payment", {
+      ? await requestPayment("/pay-api/meal-payment", {
           studentId,
           amount,
           totalQuantity,
@@ -82,6 +120,7 @@ export async function createMealPayment(
       : `TXN-MEAL-${studentId}-${Date.now()}`;
 
   const paymentId = randomUUID();
+  const paymentDate = new Date();
 
   // Create payment record
   await db.insert(mealPayments).values({
@@ -93,6 +132,27 @@ export async function createMealPayment(
     transactionId,
   });
 
+  // Generate receipt & email
+  getStudentInfo(studentId).then((student) => {
+    if (student) {
+      sendReceiptEmail({
+        type: "MEAL",
+        studentName: student.name,
+        studentEmail: student.email,
+        rollNumber: student.rollNumber,
+        hall: student.hall || "N/A",
+        paymentId,
+        transactionId,
+        paymentMethod,
+        amount,
+        totalQuantity,
+        mealType,
+        mealDate,
+        paymentDate,
+      });
+    }
+  });
+
   return {
     id: paymentId,
     studentId,
@@ -100,7 +160,7 @@ export async function createMealPayment(
     totalQuantity,
     paymentMethod,
     transactionId,
-    paymentDate: new Date(),
+    paymentDate,
   };
 }
 
@@ -118,7 +178,7 @@ export async function createDuePayment(
 
   const transactionId =
     paymentMethod !== "CASH"
-      ? await requestDummyPayment("/pay-api/hall-charge-payment", {
+      ? await requestPayment("/pay-api/hall-charge-payment", {
           dueId,
           studentId,
           hall,
@@ -145,6 +205,26 @@ export async function createDuePayment(
       .update(studentDues)
       .set({ status: "PAID", paidAt })
       .where(eq(studentDues.id, dueId));
+  });
+
+  // Generate receipt & email
+  getStudentInfo(studentId).then((student) => {
+    if (student) {
+      sendReceiptEmail({
+        type: "DUE",
+        studentName: student.name,
+        studentEmail: student.email,
+        rollNumber: student.rollNumber,
+        hall,
+        paymentId,
+        transactionId,
+        paymentMethod,
+        amount,
+        dueType,
+        dueId,
+        paidAt,
+      });
+    }
   });
 
   return {
