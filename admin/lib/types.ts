@@ -200,6 +200,12 @@ export interface SeatApplication {
   studentEmail?: string;
   seatCharge?: StudentDue | null;
   canAllocate?: boolean;
+  bedAllocation?: {
+    roomId: string;
+    bedLabel: string;
+    allocatedAt: string;
+    allocatedByName: string;
+  } | null;
 }
 
 export interface SeatAllocation {

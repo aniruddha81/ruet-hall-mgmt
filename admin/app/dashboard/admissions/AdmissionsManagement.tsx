@@ -20,7 +20,12 @@ import {
   reviewApplication,
 } from "@/lib/services/admission.service";
 import { getBeds, getRooms } from "@/lib/services/inventory.service";
-import type { Bed, Room, SeatApplication, SeatApplicationStatus } from "@/lib/types";
+import type {
+  Bed,
+  Room,
+  SeatApplication,
+  SeatApplicationStatus,
+} from "@/lib/types";
 import { ClipboardList, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -33,11 +38,15 @@ export default function AdmissionsManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<SeatApplicationStatus | "">("");
+  const [statusFilter, setStatusFilter] = useState<SeatApplicationStatus | "">(
+    "",
+  );
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [creatingChargeId, setCreatingChargeId] = useState<string | null>(null);
   const [allocatingId, setAllocatingId] = useState<string | null>(null);
-  const [chargeAmounts, setChargeAmounts] = useState<Record<string, string>>({});
+  const [chargeAmounts, setChargeAmounts] = useState<Record<string, string>>(
+    {},
+  );
   const [selectedBeds, setSelectedBeds] = useState<Record<string, string>>({});
 
   const roomMap = new Map(rooms.map((room) => [room.id, room]));
@@ -111,7 +120,10 @@ export default function AdmissionsManagement() {
     void run();
   }, [statusFilter]);
 
-  const handleReview = async (applicationId: string, status: ReviewableStatus) => {
+  const handleReview = async (
+    applicationId: string,
+    status: ReviewableStatus,
+  ) => {
     setReviewingId(applicationId);
     setError(null);
     setSuccess(null);
@@ -180,7 +192,9 @@ export default function AdmissionsManagement() {
 
   const availableBedOptions = beds.map((bed) => {
     const room = roomMap.get(bed.roomId);
-    const roomLabel = room ? `Room ${room.roomNumber}` : `Room ${bed.roomId.slice(0, 6)}`;
+    const roomLabel = room
+      ? `Room ${room.roomNumber}`
+      : `Room ${bed.roomId.slice(0, 6)}`;
 
     return {
       id: bed.id,
@@ -204,7 +218,8 @@ export default function AdmissionsManagement() {
           Admissions Management
         </h2>
         <p className="mt-1 text-muted-foreground">
-          Approve applications, issue seat charges, confirm payment, and allocate available beds.
+          Approve applications, issue seat charges, confirm payment, and
+          allocate available beds.
         </p>
       </div>
 
@@ -252,6 +267,7 @@ export default function AdmissionsManagement() {
                   <TableHead>Session</TableHead>
                   <TableHead>Application</TableHead>
                   <TableHead>Seat Charge</TableHead>
+                  <TableHead>Bed Allocation</TableHead>
                   <TableHead>Applied</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -264,7 +280,8 @@ export default function AdmissionsManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">
-                        {application.studentName ?? `Student #${application.studentId.slice(0, 8)}`}
+                        {application.studentName ??
+                          `Student #${application.studentId.slice(0, 8)}`}
                       </div>
                       {application.studentEmail ? (
                         <div className="text-xs text-muted-foreground">
@@ -309,11 +326,38 @@ export default function AdmissionsManagement() {
                           </Badge>
                         </div>
                       ) : (
-                        <span className="text-sm text-muted-foreground">Not issued</span>
+                        <span className="text-sm text-muted-foreground">
+                          Not issued
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {application.seatCharge?.dueStatus !== "PAID" ? (
+                        <span className="text-sm text-muted-foreground">
+                          Visible after payment
+                        </span>
+                      ) : application.bedAllocation ? (
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            Bed {application.bedAllocation.bedLabel}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Room: {application.bedAllocation.roomId.slice(0, 8)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            by {application.bedAllocation.allocatedByName}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          Not allocated
+                        </span>
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(application.createdAt).toLocaleDateString("en-GB")}
+                      {new Date(application.createdAt).toLocaleDateString(
+                        "en-GB",
+                      )}
                     </TableCell>
                     <TableCell>
                       {application.status === "PENDING" ? (
@@ -322,7 +366,9 @@ export default function AdmissionsManagement() {
                             variant="outline"
                             size="sm"
                             className="text-green-600"
-                            onClick={() => handleReview(application.id, "APPROVED")}
+                            onClick={() =>
+                              handleReview(application.id, "APPROVED")
+                            }
                             disabled={reviewingId === application.id}
                           >
                             {reviewingId === application.id ? (
@@ -334,7 +380,9 @@ export default function AdmissionsManagement() {
                             variant="outline"
                             size="sm"
                             className="text-destructive"
-                            onClick={() => handleReview(application.id, "REJECTED")}
+                            onClick={() =>
+                              handleReview(application.id, "REJECTED")
+                            }
                             disabled={reviewingId === application.id}
                           >
                             Reject
@@ -342,7 +390,8 @@ export default function AdmissionsManagement() {
                         </div>
                       ) : null}
 
-                      {application.status === "APPROVED" && !application.seatCharge ? (
+                      {application.status === "APPROVED" &&
+                      !application.seatCharge ? (
                         <div className="flex min-w-65 items-center gap-2">
                           <Input
                             type="number"
@@ -370,13 +419,15 @@ export default function AdmissionsManagement() {
                         </div>
                       ) : null}
 
-                      {application.status === "APPROVED" && application.seatCharge?.dueStatus === "UNPAID" ? (
+                      {application.status === "APPROVED" &&
+                      application.seatCharge?.dueStatus === "UNPAID" ? (
                         <span className="text-sm text-muted-foreground">
                           Waiting for student payment.
                         </span>
                       ) : null}
 
-                      {application.status === "APPROVED" && application.canAllocate ? (
+                      {application.status === "APPROVED" &&
+                      application.canAllocate ? (
                         <div className="flex min-w-70 items-center gap-2">
                           <select
                             value={selectedBeds[application.id] ?? ""}
@@ -398,7 +449,10 @@ export default function AdmissionsManagement() {
                           <Button
                             size="sm"
                             onClick={() => handleAllocate(application)}
-                            disabled={allocatingId === application.id || availableBedOptions.length === 0}
+                            disabled={
+                              allocatingId === application.id ||
+                              availableBedOptions.length === 0
+                            }
                           >
                             {allocatingId === application.id ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -418,5 +472,3 @@ export default function AdmissionsManagement() {
     </div>
   );
 }
-
-

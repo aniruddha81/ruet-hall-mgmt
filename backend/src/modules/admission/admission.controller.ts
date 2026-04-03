@@ -1,8 +1,9 @@
 ﻿import { randomUUID } from "crypto";
-import { and, count, desc, eq, gte, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
 import {
+  hallAdmins,
   seatAllocations,
   seatApplications,
   studentDues,
@@ -104,13 +105,31 @@ export const getMyStatus = async (req: Request, res: Response) => {
     ? await getSeatChargeForApplication(application)
     : null;
 
-  res.status(200).json(
-    new ApiResponse(
-      200,
-      application ? { ...application, seatCharge } : null,
-      "Applications retrieved successfully"
-    )
-  );
+  let bedAllocation = null;
+  if (application && seatCharge?.status === "PAID") {
+    const [allocation] = await db
+      .select({
+        roomId: seatAllocations.roomId,
+        bedLabel: beds.bedLabel,
+        allocatedAt: seatAllocations.allocatedAt,
+      })
+      .from(seatAllocations)
+      .innerJoin(beds, eq(seatAllocations.bedId, beds.id))
+      .where(eq(seatAllocations.studentId, studentId))
+      .limit(1);
+
+    bedAllocation = allocation ?? null;
+  }
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        application ? { ...application, seatCharge, bedAllocation } : null,
+        "Applications retrieved successfully"
+      )
+    );
 };
 
 // ========================
@@ -164,11 +183,33 @@ export const getApplications = async (req: Request, res: Response) => {
     apps.map(async (application) => {
       const seatCharge = await getSeatChargeForApplication(application);
 
+      // Get bed allocation if exists
+      let bedAllocation = null;
+      if (seatCharge?.status === "PAID") {
+        const [allocation] = await db
+          .select({
+            roomId: seatAllocations.roomId,
+            bedLabel: beds.bedLabel,
+            allocatedAt: seatAllocations.allocatedAt,
+            allocatedByName: hallAdmins.name,
+          })
+          .from(seatAllocations)
+          .innerJoin(beds, eq(seatAllocations.bedId, beds.id))
+          .innerJoin(hallAdmins, eq(seatAllocations.allocatedBy, hallAdmins.id))
+          .where(eq(seatAllocations.studentId, application.studentId))
+          .limit(1);
+
+        bedAllocation = allocation ?? null;
+      }
+
       return {
         ...application,
         seatCharge,
+        bedAllocation,
         canAllocate:
-          application.status === "APPROVED" && seatCharge?.status === "PAID",
+          application.status === "APPROVED" &&
+          seatCharge?.status === "PAID" &&
+          !bedAllocation,
       };
     })
   );

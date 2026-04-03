@@ -81,7 +81,10 @@ export default function AdmissionPage() {
   };
 
   const handlePaySeatCharge = async () => {
-    if (!application?.seatCharge || application.seatCharge.dueStatus === "PAID") {
+    if (
+      !application?.seatCharge ||
+      application.seatCharge.dueStatus === "PAID"
+    ) {
       return;
     }
 
@@ -90,8 +93,12 @@ export default function AdmissionPage() {
     setSuccess(null);
 
     try {
-      const res = await payMyDue(application.seatCharge.id, { method: paymentMethod });
-      setSuccess(`Seat charge paid successfully. Reference: ${res.data.transactionId}`);
+      const res = await payMyDue(application.seatCharge.id, {
+        method: paymentMethod,
+      });
+      setSuccess(
+        `Seat charge paid successfully. Reference: ${res.data.transactionId}`,
+      );
       await fetchStatus();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -116,7 +123,8 @@ export default function AdmissionPage() {
           Seat Application
         </h2>
         <p className="mt-1 text-muted-foreground">
-          Apply for a hall seat, track approval, and pay the allocation charge once it is issued.
+          Apply for a hall seat, track approval, and pay the allocation charge
+          once it is issued.
         </p>
       </div>
 
@@ -167,7 +175,9 @@ export default function AdmissionPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Department</p>
-                <p className="mt-2 font-medium">{application.academicDepartment}</p>
+                <p className="mt-2 font-medium">
+                  {application.academicDepartment}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Session</p>
@@ -177,7 +187,9 @@ export default function AdmissionPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Reviewed On</p>
                   <p className="mt-2 font-medium">
-                    {new Date(application.reviewedAt).toLocaleDateString("en-GB")}
+                    {new Date(application.reviewedAt).toLocaleDateString(
+                      "en-GB",
+                    )}
                   </p>
                 </div>
               ) : null}
@@ -194,8 +206,12 @@ export default function AdmissionPage() {
                   <>
                     <div className="grid gap-4 md:grid-cols-3">
                       <div>
-                        <p className="text-sm text-muted-foreground">Charge Type</p>
-                        <p className="mt-2 font-medium">{application.seatCharge.dueType}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Charge Type
+                        </p>
+                        <p className="mt-2 font-medium">
+                          {application.seatCharge.dueType}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Amount</p>
@@ -204,7 +220,9 @@ export default function AdmissionPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Payment Status</p>
+                        <p className="text-sm text-muted-foreground">
+                          Payment Status
+                        </p>
                         <Badge
                           variant={
                             application.seatCharge.dueStatus === "PAID"
@@ -219,8 +237,56 @@ export default function AdmissionPage() {
                     </div>
 
                     {application.seatCharge.dueStatus === "PAID" ? (
-                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400">
-                        Your seat charge is paid. The hall office can now allocate your bed.
+                      <div className="space-y-4">
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400">
+                          Your seat charge is paid. The hall office can now
+                          allocate your bed.
+                        </div>
+                        {application.bedAllocation ? (
+                          <Card className="border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950">
+                            <CardHeader>
+                              <CardTitle className="text-emerald-700 dark:text-emerald-400">
+                                Bed Allocated
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-4 md:grid-cols-2">
+                              <div>
+                                <p className="text-sm text-emerald-600 dark:text-emerald-300">
+                                  Bed Number
+                                </p>
+                                <p className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                                  {application.bedAllocation.bedLabel}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-emerald-600 dark:text-emerald-300">
+                                  Room ID
+                                </p>
+                                <p className="mt-2 font-medium text-emerald-700 dark:text-emerald-400">
+                                  {application.bedAllocation.roomId}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-emerald-600 dark:text-emerald-300">
+                                  Allocated On
+                                </p>
+                                <p className="mt-2 font-medium text-emerald-700 dark:text-emerald-400">
+                                  {new Date(
+                                    application.bedAllocation.allocatedAt,
+                                  ).toLocaleDateString("en-GB")}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-emerald-600 dark:text-emerald-300">
+                                  Allocated By
+                                </p>
+                                <p className="mt-2 font-medium text-emerald-700 dark:text-emerald-400">
+                                  {application.bedAllocation.allocatedByName}
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ) : null}
                       </div>
                     ) : (
                       <div className="space-y-4 rounded-lg border border-border/60 p-4">
@@ -229,7 +295,9 @@ export default function AdmissionPage() {
                           <select
                             value={paymentMethod}
                             onChange={(event) =>
-                              setPaymentMethod(event.target.value as FinancePaymentMethod)
+                              setPaymentMethod(
+                                event.target.value as FinancePaymentMethod,
+                              )
                             }
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm md:max-w-xs"
                           >
@@ -240,7 +308,10 @@ export default function AdmissionPage() {
                             ))}
                           </select>
                         </label>
-                        <Button onClick={handlePaySeatCharge} disabled={payingSeatCharge}>
+                        <Button
+                          onClick={handlePaySeatCharge}
+                          disabled={payingSeatCharge}
+                        >
                           {payingSeatCharge ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : null}
@@ -251,7 +322,8 @@ export default function AdmissionPage() {
                   </>
                 ) : (
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
-                    Your application is approved. The hall office still needs to publish the seat allocation charge before you can pay it.
+                    Your application is approved. The hall office still needs to
+                    publish the seat allocation charge before you can pay it.
                   </div>
                 )}
               </CardContent>
@@ -266,7 +338,8 @@ export default function AdmissionPage() {
           <CardContent>
             <form onSubmit={handleApply} className="max-w-lg space-y-4">
               <p className="text-sm text-muted-foreground">
-                Your profile details will be used automatically for this application.
+                Your profile details will be used automatically for this
+                application.
               </p>
               <div className="grid gap-4 rounded-lg bg-muted/50 p-4 md:grid-cols-2">
                 <label className="space-y-2 text-sm md:col-span-2">
@@ -289,7 +362,9 @@ export default function AdmissionPage() {
                 </label>
                 <div>
                   <p className="text-xs text-muted-foreground">Department</p>
-                  <p className="font-medium">{user?.academicDepartment ?? "-"}</p>
+                  <p className="font-medium">
+                    {user?.academicDepartment ?? "-"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Session</p>
@@ -301,7 +376,9 @@ export default function AdmissionPage() {
                 </div>
               </div>
               <Button type="submit" disabled={submitting}>
-                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {submitting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
                 Submit Application
               </Button>
             </form>
