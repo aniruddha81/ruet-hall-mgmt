@@ -42,7 +42,7 @@ financeRouter.get(
 
 // Student pays one of their own dues
 financeRouter.post(
-  "/my-dues/:id/pay",
+  "/my-dues/pay/:id",
   authenticateToken,
   authorizeRoles("STUDENT"),
   validateRequest(payMyDueSchema),

@@ -102,7 +102,7 @@ export const payDue = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/finance/my-dues/:id/pay
+ * POST /api/v1/finance/my-dues/pay/:id
  * Student pays one of their own hall dues through the payment gateway
  */
 export const payMyDue = async (req: Request, res: Response) => {

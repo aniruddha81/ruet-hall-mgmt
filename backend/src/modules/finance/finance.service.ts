@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { PAY_SERVICE_SECRET, PAYMENT_SERVER_URL } from "../../Constants.ts";
 import { db } from "../../db/index.ts";
 import { uniStudents } from "../../db/models/auth.models.ts";
@@ -9,8 +9,8 @@ import ApiError from "../../utils/ApiError.ts";
 import { sendMail } from "../../utils/email.ts";
 import {
   generateReceiptHTML,
-  type MealReceiptData,
   type DueReceiptData,
+  type MealReceiptData,
 } from "../../utils/receiptTemplate.ts";
 import type {
   CreateDuePaymentParams,
@@ -74,7 +74,9 @@ export async function getStudentInfo(studentId: string) {
   return student ?? null;
 }
 
-export function sendReceiptEmail(receiptData: MealReceiptData | DueReceiptData): void {
+export function sendReceiptEmail(
+  receiptData: MealReceiptData | DueReceiptData
+): void {
   const html = generateReceiptHTML(receiptData);
 
   sendMail({
@@ -184,11 +186,16 @@ export async function createDuePayment(
   // Phase 1: Atomically claim the due + insert payment record.
   // The conditional UPDATE ensures only one concurrent request succeeds.
   await db.transaction(async (trx) => {
-    const result = await trx.execute(
-      sql`UPDATE student_dues SET status = 'PAID', paid_at = ${paidAt} WHERE id = ${dueId} AND status = 'UNPAID'`
-    );
+    const result = await trx
+      .update(studentDues)
+      .set({ status: "PAID", paidAt })
+      .where(and(eq(studentDues.id, dueId), eq(studentDues.status, "UNPAID")));
 
-    if ((result as any)[0]?.affectedRows === 0) {
+    const affectedRows = Array.isArray(result)
+      ? (result as any)[0]?.affectedRows
+      : (result as any)?.affectedRows;
+
+    if (affectedRows === 0) {
       throw new ApiError(400, "Due is already paid or not found");
     }
 

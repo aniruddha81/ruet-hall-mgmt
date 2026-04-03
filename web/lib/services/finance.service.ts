@@ -60,9 +60,10 @@ function mapPayment(raw: RawPayment): Payment {
 // =================== STUDENT FINANCE ===================
 
 export async function getMyDues() {
-  const res = await api.get<ApiResponse<{ dues: RawStudentDue[]; totalUnpaid: number }>>(
-    "/finance/my-dues",
-  );
+  const res =
+    await api.get<ApiResponse<{ dues: RawStudentDue[]; totalUnpaid: number }>>(
+      "/finance/my-dues",
+    );
 
   return {
     ...res.data,
@@ -78,7 +79,7 @@ export async function payMyDue(
   data: { method: FinancePaymentMethod },
 ) {
   const res = await api.post<ApiResponse<DuePaymentReceipt>>(
-    `/finance/my-dues/${dueId}/pay`,
+    `/finance/my-dues/pay/${dueId}`,
     data,
   );
   return res.data;
