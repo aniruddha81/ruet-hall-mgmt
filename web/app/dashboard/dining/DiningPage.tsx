@@ -1,7 +1,6 @@
 "use client";
 
 import PaymentSuccessModal from "@/components/PaymentSuccessModal";
-import type { PaymentSuccessData } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +21,7 @@ import {
   getMyTokenHistory,
   getTomorrowMenus,
 } from "@/lib/services/dining.service";
-import type { MealMenu, MealToken, PaymentMethod } from "@/lib/types";
+import type { MealMenu, MealToken, PaymentMethod, PaymentSuccessData } from "@/lib/types";
 import { PAYMENT_METHODS } from "@/lib/types";
 import { Loader2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -187,6 +186,9 @@ export default function DiningPage() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {menu.menuDescription}
+                  </p>
+                  <p className="text-xs font-bold text-muted-foreground">
+                    Hall: {menu.hall.replace(/_/g, " ")}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">

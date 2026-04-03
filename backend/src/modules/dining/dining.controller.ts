@@ -26,7 +26,10 @@ import {
   getStudentInfo,
   sendReceiptEmail,
 } from "../finance/finance.service.ts";
-import { requireAdminAccount, requireStudentAccount } from "./dining.service.ts";
+import {
+  requireAdminAccount,
+  requireStudentAccount,
+} from "./dining.service.ts";
 
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
 
@@ -35,23 +38,12 @@ import { requireAdminAccount, requireStudentAccount } from "./dining.service.ts"
  * Get tomorrow's lunch and dinner menus for a hall
  */
 export const getTomorrowMenus = async (req: Request, res: Response) => {
-  const student = requireStudentAccount(req);
-
-  if (!student.hall) {
-    throw new ApiError(400, "You do not have an assigned hall yet");
-  }
-
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
   const menus = await db
     .select()
     .from(mealMenus)
-    .where(
-      and(
-        eq(mealMenus.hall, student.hall),
-        sql`${mealMenus.mealDate} = CAST(${tomorrowDate} AS DATE)`
-      )
-    );
+    .where(sql`${mealMenus.mealDate} = CAST(${tomorrowDate} AS DATE)`);
 
   const response = {
     lunch: menus.filter((m) => m.mealType === "LUNCH"),
@@ -73,10 +65,6 @@ export const bookMealTokens = async (req: Request, res: Response) => {
   const student = requireStudentAccount(req);
   const { menuId, quantity, paymentMethod } = req.body;
 
-  if (!student.hall) {
-    throw new ApiError(400, "You do not have an assigned hall yet");
-  }
-
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const tokenId = randomUUID();
   const paymentId = randomUUID();
@@ -87,7 +75,7 @@ export const bookMealTokens = async (req: Request, res: Response) => {
     const [menu] = await trx
       .select()
       .from(mealMenus)
-      .where(and(eq(mealMenus.id, menuId), eq(mealMenus.hall, student.hall!)))
+      .where(eq(mealMenus.id, menuId))
       .limit(1);
 
     if (!menu) {
@@ -280,10 +268,7 @@ export const cancelMealToken = async (req: Request, res: Response) => {
   const mealDayStr = toDateString(new Date(token.mealDate));
 
   if (nowStr >= mealDayStr) {
-    throw new ApiError(
-      400,
-      "Cannot cancel token on or after the meal date"
-    );
+    throw new ApiError(400, "Cannot cancel token on or after the meal date");
   }
 
   // All cancel operations in a single transaction for atomicity
