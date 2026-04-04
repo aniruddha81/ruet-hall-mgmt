@@ -176,6 +176,23 @@ export interface MealPayment {
   updatedAt?: string;
 }
 
+export type RawMealToken = {
+  tokenId?: string;
+  id?: string;
+  studentId?: string;
+  menuId?: string;
+  hall?: MealToken["hall"];
+  quantity: number;
+  totalAmount: number;
+  mealType: MealToken["mealType"];
+  mealDate: string;
+  bookingTime?: string;
+  cancelledAt?: string | null;
+  paymentId?: string | null;
+  menuDescription?: string;
+  price?: number;
+};
+
 export interface MealBookingReceipt {
   tokenId: string;
   paymentId: string;

@@ -47,31 +47,150 @@ export default function PaymentSuccessModal({
   };
 
   const handleDownload = () => {
-    const receiptContent = `
-RUET Hall Management – Payment Receipt
-=======================================
+    const isMeal = data.type === "MEAL";
+    const date = new Date().toLocaleString("en-GB", { timeZone: "Asia/Dhaka" });
+    const accentColor = isMeal ? "#10b981" : "#6366f1";
+    const accentLight = isMeal ? "#d1fae5" : "#e0e7ff";
+    const typeLabel = isMeal ? "Meal Token Payment" : "Hall Due Payment";
 
-Receipt Type: ${data.type === "MEAL" ? "Meal Token Payment" : "Hall Due Payment"}
-Transaction ID: ${data.transactionId}
-Amount: BDT ${data.amount}
-Payment Method: ${data.paymentMethod}
-Date: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Dhaka" })}
+    const itemsHTML = Object.entries(data.details)
+      .map(
+        ([key, value]) => `
+      <tr>
+        <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;color:#374151;">${key}</td>
+        <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;color:#111827;font-weight:600;text-align:right;">
+          ${value}
+        </td>
+      </tr>
+    `,
+      )
+      .join("");
 
-${Object.entries(data.details)
-  .map(([key, value]) => `${key}: ${value}`)
-  .join("\n")}
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Receipt-${data.transactionId}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f5f7;padding:32px 16px;min-height:100vh;">
+    <tr>
+      <td align="center" valign="top">
+        <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,${accentColor},${accentColor}cc);padding:32px 32px 24px;text-align:center;">
+              <div style="width:56px;height:56px;margin:0 auto 16px;background:rgba(255,255,255,0.2);border-radius:50%;line-height:56px;font-size:28px;">
+                ${isMeal ? "🍽️" : "🏠"}
+              </div>
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.3px;">
+                Payment Successful
+              </h1>
+              <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">
+                ${typeLabel}
+              </p>
+            </td>
+          </tr>
 
-=======================================
-This is an auto-generated receipt.
-    `.trim();
+          <!-- Amount highlight -->
+          <tr>
+            <td style="padding:28px 32px 0;text-align:center;">
+              <p style="margin:0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">
+                Amount Paid
+              </p>
+              <p style="margin:6px 0 0;color:#111827;font-size:36px;font-weight:800;letter-spacing:-1px;">
+                BDT ${data.amount.toLocaleString()}
+              </p>
+            </td>
+          </tr>
 
-    const blob = new Blob([receiptContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `receipt-${data.transactionId}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+          <!-- Receipt details -->
+          <tr>
+            <td style="padding:24px 32px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${accentLight};border-radius:12px;overflow:hidden;">
+                <tr>
+                  <td style="padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.04);color:#374151;">Transaction ID</td>
+                  <td style="padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.04);color:#111827;font-weight:700;text-align:right;font-family:monospace;font-size:13px;">
+                    ${data.transactionId}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.04);color:#374151;">Date & Time</td>
+                  <td style="padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.04);color:#111827;font-weight:600;text-align:right;">
+                    ${date}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.04);color:#374151;">Payment Method</td>
+                  <td style="padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.04);color:#111827;font-weight:600;text-align:right;">
+                    ${data.paymentMethod}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Payment Details -->
+          <tr>
+            <td style="padding:16px 32px 8px;">
+              <p style="margin:0 0 12px;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
+                Payment Details
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+                ${itemsHTML}
+                <tr style="background:#f9fafb;">
+                  <td style="padding:14px 16px;color:#111827;font-weight:700;">Total Paid</td>
+                  <td style="padding:14px 16px;color:${accentColor};font-weight:800;text-align:right;font-size:18px;">
+                    BDT ${data.amount.toLocaleString()}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:28px 32px;text-align:center;border-top:1px solid #f0f0f0;">
+              <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.6;">
+                This is an auto-generated receipt from<br />
+                <strong style="color:#6b7280;">RUET Hall Management System</strong>
+              </p>
+              <p style="margin:10px 0 0;color:#d1d5db;font-size:11px;">
+                © ${new Date().getFullYear()} RUET Hall Management
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      iframe.srcdoc = htmlContent;
+      doc.close();
+
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 1000);
+      }, 250);
+    }
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {

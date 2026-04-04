@@ -65,6 +65,10 @@ export const bookMealTokens = async (req: Request, res: Response) => {
   const student = requireStudentAccount(req);
   const { menuId, quantity, paymentMethod } = req.body;
 
+  if (quantity <= 0 || quantity > 20) {
+    throw new ApiError(400, "You can only book between 1 and 20 tokens at a time.");
+  }
+
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const tokenId = randomUUID();
   const paymentId = randomUUID();
@@ -72,6 +76,23 @@ export const bookMealTokens = async (req: Request, res: Response) => {
   // Phase 1: Atomic reservation (lock + check + reserve in one transaction).
   // The conditional UPDATE on booked_tokens prevents race-condition overbooking.
   const reservation = await db.transaction(async (trx) => {
+    // NEW: Check existing tokens for this user on this menu
+    const [existingTokensResult] = await trx
+      .select({ total: sum(mealTokens.quantity) })
+      .from(mealTokens)
+      .where(
+        and(
+          eq(mealTokens.studentId, student.id),
+          eq(mealTokens.menuId, menuId),
+          isNull(mealTokens.cancelledAt)
+        )
+      );
+
+    const alreadyBooked = Number(existingTokensResult?.total || 0);
+    if (alreadyBooked + quantity > 20) {
+      throw new ApiError(400, `You can only book up to 20 tokens per menu. You already have ${alreadyBooked} tokens booked.`);
+    }
+
     const [menu] = await trx
       .select()
       .from(mealMenus)
@@ -211,6 +232,7 @@ export const getMyActiveTokens = async (req: Request, res: Response) => {
   const activeTokens = await db
     .select({
       tokenId: mealTokens.id,
+      menuId: mealTokens.menuId,
       quantity: mealTokens.quantity,
       totalAmount: mealTokens.totalAmount,
       mealType: mealTokens.mealType,

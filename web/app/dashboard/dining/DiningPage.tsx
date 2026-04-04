@@ -60,6 +60,12 @@ export default function DiningPage() {
       paymentMethod: DEFAULT_PAYMENT_METHOD,
     };
 
+  const getAlreadyBookedTokens = (menuId: string) => {
+    return activeTokens
+      .filter((t) => t.menuId === menuId)
+      .reduce((sum, t) => sum + t.quantity, 0);
+  };
+
   const updateBookingOptions = (
     menuId: string,
     patch: Partial<{ quantity: number; paymentMethod: PaymentMethod }>,
@@ -198,20 +204,21 @@ export default function DiningPage() {
                       <input
                         type="number"
                         min={1}
-                        max={Math.min(menu.availableTokens, 20)}
+                        max={Math.min(menu.availableTokens, Math.max(0, 20 - getAlreadyBookedTokens(menu.id)))}
                         value={options.quantity}
+                        disabled={Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0}
                         onChange={(event) =>
                           updateBookingOptions(menu.id, {
                             quantity: Math.max(
                               1,
                               Math.min(
                                 Number(event.target.value) || 1,
-                                Math.min(menu.availableTokens, 20),
+                                Math.min(menu.availableTokens, Math.max(0, 20 - getAlreadyBookedTokens(menu.id))),
                               ),
                             ),
                           })
                         }
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </label>
                     <label className="space-y-2 text-sm">
@@ -245,13 +252,13 @@ export default function DiningPage() {
                     <Button
                       onClick={() => handleBook(menu)}
                       disabled={
-                        bookingMenuId === menu.id || menu.availableTokens <= 0
+                        bookingMenuId === menu.id || menu.availableTokens <= 0 || Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0
                       }
                     >
                       {bookingMenuId === menu.id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : null}
-                      Pay & Book
+                      {Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0 ? "Max Limit Reached" : "Pay & Book"}
                     </Button>
                   </div>
                 </CardContent>

@@ -7,24 +7,8 @@ import type {
   MealToken,
   Pagination,
   PaymentMethod,
+  RawMealToken,
 } from "@/lib/types";
-
-type RawMealToken = {
-  tokenId?: string;
-  id?: string;
-  studentId?: string;
-  menuId?: string;
-  hall?: MealToken["hall"];
-  quantity: number;
-  totalAmount: number;
-  mealType: MealToken["mealType"];
-  mealDate: string;
-  bookingTime?: string;
-  cancelledAt?: string | null;
-  paymentId?: string | null;
-  menuDescription?: string;
-  price?: number;
-};
 
 function mapMealToken(raw: RawMealToken): MealToken {
   return {
@@ -48,9 +32,9 @@ function mapMealToken(raw: RawMealToken): MealToken {
 // =================== STUDENT DINING ===================
 
 export async function getTomorrowMenus() {
-  const res = await api.get<ApiResponse<{ lunch?: MealMenu[]; dinner?: MealMenu[] }>>(
-    "/dining/tomorrow-menus",
-  );
+  const res = await api.get<
+    ApiResponse<{ lunch?: MealMenu[]; dinner?: MealMenu[] }>
+  >("/dining/tomorrow-menus");
 
   const menus = res.data.data ?? {};
 
@@ -115,9 +99,14 @@ export async function getMyTokenHistory(params?: {
 }
 
 export async function getMyTokenById(tokenId: string) {
-  const res = await api.get<ApiResponse<RawMealToken & { paymentMethod?: MealPayment["paymentMethod"]; transactionId?: string }>>(
-    `/dining/token/${tokenId}`,
-  );
+  const res = await api.get<
+    ApiResponse<
+      RawMealToken & {
+        paymentMethod?: MealPayment["paymentMethod"];
+        transactionId?: string;
+      }
+    >
+  >(`/dining/token/${tokenId}`);
 
   return {
     ...res.data,
@@ -126,4 +115,3 @@ export async function getMyTokenById(tokenId: string) {
     },
   };
 }
-
