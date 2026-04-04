@@ -1,7 +1,6 @@
 "use client";
 
 import PaymentSuccessModal from "@/components/PaymentSuccessModal";
-import type { PaymentSuccessData } from "@/lib/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,13 +15,12 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getApiErrorMessage } from "@/lib/api";
-import { getMyTokenHistory } from "@/lib/services/dining.service";
 import { getMyLedger, payMyDue } from "@/lib/services/finance.service";
 import type {
   FinancePaymentMethod,
   MealPayment,
-  MealToken,
   Payment,
+  PaymentSuccessData,
   StudentDue,
 } from "@/lib/types";
 import { FINANCE_PAYMENT_METHODS } from "@/lib/types";
@@ -30,7 +28,6 @@ import {
   AlertTriangle,
   CreditCard,
   Loader2,
-  Receipt,
   UtensilsCrossed,
   Wallet,
 } from "lucide-react";
@@ -42,7 +39,6 @@ export default function PaymentsPage() {
   const [dues, setDues] = useState<StudentDue[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [mealPayments, setMealPayments] = useState<MealPayment[]>([]);
-  const [tokenHistory, setTokenHistory] = useState<MealToken[]>([]);
   const [summary, setSummary] = useState({ totalDue: 0, totalPaid: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,25 +52,12 @@ export default function PaymentsPage() {
 
   const fetchData = async () => {
     try {
-      const [ledgerRes, historyRes] = await Promise.allSettled([
-        getMyLedger(),
-        getMyTokenHistory({ limit: 50 }),
-      ]);
+      const ledgerRes = await getMyLedger();
 
-      if (ledgerRes.status === "fulfilled") {
-        setDues(ledgerRes.value.data.dues);
-        setPayments(ledgerRes.value.data.payments);
-        setMealPayments(ledgerRes.value.data.mealPayments);
-        setSummary(ledgerRes.value.data.summary);
-      }
-
-      if (historyRes.status === "fulfilled") {
-        setTokenHistory(historyRes.value.data.tokens ?? []);
-      }
-
-      if (ledgerRes.status === "rejected" && historyRes.status === "rejected") {
-        throw ledgerRes.reason;
-      }
+      setDues(ledgerRes.data.dues);
+      setPayments(ledgerRes.data.payments);
+      setMealPayments(ledgerRes.data.mealPayments);
+      setSummary(ledgerRes.data.summary);
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -188,17 +171,6 @@ export default function PaymentsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Token History</p>
-                <p className="mt-1 text-2xl font-bold">{tokenHistory.length}</p>
-              </div>
-              <Receipt className="h-8 w-8 text-muted-foreground/30" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <Tabs defaultValue="dues">
@@ -206,7 +178,6 @@ export default function PaymentsPage() {
           <TabsTrigger value="dues">Dues</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="meal-payments">Meal Payments</TabsTrigger>
-          <TabsTrigger value="token-history">Token History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dues">
@@ -400,60 +371,6 @@ export default function PaymentsPage() {
                           ) : (
                             "-"
                           )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="token-history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Meal Token History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tokenHistory.length === 0 ? (
-                <p className="py-8 text-center text-muted-foreground">
-                  No token history yet.
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Meal Type</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Qty</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tokenHistory.map((token) => (
-                      <TableRow key={token.id}>
-                        <TableCell className="font-medium">
-                          {token.mealType}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(token.mealDate).toLocaleDateString("en-GB")}
-                        </TableCell>
-                        <TableCell>{token.quantity}</TableCell>
-                        <TableCell className="font-semibold">
-                          BDT {token.totalAmount}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              token.status === "CANCELLED"
-                                ? "destructive"
-                                : "secondary"
-                            }
-                          >
-                            {token.status}
-                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
