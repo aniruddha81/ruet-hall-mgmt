@@ -6,16 +6,12 @@ import {
 import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
   createAsset,
-  createBeds,
-  getBeds,
   getRooms,
   reportDamage,
   verifyDamage,
 } from "./inventory.controller.ts";
 import {
   createAssetSchema,
-  createBedsSchema,
-  listBedsSchema,
   listRoomsSchema,
   reportDamageSchema,
   verifyDamageSchema,
@@ -24,7 +20,7 @@ import {
 const inventoryRouter = Router();
 
 // ==============================================================
-// ROOM & BED MANAGEMENT
+// ROOM MANAGEMENT
 // ==============================================================
 
 inventoryRouter.get(
@@ -33,22 +29,6 @@ inventoryRouter.get(
   authorizeRoles("ASST_INVENTORY"),
   validateRequest(listRoomsSchema),
   getRooms
-);
-
-inventoryRouter.post(
-  "/beds",
-  authenticateToken,
-  authorizeRoles("ASST_INVENTORY"),
-  validateRequest(createBedsSchema),
-  createBeds
-);
-
-inventoryRouter.get(
-  "/beds",
-  authenticateToken,
-  authorizeRoles("ASST_INVENTORY"),
-  validateRequest(listBedsSchema),
-  getBeds
 );
 
 // ==============================================================
@@ -76,7 +56,7 @@ inventoryRouter.post(
 );
 
 inventoryRouter.patch(
-  "/damage/:id/verify",
+  "/damage/verify/:id",
   authenticateToken,
   authorizeRoles("ASST_INVENTORY"),
   validateRequest(verifyDamageSchema),

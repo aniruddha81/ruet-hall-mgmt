@@ -49,7 +49,6 @@ export const SEAT_APPLICATION_STATUSES = [
   "APPROVED",
   "REJECTED",
 ] as const;
-export const BED_STATUSES = ["AVAILABLE", "OCCUPIED", "MAINTENANCE"] as const;
 export const DUE_TYPES = ["RENT", "FINE", "OTHER"] as const;
 export const DUE_STATUSES = ["UNPAID", "PAID"] as const;
 
@@ -62,7 +61,6 @@ export type TokenStatus = (typeof TOKEN_STATUSES)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export type FinancePaymentMethod = (typeof FINANCE_PAYMENT_METHODS)[number];
 export type SeatApplicationStatus = (typeof SEAT_APPLICATION_STATUSES)[number];
-export type BedStatus = (typeof BED_STATUSES)[number];
 export type DueType = (typeof DUE_TYPES)[number];
 export type DueStatus = (typeof DUE_STATUSES)[number];
 
@@ -220,9 +218,8 @@ export interface SeatApplication {
   studentEmail?: string;
   seatCharge?: StudentDue | null;
   canAllocate?: boolean;
-  bedAllocation?: {
+  roomAllocation?: {
     roomId: string;
-    bedLabel: string;
     allocatedAt: string;
     allocatedByName: string;
   } | null;
@@ -234,7 +231,6 @@ export interface SeatAllocation {
   rollNumber: string;
   hall: Hall;
   roomId: string;
-  bedId: string;
   allocatedAt: string;
   allocatedBy: string;
 }
@@ -249,15 +245,6 @@ export interface Room {
   roomStatus: string;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface Bed {
-  id: string;
-  hall: Hall;
-  roomId: string;
-  bedLabel: string;
-  bedStatus: BedStatus;
-  createdAt?: string;
 }
 
 export interface Asset {

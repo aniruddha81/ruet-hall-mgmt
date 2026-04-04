@@ -9,7 +9,9 @@ import {
 export const applyForSeatSchema = {
   body: z.object({
     hall: z.enum(HALLS).describe("Hall to apply for"),
-    academicDepartment: z.enum(ACADEMIC_DEPARTMENTS).describe("Academic department"),
+    academicDepartment: z
+      .enum(ACADEMIC_DEPARTMENTS)
+      .describe("Academic department"),
     session: z
       .string()
       .min(4, "Session is required")
@@ -63,6 +65,6 @@ export const createSeatChargeSchema = {
 export const allocateSeatSchema = {
   body: z.object({
     applicationId: z.uuid("Invalid application ID"),
-    bedId: z.uuid("Invalid bed ID"),
+    roomId: z.uuid("Invalid room ID"),
   }),
 };

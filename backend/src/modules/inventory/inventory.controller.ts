@@ -4,13 +4,8 @@ import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
 import { studentDues } from "../../db/models/finance.models.ts";
 import { rooms } from "../../db/models/halls.models.ts";
-import { assets, beds, damageReports } from "../../db/models/inventory.models.ts";
-import type {
-  AssetCondition,
-  BedStatus,
-  Hall,
-  RoomStatus,
-} from "../../types/enums.ts";
+import { assets, damageReports } from "../../db/models/inventory.models.ts";
+import type { AssetCondition, Hall, RoomStatus } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 
@@ -46,72 +41,6 @@ export const getRooms = async (req: Request, res: Response) => {
   res
     .status(200)
     .json(new ApiResponse(200, result, "Rooms retrieved successfully"));
-};
-
-// ========================
-// BEDS
-// ========================
-
-/**
- * POST /api/v1/inventory/beds
- * Create beds for a room (admin)
- */
-export const createBeds = async (req: Request, res: Response) => {
-  const { hall, roomId, bedLabels } = req.body;
-
-  // Verify room exists
-  const [room] = await db
-    .select()
-    .from(rooms)
-    .where(and(eq(rooms.hall, hall), eq(rooms.id, roomId)))
-    .limit(1);
-
-  if (!room) throw new ApiError(404, "Room not found");
-
-  const values = (bedLabels as string[]).map((label) => ({
-    id: randomUUID(),
-    hall: hall as Hall,
-    roomId: roomId as string,
-    bedLabel: label,
-  }));
-
-  await db.insert(beds).values(values);
-
-  res
-    .status(201)
-    .json(new ApiResponse(201, values, "Beds created successfully"));
-};
-
-/**
- * GET /api/v1/inventory/beds
- * List beds with optional hall/roomId/status filters
- */
-export const getBeds = async (req: Request, res: Response) => {
-  const hall = req.query.hall as Hall | undefined;
-  const roomId = req.query.roomId as string | undefined;
-  const status = req.query.status as BedStatus | undefined;
-
-  const conditions = [];
-  if (hall) conditions.push(eq(beds.hall, hall));
-  if (roomId) conditions.push(eq(beds.roomId, roomId));
-  if (status) conditions.push(eq(beds.status, status));
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-  const result = await db
-    .select({
-      id: beds.id,
-      hall: beds.hall,
-      roomId: beds.roomId,
-      bedLabel: beds.bedLabel,
-      status: beds.status,
-    })
-    .from(beds)
-    .where(whereClause)
-    .orderBy(beds.roomId, beds.bedLabel);
-
-  res
-    .status(200)
-    .json(new ApiResponse(200, result, "Beds retrieved successfully"));
 };
 
 // ========================
@@ -188,7 +117,7 @@ export const reportDamage = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/v1/inventory/damage/:id/verify
+ * PATCH /api/v1/inventory/damage/verify/:id
  * Admin verifies a damage report and assigns fine
  */
 export const verifyDamage = async (req: Request, res: Response) => {

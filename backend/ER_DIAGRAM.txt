@@ -25,15 +25,6 @@ rooms [icon: door-open, color: blue] {
   updated_at datetime
 }
 
-beds [icon: bed, color: blue] {
-  id varchar [pk]
-  hall enum
-  room_id varchar
-  bed_label varchar
-  bed_status enum
-  created_at datetime
-}
-
 assets [icon: package, color: red] {
   id varchar [pk]
   hall enum
@@ -112,7 +103,6 @@ seat_allocations [icon: check-square, color: blue] {
   roll_number varchar
   hall enum
   room_id varchar
-  bed_id varchar
   allocated_at datetime
   allocated_by varchar
 }
@@ -214,8 +204,6 @@ damage_reports [icon: alert-triangle, color: red] {
 
 // Infrastructure Connections
 halls.name < rooms.hall
-halls.name < beds.hall
-rooms.id < beds.room_id
 halls.name < assets.hall
 
 // User & Admin Connections
@@ -229,7 +217,6 @@ uni_students.id < seat_applications.student_id
 hall_admins.id < seat_applications.reviewed_by
 uni_students.id - seat_allocations.student_id
 rooms.id < seat_allocations.room_id
-beds.id - seat_allocations.bed_id
 halls.name < seat_applications.hall
 halls.name < seat_allocations.hall
 

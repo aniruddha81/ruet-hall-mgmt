@@ -45,7 +45,7 @@ The absolute core of the application. All major data logic occurs here.
 - **DB Modules Overview:**
   - **Auth**: `users`, `refreshTokens`, `hallStudents`, `hallAdmins`. (Roles include: PROVOST, STUDENT, ASST_FINANCE, FINANCE_SECTION_OFFICER, ASST_DINING, DINING_MANAGER, ASST_INVENTORY, INVENTORY_SECTION_OFFICER).
   - **Dining**: `mealMenus`, `mealTokens`, `mealPayments`.
-  - **Inventory**: `beds`, `assets`, `damageReports`.
+  - **Inventory**: `rooms`, `assets`, `damageReports`.
   - **Finance**: `studentDues`, `payments`, `expenses`.
   - **Admission**: `seatApplications`, `seatAllocations`.
 - **Run/Port:** Exposed internally/externally on port `8000`.

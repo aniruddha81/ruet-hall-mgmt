@@ -19,13 +19,8 @@ import {
   getApplications,
   reviewApplication,
 } from "@/lib/services/admission.service";
-import { getBeds, getRooms } from "@/lib/services/inventory.service";
-import type {
-  Bed,
-  Room,
-  SeatApplication,
-  SeatApplicationStatus,
-} from "@/lib/types";
+import { getRooms } from "@/lib/services/inventory.service";
+import type { Room, SeatApplication, SeatApplicationStatus } from "@/lib/types";
 import { ClipboardList, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -33,7 +28,6 @@ type ReviewableStatus = Extract<SeatApplicationStatus, "APPROVED" | "REJECTED">;
 
 export default function AdmissionsManagement() {
   const [applications, setApplications] = useState<SeatApplication[]>([]);
-  const [beds, setBeds] = useState<Bed[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +41,9 @@ export default function AdmissionsManagement() {
   const [chargeAmounts, setChargeAmounts] = useState<Record<string, string>>(
     {},
   );
-  const [selectedBeds, setSelectedBeds] = useState<Record<string, string>>({});
+  const [selectedRooms, setSelectedRooms] = useState<Record<string, string>>(
+    {},
+  );
 
   const roomMap = new Map(rooms.map((room) => [room.id, room]));
 
@@ -62,14 +58,7 @@ export default function AdmissionsManagement() {
   };
 
   const loadInventory = async () => {
-    const [bedsRes, roomsRes] = await Promise.allSettled([
-      getBeds({ status: "AVAILABLE" }),
-      getRooms(),
-    ]);
-
-    if (bedsRes.status === "fulfilled") {
-      setBeds(bedsRes.value.data?.beds ?? []);
-    }
+    const [roomsRes] = await Promise.allSettled([getRooms()]);
     if (roomsRes.status === "fulfilled") {
       setRooms(roomsRes.value.data?.rooms ?? []);
     }
@@ -95,17 +84,13 @@ export default function AdmissionsManagement() {
           params.status = statusFilter;
         }
 
-        const [applicationsRes, bedsRes, roomsRes] = await Promise.allSettled([
+        const [applicationsRes, roomsRes] = await Promise.allSettled([
           getApplications(params),
-          getBeds({ status: "AVAILABLE" }),
           getRooms(),
         ]);
 
         if (applicationsRes.status === "fulfilled") {
           setApplications(applicationsRes.value.data?.applications ?? []);
-        }
-        if (bedsRes.status === "fulfilled") {
-          setBeds(bedsRes.value.data?.beds ?? []);
         }
         if (roomsRes.status === "fulfilled") {
           setRooms(roomsRes.value.data?.rooms ?? []);
@@ -164,10 +149,10 @@ export default function AdmissionsManagement() {
   };
 
   const handleAllocate = async (application: SeatApplication) => {
-    const bedId = selectedBeds[application.id];
+    const roomId = selectedRooms[application.id];
 
-    if (!bedId) {
-      setError("Select an available bed before allocating.");
+    if (!roomId) {
+      setError("Select an available room before allocating.");
       return;
     }
 
@@ -178,10 +163,10 @@ export default function AdmissionsManagement() {
     try {
       await allocateSeat({
         applicationId: application.id,
-        bedId,
+        roomId,
       });
       setSuccess("Seat allocated successfully.");
-      setSelectedBeds((prev) => ({ ...prev, [application.id]: "" }));
+      setSelectedRooms((prev) => ({ ...prev, [application.id]: "" }));
       await refreshPage();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -190,17 +175,12 @@ export default function AdmissionsManagement() {
     }
   };
 
-  const availableBedOptions = beds.map((bed) => {
-    const room = roomMap.get(bed.roomId);
-    const roomLabel = room
-      ? `Room ${room.roomNumber}`
-      : `Room ${bed.roomId.slice(0, 6)}`;
-
-    return {
-      id: bed.id,
-      label: `${roomLabel} / Bed ${bed.bedLabel}`,
-    };
-  });
+  const availableRoomOptions = rooms
+    .filter((room) => room.currentOccupancy < room.capacity)
+    .map((room) => ({
+      id: room.id,
+      label: `Room ${room.roomNumber} (${room.currentOccupancy}/${room.capacity})`,
+    }));
 
   if (loading) {
     return (
@@ -219,7 +199,7 @@ export default function AdmissionsManagement() {
         </h2>
         <p className="mt-1 text-muted-foreground">
           Approve applications, issue seat charges, confirm payment, and
-          allocate available beds.
+          allocate available rooms.
         </p>
       </div>
 
@@ -267,7 +247,7 @@ export default function AdmissionsManagement() {
                   <TableHead>Session</TableHead>
                   <TableHead>Application</TableHead>
                   <TableHead>Seat Charge</TableHead>
-                  <TableHead>Bed Allocation</TableHead>
+                  <TableHead>Room Allocation</TableHead>
                   <TableHead>Applied</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -336,16 +316,17 @@ export default function AdmissionsManagement() {
                         <span className="text-sm text-muted-foreground">
                           Visible after payment
                         </span>
-                      ) : application.bedAllocation ? (
+                      ) : application.roomAllocation ? (
                         <div className="space-y-1">
                           <div className="text-sm font-medium">
-                            Bed {application.bedAllocation.bedLabel}
+                            Room Allocated
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Room: {application.bedAllocation.roomId.slice(0, 8)}
+                            Room:{" "}
+                            {application.roomAllocation.roomId.slice(0, 8)}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            by {application.bedAllocation.allocatedByName}
+                            by {application.roomAllocation.allocatedByName}
                           </div>
                         </div>
                       ) : (
@@ -430,19 +411,19 @@ export default function AdmissionsManagement() {
                       application.canAllocate ? (
                         <div className="flex min-w-70 items-center gap-2">
                           <select
-                            value={selectedBeds[application.id] ?? ""}
+                            value={selectedRooms[application.id] ?? ""}
                             onChange={(event) =>
-                              setSelectedBeds((prev) => ({
+                              setSelectedRooms((prev) => ({
                                 ...prev,
                                 [application.id]: event.target.value,
                               }))
                             }
                             className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
                           >
-                            <option value="">Select available bed</option>
-                            {availableBedOptions.map((bed) => (
-                              <option key={bed.id} value={bed.id}>
-                                {bed.label}
+                            <option value="">Select available room</option>
+                            {availableRoomOptions.map((room) => (
+                              <option key={room.id} value={room.id}>
+                                {room.label}
                               </option>
                             ))}
                           </select>
@@ -451,7 +432,7 @@ export default function AdmissionsManagement() {
                             onClick={() => handleAllocate(application)}
                             disabled={
                               allocatingId === application.id ||
-                              availableBedOptions.length === 0
+                              availableRoomOptions.length === 0
                             }
                           >
                             {allocatingId === application.id ? (

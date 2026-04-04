@@ -240,30 +240,22 @@ export default function AdmissionPage() {
                       <div className="space-y-4">
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400">
                           Your seat charge is paid. The hall office can now
-                          allocate your bed.
+                          allocate your room.
                         </div>
-                        {application.bedAllocation ? (
+                        {application.roomAllocation ? (
                           <Card className="border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950">
                             <CardHeader>
                               <CardTitle className="text-emerald-700 dark:text-emerald-400">
-                                Bed Allocated
+                                Room Allocated
                               </CardTitle>
                             </CardHeader>
                             <CardContent className="grid gap-4 md:grid-cols-2">
                               <div>
                                 <p className="text-sm text-emerald-600 dark:text-emerald-300">
-                                  Bed Number
-                                </p>
-                                <p className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-                                  {application.bedAllocation.bedLabel}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-emerald-600 dark:text-emerald-300">
                                   Room ID
                                 </p>
-                                <p className="mt-2 font-medium text-emerald-700 dark:text-emerald-400">
-                                  {application.bedAllocation.roomId}
+                                <p className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                                  {application.roomAllocation.roomId}
                                 </p>
                               </div>
                               <div>
@@ -272,7 +264,7 @@ export default function AdmissionPage() {
                                 </p>
                                 <p className="mt-2 font-medium text-emerald-700 dark:text-emerald-400">
                                   {new Date(
-                                    application.bedAllocation.allocatedAt,
+                                    application.roomAllocation.allocatedAt,
                                   ).toLocaleDateString("en-GB")}
                                 </p>
                               </div>
@@ -281,7 +273,7 @@ export default function AdmissionPage() {
                                   Allocated By
                                 </p>
                                 <p className="mt-2 font-medium text-emerald-700 dark:text-emerald-400">
-                                  {application.bedAllocation.allocatedByName}
+                                  {application.roomAllocation.allocatedByName}
                                 </p>
                               </div>
                             </CardContent>

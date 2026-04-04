@@ -13,7 +13,6 @@ import {
   uniStudents,
 } from "./auth.models.ts";
 import { hallSQL_Enum, halls, rooms } from "./halls.models.ts";
-import { beds } from "./inventory.models.ts";
 
 export const seatApplicationStatusSQL_Enum = () =>
   mysqlEnum("seat_application_status", SEAT_APPLICATION_STATUSES);
@@ -60,7 +59,7 @@ export const seatApplications = mysqlTable(
 
 // ============================================
 // SEAT ALLOCATIONS
-// Admin allocates a bed to a student
+// Admin allocates a room to a student
 // ============================================
 export const seatAllocations = mysqlTable(
   "seat_allocations",
@@ -81,10 +80,6 @@ export const seatAllocations = mysqlTable(
       .notNull()
       .references(() => rooms.id),
 
-    bedId: varchar("bed_id", { length: 36 })
-      .notNull()
-      .references(() => beds.id),
-
     allocatedAt: datetime("allocated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -97,6 +92,5 @@ export const seatAllocations = mysqlTable(
     index("idx_seat_alloc_student").on(t.studentId),
     index("idx_seat_alloc_room").on(t.roomId),
     index("idx_seat_alloc_hall").on(t.hall),
-    index("idx_seat_alloc_bed").on(t.bedId),
   ]
 );

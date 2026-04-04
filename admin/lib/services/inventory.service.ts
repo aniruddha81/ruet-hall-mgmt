@@ -3,8 +3,6 @@ import type {
   ApiResponse,
   Asset,
   AssetCondition,
-  Bed,
-  BedStatus,
   DamageReport,
   Hall,
   Room,
@@ -22,15 +20,6 @@ type RawRoom = {
   updatedAt?: string;
 };
 
-type RawBed = {
-  id: string;
-  hall: Hall;
-  roomId: string;
-  bedLabel: string;
-  status: BedStatus;
-  createdAt?: string;
-};
-
 function mapRoom(raw: RawRoom): Room {
   return {
     id: raw.id,
@@ -41,17 +30,6 @@ function mapRoom(raw: RawRoom): Room {
     roomStatus: raw.status,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
-  };
-}
-
-function mapBed(raw: RawBed): Bed {
-  return {
-    id: raw.id,
-    hall: raw.hall,
-    roomId: raw.roomId,
-    bedLabel: raw.bedLabel,
-    bedStatus: raw.status,
-    createdAt: raw.createdAt,
   };
 }
 
@@ -66,42 +44,6 @@ export async function getRooms(params?: { hall?: Hall; status?: RoomStatus }) {
     ...res.data,
     data: {
       rooms: (res.data.data ?? []).map(mapRoom),
-    },
-  };
-}
-
-// =================== BED MANAGEMENT ===================
-
-export async function createBeds(data: {
-  roomId: string;
-  beds: Array<{ bedLabel: string }>;
-}) {
-  const res = await api.post<ApiResponse<RawBed[]>>(
-    "/inventory/beds",
-    data,
-  );
-
-  return {
-    ...res.data,
-    data: {
-      beds: (res.data.data ?? []).map(mapBed),
-    },
-  };
-}
-
-export async function getBeds(params?: {
-  hall?: Hall;
-  roomId?: string;
-  status?: BedStatus;
-}) {
-  const res = await api.get<ApiResponse<RawBed[]>>("/inventory/beds", {
-    params,
-  });
-
-  return {
-    ...res.data,
-    data: {
-      beds: (res.data.data ?? []).map(mapBed),
     },
   };
 }

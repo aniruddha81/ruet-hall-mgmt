@@ -33,7 +33,7 @@ Core Modules:
   ✓ Authentication (Auth) - JWT-based login/registration
   ✓ Dining - Meal menu creation, meal token booking, payment tracking
   ✓ Admission - Seat applications, allocations, status tracking
-  ✓ Inventory - Bed/room management, asset tracking, damage reporting
+  ✓ Inventory - Room/asset management, damage reporting
   ✓ Finance - Student dues, payments, expense management
   ✓ Profile - (placeholder for future user profile management)
 
@@ -138,7 +138,7 @@ src/
 │       ├── halls.models.ts            # Halls, rooms
 │       ├── dining.models.ts           # MealMenus, mealTokens, mealPayments
 │       ├── admission.models.ts        # SeatApplications, seatAllocations
-│       ├── inventory.models.ts        # Beds, assets, damageReports
+│       ├── inventory.models.ts        # Assets, damageReports
 │       └── finance.models.ts          # StudentDues, payments, expenses
 │
 ├── middlewares/
@@ -272,14 +272,10 @@ ADMISSION Module:
     - reviewedBy (FK → hallAdmins), reviewedAt, createdAt
 
   • seatAllocations
-    - id (PK), studentId (FK), hall, roomNumber, bedId (FK)
+    - id (PK), studentId (FK), hall, roomId (FK)
     - allocatedAt, allocatedBy (FK → hallAdmins)
 
 INVENTORY Module:
-  • beds
-    - id (PK), hall, roomNumber, bedLabel
-    - status (AVAILABLE/OCCUPIED/MAINTENANCE), createdAt
-
   • assets
     - id (PK), hall, name, quantity
     - condition (GOOD/FAIR/POOR/DAMAGED), createdAt, updatedAt
@@ -331,7 +327,6 @@ FINANCE Module:
     export const tokenStatusSQL_Enum = mysqlEnum("token_status", TOKEN_STATUSES);
 
   ✓ Example in inventory.models.ts:
-    export const bedStatusSQL_Enum = mysqlEnum("bed_status", BED_STATUSES);
     export const assetConditionSQL_Enum = mysqlEnum("asset_condition", ASSET_CONDITIONS);
 
 ### File Naming
@@ -414,13 +409,11 @@ FINANCE Module:
     --- PROVOST ---
     GET    /applications                  - List all applications (filterable)
     PATCH  /review/:id                    - Review application (approve/reject/waitlist)
-    POST   /allocate                      - Allocate bed to approved student
+    POST   /allocate                      - Allocate room to approved student
 
   /inventory
     --- ASST_INVENTORY ---
     GET    /rooms                         - List rooms (filterable by hall/status)
-    POST   /beds                          - Create beds for a room
-    GET    /beds                          - List beds (filterable by hall/room/status)
     POST   /assets                        - Create a trackable asset
     PATCH  /damage/:id/verify             - Verify damage report and assign fine
     --- STUDENT ---
@@ -661,27 +654,27 @@ FINANCE Module:
   Responsibilities:
     ✓ Students apply for hall seats
     ✓ Admins review applications
-    ✓ Admins allocate beds to approved students
+    ✓ Admins allocate rooms to approved students
     ✓ Track application status per student
 
   Workflow:
     1. Student applies for seat in hall
     2. Admin reviews application (APPROVED/REJECTED/WAITLIST)
-    3. If approved, admin allocates specific bed
-    4. Bed status changes to OCCUPIED
+    3. If approved, admin allocates a room
+    4. Room occupancy updates accordingly
     5. Student added to hall_students table
 
 ## Inventory Module
 ────────────────────────────────────────────────────────────────────────────────
 
   Responsibilities:
-    ✓ Create & manage beds in rooms
+    ✓ Manage hall rooms and occupancy
     ✓ Create & track assets/furniture
     ✓ Record damage reports
     ✓ Calculate damage fines
 
   Key Tables:
-    • beds: Tracks individual bed status (available/occupied/maintenance)
+    • rooms: Tracks room capacity and occupancy status
     • assets: Hall inventory (chairs, fans, etc)
     • damage_reports: Damage incidents with fine tracking
 
@@ -736,13 +729,10 @@ FINANCE Module:
     5. Seed initial data (halls & rooms):
       $ npm run db:seed
 
-    6. Seed beds (requires step 5 first):
-      $ npm run db:seed:beds
-
-    7. Start development server:
+    6. Start development server:
       $ npm run dev
 
-  8. Server runs on: http://localhost:8000/api/v1
+  7. Server runs on: http://localhost:8000/api/v1
 
 ## Database Commands
 ────────────────────────────────────────────────────────────────────────────────
@@ -750,7 +740,6 @@ FINANCE Module:
   $ npm run db:migrate           # Apply pending migrations
   $ npm run db                   # Generate + migrate (combined)
   $ npm run db:seed              # Seed halls & rooms
-  $ npm run db:seed:beds         # Seed beds (run after db:seed)
 
 
 ================================================================================
@@ -812,15 +801,15 @@ FINANCE Module:
 
   ✓ Filter with multiple conditions:
     const conditions = [];
-    if (hall) conditions.push(eq(beds.hall, hall));
-    if (status) conditions.push(eq(beds.status, status));
+    if (hall) conditions.push(eq(rooms.hall, hall));
+    if (status) conditions.push(eq(rooms.status, status));
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const result = await db
       .select()
-      .from(beds)
+      .from(rooms)
       .where(whereClause)
-      .orderBy(beds.roomNumber);
+      .orderBy(rooms.roomNumber);
 
   ✓ Join query:
     const apps = await db
@@ -887,7 +876,7 @@ FINANCE Module:
     Object.defineProperty() to safely overwrite with validated Zod output.
   • Cookie path is set to "/" so accessToken cookie is sent with ALL routes,
     not just /api/v1/auth/* routes.
-  • Seeding order: db:seed (halls + rooms) → seedBeds.ts (beds)
+  • Seeding order: db:seed (halls, rooms, assets, users)
 
 ## Enum Usage
 ────────────────────────────────────────────────────────────────────────────────
@@ -906,7 +895,7 @@ FINANCE Module:
 ## Module Dependencies
 ────────────────────────────────────────────────────────────────────────────────
 
-  Admission ← requires Inventory (beds table)
+  Admission ← requires Halls (rooms table)
   Finance ← requires Auth (users table)
   Dining ← requires Auth (users table)
   All modules ← require Halls (halls & rooms tables)

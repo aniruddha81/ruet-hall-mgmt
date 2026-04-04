@@ -50,7 +50,7 @@ The absolute core of the application. All major data logic occurs here.
 - **DB Modules Overview:**
   - **Auth**: `users`, `refreshTokens`, `hallStudents`, `hallAdmins`. (Multiple role enums: PROVOST, STUDENT, ASST_FINANCE, etc.)
   - **Dining**: `mealMenus`, `mealTokens`, `mealPayments`.
-  - **Inventory**: `beds`, `assets`, `damageReports`.
+  - **Inventory**: `rooms`, `assets`, `damageReports`.
   - **Finance**: `studentDues`, `payments`, `expenses`.
   - **Admission**: `seatApplications`, `seatAllocations`.
 - **Run/Port:** Exposed internally/externally on Port `8000`.
@@ -81,4 +81,4 @@ When making edits as an AI against this repository, follow these precise rules:
 3. **API Logic Formatting**: In the backend, do not use `try/catch` internally if not explicitly necessary; rely on Express 5's async error handling mechanism. Just throw `throw new ApiError(StatusCode, Message)`.
 4. **Validation Pipeline**: In backend feature creation, define the Zod schema first in `validators.ts`, bind the schema to the route using `validateRequest(schema)`, and finally implement the Controller relying on the fact that `req.body` is fully validated.
 
-*This project context acts as your singular point of truth for maintaining the codebase without polluting it with disjointed patterns or anti-patterns.*
+_This project context acts as your singular point of truth for maintaining the codebase without polluting it with disjointed patterns or anti-patterns._

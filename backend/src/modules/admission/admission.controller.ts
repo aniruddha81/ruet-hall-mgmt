@@ -4,12 +4,12 @@ import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
 import {
   hallAdmins,
+  rooms,
   seatAllocations,
   seatApplications,
   studentDues,
   uniStudents,
 } from "../../db/models/index.ts";
-import { beds } from "../../db/models/inventory.models.ts";
 import type { SeatApplicationStatus } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
@@ -105,20 +105,18 @@ export const getMyStatus = async (req: Request, res: Response) => {
     ? await getSeatChargeForApplication(application)
     : null;
 
-  let bedAllocation = null;
+  let roomAllocation = null;
   if (application && seatCharge?.status === "PAID") {
     const [allocation] = await db
       .select({
         roomId: seatAllocations.roomId,
-        bedLabel: beds.bedLabel,
         allocatedAt: seatAllocations.allocatedAt,
       })
       .from(seatAllocations)
-      .innerJoin(beds, eq(seatAllocations.bedId, beds.id))
       .where(eq(seatAllocations.studentId, studentId))
       .limit(1);
 
-    bedAllocation = allocation ?? null;
+    roomAllocation = allocation ?? null;
   }
 
   res
@@ -126,7 +124,7 @@ export const getMyStatus = async (req: Request, res: Response) => {
     .json(
       new ApiResponse(
         200,
-        application ? { ...application, seatCharge, bedAllocation } : null,
+        application ? { ...application, seatCharge, roomAllocation } : null,
         "Applications retrieved successfully"
       )
     );
@@ -183,33 +181,31 @@ export const getApplications = async (req: Request, res: Response) => {
     apps.map(async (application) => {
       const seatCharge = await getSeatChargeForApplication(application);
 
-      // Get bed allocation if exists
-      let bedAllocation = null;
+      // Get room allocation if exists
+      let roomAllocation = null;
       if (seatCharge?.status === "PAID") {
         const [allocation] = await db
           .select({
             roomId: seatAllocations.roomId,
-            bedLabel: beds.bedLabel,
             allocatedAt: seatAllocations.allocatedAt,
             allocatedByName: hallAdmins.name,
           })
           .from(seatAllocations)
-          .innerJoin(beds, eq(seatAllocations.bedId, beds.id))
           .innerJoin(hallAdmins, eq(seatAllocations.allocatedBy, hallAdmins.id))
           .where(eq(seatAllocations.studentId, application.studentId))
           .limit(1);
 
-        bedAllocation = allocation ?? null;
+        roomAllocation = allocation ?? null;
       }
 
       return {
         ...application,
         seatCharge,
-        bedAllocation,
+        roomAllocation,
         canAllocate:
           application.status === "APPROVED" &&
           seatCharge?.status === "PAID" &&
-          !bedAllocation,
+          !roomAllocation,
       };
     })
   );
@@ -354,10 +350,10 @@ export const createSeatCharge = async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/admission/allocate
- * Provost allocates a bed to an approved applicant
+ * Provost allocates a room to an approved applicant
  */
 export const allocateSeat = async (req: Request, res: Response) => {
-  const { applicationId, bedId } = req.body;
+  const { applicationId, roomId } = req.body;
   const admin =
     req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
 
@@ -376,6 +372,7 @@ export const allocateSeat = async (req: Request, res: Response) => {
   if (!app.hall) {
     throw new ApiError(400, "Application hall is missing");
   }
+  const applicationHall = app.hall;
   if (app.status !== "APPROVED") {
     throw new ApiError(400, "Application must be approved before allocation");
   }
@@ -401,52 +398,64 @@ export const allocateSeat = async (req: Request, res: Response) => {
     throw new ApiError(409, "Student already has a seat allocation");
   }
 
-  const [bed] = await db.select().from(beds).where(eq(beds.id, bedId)).limit(1);
+  const [room] = await db
+    .select()
+    .from(rooms)
+    .where(eq(rooms.id, roomId))
+    .limit(1);
 
-  if (!bed) throw new ApiError(404, "Bed not found");
-  if (bed.status !== "AVAILABLE") {
-    throw new ApiError(400, "Bed is not available");
+  if (!room) throw new ApiError(404, "Room not found");
+  if (room.hall !== applicationHall) {
+    throw new ApiError(400, "Room does not belong to the applied hall");
   }
-  if (bed.hall !== app.hall) {
-    throw new ApiError(400, "Bed does not belong to the applied hall");
+  if (room.status === "MAINTENANCE" || room.status === "RESERVED") {
+    throw new ApiError(400, "Room is not available for seat allocation");
+  }
+  if (room.currentOccupancy >= room.capacity) {
+    throw new ApiError(400, "Room is already full");
   }
 
   const allocationId = randomUUID();
 
-  // Create allocation record
-  await db.insert(seatAllocations).values({
-    id: allocationId,
-    studentId: app.studentId,
-    hall: app.hall,
-    roomId: bed.roomId,
-    bedId,
-    allocatedBy: admin.id,
-    rollNumber: app.rollNumber,
-  });
+  await db.transaction(async (trx) => {
+    await trx.insert(seatAllocations).values({
+      id: allocationId,
+      studentId: app.studentId,
+      hall: applicationHall,
+      roomId,
+      allocatedBy: admin.id,
+      rollNumber: app.rollNumber,
+    });
 
-  // Mark bed as occupied
-  await db.update(beds).set({ status: "OCCUPIED" }).where(eq(beds.id, bedId));
+    const [existingStudent] = await trx
+      .select()
+      .from(uniStudents)
+      .where(eq(uniStudents.id, app.studentId))
+      .limit(1);
 
-  // Update merged uniStudents entry with hall allocation
-  const [existingStudent] = await db
-    .select()
-    .from(uniStudents)
-    .where(eq(uniStudents.id, app.studentId))
-    .limit(1);
+    if (!existingStudent) {
+      throw new ApiError(404, "Student record not found");
+    }
 
-  if (existingStudent) {
-    await db
+    await trx
       .update(uniStudents)
       .set({
-        hall: app.hall,
-        roomId: bed.roomId,
+        hall: applicationHall,
+        roomId,
         isAllocated: true,
         status: "ACTIVE",
       })
       .where(eq(uniStudents.id, app.studentId));
-  } else {
-    throw new ApiError(404, "Student record not found");
-  }
+
+    const nextOccupancy = room.currentOccupancy + 1;
+    await trx
+      .update(rooms)
+      .set({
+        currentOccupancy: nextOccupancy,
+        status: nextOccupancy >= room.capacity ? "OCCUPIED" : room.status,
+      })
+      .where(eq(rooms.id, roomId));
+  });
 
   res.status(201).json(
     new ApiResponse(
@@ -454,9 +463,8 @@ export const allocateSeat = async (req: Request, res: Response) => {
       {
         allocationId,
         studentId: app.studentId,
-        hall: app.hall,
-        roomId: bed.roomId,
-        bedId,
+        hall: applicationHall,
+        roomId,
       },
       "Seat allocated successfully"
     )

@@ -1,25 +1,5 @@
 import { z } from "zod";
-import { ASSET_CONDITIONS, BED_STATUSES, HALLS } from "../../types/enums.ts";
-
-// Create beds for a room
-export const createBedsSchema = {
-  body: z.object({
-    hall: z.enum(HALLS),
-    roomId: z.string().uuid(),
-    bedLabels: z
-      .array(z.string().min(1).max(10))
-      .nonempty("At least one bed label required"),
-  }),
-};
-
-// List beds
-export const listBedsSchema = {
-  query: z.object({
-    hall: z.enum(HALLS).optional(),
-    roomId: z.string().uuid().optional(),
-    status: z.enum(BED_STATUSES).optional(),
-  }),
-};
+import { ASSET_CONDITIONS, HALLS } from "../../types/enums.ts";
 
 // List rooms
 export const listRoomsSchema = {

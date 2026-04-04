@@ -90,7 +90,7 @@ export async function createSeatCharge(
 
 export async function allocateSeat(data: {
   applicationId: string;
-  bedId: string;
+  roomId: string;
 }) {
   const res = await api.post<ApiResponse<{ allocation: SeatAllocation }>>(
     "/admission/allocate",

@@ -8,56 +8,14 @@ import {
   text,
   varchar,
 } from "drizzle-orm/mysql-core";
-import {
-  ASSET_CONDITIONS,
-  BED_STATUSES,
-  DAMAGE_REPORT_STATUSES,
-} from "../../types/enums.ts";
+import { ASSET_CONDITIONS, DAMAGE_REPORT_STATUSES } from "../../types/enums.ts";
 import { hallAdmins, uniStudents } from "./auth.models.ts";
-import { hallSQL_Enum, halls, rooms } from "./halls.models.ts";
+import { hallSQL_Enum, halls } from "./halls.models.ts";
 
-export const bedStatusSQL_Enum = () => mysqlEnum("bed_status", BED_STATUSES);
-export const assetConditionSQL_Enum = () => mysqlEnum(
-  "asset_condition",
-  ASSET_CONDITIONS
-);
-export const damageReportStatusSQL_Enum = () => mysqlEnum(
-  "damage_report_status",
-  DAMAGE_REPORT_STATUSES
-);
-
-// ============================================
-// BEDS TABLE
-// Each room has multiple beds
-// ============================================
-export const beds = mysqlTable(
-  "beds",
-  {
-    id: varchar("id", { length: 36 }).primaryKey(),
-
-    hall: hallSQL_Enum()
-      .notNull()
-      .references(() => halls.name, { onDelete: "cascade" }),
-
-    roomId: varchar("room_id", { length: 36 })
-      .notNull()
-      .references(() => rooms.id),
-
-    bedLabel: varchar("bed_label", { length: 10 }).notNull(),
-    // e.g. "A", "B", "C"
-
-    status: bedStatusSQL_Enum().notNull().default("AVAILABLE"),
-
-    createdAt: datetime("created_at", { mode: "date" })
-      .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
-  },
-  (t) => [
-    index("idx_beds_hall").on(t.hall),
-    index("idx_beds_room_id").on(t.roomId),
-    index("idx_beds_status").on(t.status),
-  ]
-);
+export const assetConditionSQL_Enum = () =>
+  mysqlEnum("asset_condition", ASSET_CONDITIONS);
+export const damageReportStatusSQL_Enum = () =>
+  mysqlEnum("damage_report_status", DAMAGE_REPORT_STATUSES);
 
 // ============================================
 // ASSETS TABLE
