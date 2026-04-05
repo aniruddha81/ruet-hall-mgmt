@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  DAMAGE_REPORT_STATUSES,
-  HALLS,
-} from "../../types/enums.ts";
+import { DAMAGE_REPORT_STATUSES, HALLS } from "../../types/enums.ts";
 
 // List rooms
 export const listRoomsSchema = {

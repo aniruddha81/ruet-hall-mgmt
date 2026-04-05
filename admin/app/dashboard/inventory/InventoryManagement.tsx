@@ -536,7 +536,6 @@ export default function InventoryManagement() {
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
     </div>
   );

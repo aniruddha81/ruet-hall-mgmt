@@ -6,7 +6,11 @@ import { uniStudents } from "../../db/models/auth.models.ts";
 import { studentDues } from "../../db/models/finance.models.ts";
 import { rooms } from "../../db/models/halls.models.ts";
 import { damageReports } from "../../db/models/inventory.models.ts";
-import type { DamageReportStatus, Hall, RoomStatus } from "../../types/enums.ts";
+import type {
+  DamageReportStatus,
+  Hall,
+  RoomStatus,
+} from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 
