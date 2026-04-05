@@ -1,9 +1,8 @@
 ﻿import api from "@/lib/api";
 import type {
   ApiResponse,
-  Asset,
-  AssetCondition,
   DamageReport,
+  DamageReportStatus,
   Hall,
   Room,
   RoomStatus,
@@ -48,29 +47,42 @@ export async function getRooms(params?: { hall?: Hall; status?: RoomStatus }) {
   };
 }
 
-// =================== ASSET MANAGEMENT ===================
+// =================== DAMAGE REPORTS ===================
 
-export async function createAsset(data: {
-  name: string;
-  quantity: number;
-  assetCondition: AssetCondition;
+export async function getDamageReports(params?: {
+  status?: DamageReportStatus;
 }) {
-  const res = await api.post<ApiResponse<{ asset: Asset }>>(
-    "/inventory/assets",
+  const res = await api.get<ApiResponse<DamageReport[]>>("/inventory/damage", {
+    params,
+  });
+
+  return {
+    ...res.data,
+    data: {
+      reports: res.data.data ?? [],
+    },
+  };
+}
+
+export async function verifyDamageReport(
+  id: string,
+  data: {
+    isStudentResponsible: boolean;
+    fineAmount?: number;
+    damageCost?: number;
+    managerNote?: string;
+  },
+) {
+  const res = await api.patch<ApiResponse<{ report: DamageReport }>>(
+    `/inventory/damage/${id}/verify`,
     data,
   );
   return res.data;
 }
 
-// =================== DAMAGE REPORTS ===================
-
-export async function verifyDamageReport(
-  id: string,
-  data: { fineAmount: number },
-) {
+export async function markDamageFixed(id: string) {
   const res = await api.patch<ApiResponse<{ report: DamageReport }>>(
-    `/inventory/damage/${id}/verify`,
-    data,
+    `/inventory/damage/${id}/fix`,
   );
   return res.data;
 }

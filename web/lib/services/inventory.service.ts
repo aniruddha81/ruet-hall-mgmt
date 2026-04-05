@@ -1,13 +1,19 @@
 import api from "@/lib/api";
-import type { ApiResponse, DamageReport } from "@/lib/types";
+import type { ApiResponse, Hall } from "@/lib/types";
 
-// =================== STUDENT INVENTORY ===================
+export type DamageComplaintResponse = {
+  id: string;
+  hall: Hall;
+  locationDescription: string;
+  assetDetails: string;
+  status: "REPORTED";
+};
 
 export async function reportDamage(data: {
-  assetId: string;
-  description: string;
+  locationDescription: string;
+  assetDetails: string;
 }) {
-  const res = await api.post<ApiResponse<{ report: DamageReport }>>(
+  const res = await api.post<ApiResponse<DamageComplaintResponse>>(
     "/inventory/damage",
     data,
   );

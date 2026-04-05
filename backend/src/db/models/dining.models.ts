@@ -11,7 +11,11 @@ import {
   tinyint,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { MEAL_TYPES, PAYMENT_METHODS, TOKEN_STATUSES } from "../../types/enums.ts";
+import {
+  MEAL_TYPES,
+  PAYMENT_METHODS,
+  TOKEN_STATUSES,
+} from "../../types/enums.ts";
 import { hallAdmins, uniStudents } from "./auth.models.ts";
 import { hallSQL_Enum, halls } from "./halls.models.ts";
 

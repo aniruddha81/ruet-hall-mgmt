@@ -5,19 +5,25 @@ import {
 } from "../../middlewares/auth.middleware.ts";
 import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
-  createAsset,
+  getDamageReports,
   getRooms,
+  markDamageFixed,
   reportDamage,
   verifyDamage,
 } from "./inventory.controller.ts";
 import {
-  createAssetSchema,
+  listDamageReportsSchema,
   listRoomsSchema,
+  markDamageFixedSchema,
   reportDamageSchema,
   verifyDamageSchema,
 } from "./inventory.validators.ts";
 
 const inventoryRouter = Router();
+const inventoryManagerRoles = [
+  "ASST_INVENTORY",
+  "INVENTORY_SECTION_OFFICER",
+] as const;
 
 // ==============================================================
 // ROOM MANAGEMENT
@@ -26,21 +32,9 @@ const inventoryRouter = Router();
 inventoryRouter.get(
   "/rooms",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY"),
+  authorizeRoles(...inventoryManagerRoles),
   validateRequest(listRoomsSchema),
   getRooms
-);
-
-// ==============================================================
-// ASSET MANAGEMENT
-// ==============================================================
-
-inventoryRouter.post(
-  "/assets",
-  authenticateToken,
-  authorizeRoles("ASST_INVENTORY"),
-  validateRequest(createAssetSchema),
-  createAsset
 );
 
 // ==============================================================
@@ -55,12 +49,37 @@ inventoryRouter.post(
   reportDamage
 );
 
+inventoryRouter.get(
+  "/damage",
+  authenticateToken,
+  authorizeRoles(...inventoryManagerRoles),
+  validateRequest(listDamageReportsSchema),
+  getDamageReports
+);
+
+inventoryRouter.patch(
+  "/damage/:id/verify",
+  authenticateToken,
+  authorizeRoles(...inventoryManagerRoles),
+  validateRequest(verifyDamageSchema),
+  verifyDamage
+);
+
+// Backward-compatible route shape
 inventoryRouter.patch(
   "/damage/verify/:id",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY"),
+  authorizeRoles(...inventoryManagerRoles),
   validateRequest(verifyDamageSchema),
   verifyDamage
+);
+
+inventoryRouter.patch(
+  "/damage/:id/fix",
+  authenticateToken,
+  authorizeRoles(...inventoryManagerRoles),
+  validateRequest(markDamageFixedSchema),
+  markDamageFixed
 );
 
 export default inventoryRouter;

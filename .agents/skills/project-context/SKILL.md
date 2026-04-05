@@ -1,5 +1,5 @@
 ---
-name: Project Context and Infrastructure Rules
+name: project-context
 description: Proper, in-depth architectural breakdown of the RUET Hall Management System, describing the web, admin, backend, and pay modules.
 ---
 
@@ -40,6 +40,7 @@ The absolute core of the application. All major data logic occurs here.
 - **Architecture:** Strict MVC-inspired separation organized by feature module (`auth`, `halls`, `dining`, `admission`, `inventory`, `finance`).
 - **Stack:** Node.js, Express 5.2+ (native async error support), TypeScript execution via `tsx`.
 - **Database:** MySQL 8, manipulated via **Drizzle ORM** (`drizzle-orm`).
+  if there is any change in the schema of db, then the ER_DIAGRAM must be updated accordingly. The ER_DIAGRAM is present in the root of the backend folder.
 - **Data Validation:** Zod schema validation managed strictly in middleware.
 - **File Structure & Conventions:**
   - `src/modules/<feature>/<feature>.routes.ts`: Maps HTTP methods to controllers and binds middlewares.

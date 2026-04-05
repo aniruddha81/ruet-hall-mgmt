@@ -247,26 +247,23 @@ export interface Room {
   updatedAt: string;
 }
 
-export interface Asset {
-  id: string;
-  hall: Hall;
-  name: string;
-  quantity: number;
-  assetCondition: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface DamageReport {
   id: string;
   studentId: string;
-  assetId: string;
   hall: Hall;
+  locationDescription?: string | null;
+  assetDetails?: string | null;
   description: string;
   fineAmount: number | null;
+  damageCost: number | null;
+  isStudentResponsible: boolean | null;
+  managerNote?: string | null;
+  liableStudentId: string | null;
   fineDueId?: string | null;
   status: string;
   verifiedBy: string | null;
+  fixedBy: string | null;
+  fixedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

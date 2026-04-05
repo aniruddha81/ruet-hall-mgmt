@@ -60,8 +60,11 @@ export const SEAT_APPLICATION_STATUSES = [
   "APPROVED",
   "REJECTED",
 ] as const;
-export const ASSET_CONDITIONS = ["GOOD", "FAIR", "POOR", "DAMAGED"] as const;
-export const DAMAGE_REPORT_STATUSES = ["REPORTED", "VERIFIED"] as const;
+export const DAMAGE_REPORT_STATUSES = [
+  "REPORTED",
+  "VERIFIED",
+  "FIXED",
+] as const;
 export const DUE_TYPES = ["RENT", "FINE", "OTHER"] as const;
 export const DUE_STATUSES = ["UNPAID", "PAID"] as const;
 export const FINANCE_PAYMENT_METHODS = ["CASH", "BANK", "ONLINE"] as const;
@@ -82,7 +85,7 @@ export type MealType = (typeof MEAL_TYPES)[number];
 export type TokenStatus = (typeof TOKEN_STATUSES)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export type SeatApplicationStatus = (typeof SEAT_APPLICATION_STATUSES)[number];
-export type AssetCondition = (typeof ASSET_CONDITIONS)[number];
+export type DamageReportStatus = (typeof DAMAGE_REPORT_STATUSES)[number];
 export type DueType = (typeof DUE_TYPES)[number];
 export type DueStatus = (typeof DUE_STATUSES)[number];
 export type FinancePaymentMethod = (typeof FINANCE_PAYMENT_METHODS)[number];
@@ -227,28 +230,27 @@ export interface Room {
   updatedAt?: string;
 }
 
-export interface Asset {
-  id: string;
-  hall: Hall;
-  name: string;
-  quantity: number;
-  assetCondition: AssetCondition;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface DamageReport {
   id: string;
   studentId: string;
-  assetId: string;
   hall: Hall;
+  locationDescription?: string | null;
+  assetDetails?: string | null;
   description: string;
   fineAmount: number | null;
+  damageCost: number | null;
+  isStudentResponsible: boolean | null;
+  managerNote?: string | null;
+  liableStudentId: string | null;
   fineDueId?: string | null;
-  status: string;
+  status: DamageReportStatus;
   verifiedBy: string | null;
+  fixedBy: string | null;
+  fixedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  reporterName?: string | null;
+  reporterRollNumber?: string | null;
   studentName?: string;
 }
 

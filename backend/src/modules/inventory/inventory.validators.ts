@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { ASSET_CONDITIONS, HALLS } from "../../types/enums.ts";
+import {
+  DAMAGE_REPORT_STATUSES,
+  HALLS,
+} from "../../types/enums.ts";
 
 // List rooms
 export const listRoomsSchema = {
@@ -11,22 +14,11 @@ export const listRoomsSchema = {
   }),
 };
 
-// Create asset
-export const createAssetSchema = {
-  body: z.object({
-    hall: z.enum(HALLS),
-    name: z.string().min(1).max(255),
-    quantity: z.number().int().positive().default(1),
-    condition: z.enum(ASSET_CONDITIONS).default("GOOD"),
-  }),
-};
-
-// Report damage
+// Report damage complaint (student)
 export const reportDamageSchema = {
   body: z.object({
-    assetId: z.uuid("Invalid asset ID"),
-    hall: z.enum(HALLS),
-    description: z.string().min(5).max(1000),
+    locationDescription: z.string().trim().min(5).max(1000),
+    assetDetails: z.string().trim().min(5).max(1000),
   }),
 };
 
@@ -35,7 +27,58 @@ export const verifyDamageSchema = {
   params: z.object({
     id: z.uuid("Invalid damage report ID"),
   }),
-  body: z.object({
-    fineAmount: z.number().int().min(0).optional(),
+  body: z
+    .object({
+      isStudentResponsible: z.boolean(),
+      fineAmount: z.number().int().min(0).optional(),
+      damageCost: z.number().int().min(0).optional(),
+      managerNote: z.string().trim().min(3).max(1000).optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.isStudentResponsible && data.fineAmount === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Fine amount is required when student is responsible",
+          path: ["fineAmount"],
+        });
+      }
+
+      if (!data.isStudentResponsible && data.damageCost === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Damage cost is required when student is not responsible",
+          path: ["damageCost"],
+        });
+      }
+
+      if (data.isStudentResponsible && data.damageCost !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Damage cost cannot be set when student is responsible",
+          path: ["damageCost"],
+        });
+      }
+
+      if (!data.isStudentResponsible && data.fineAmount !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Fine amount cannot be set when student is not responsible",
+          path: ["fineAmount"],
+        });
+      }
+    }),
+};
+
+// List complaints for inventory managers
+export const listDamageReportsSchema = {
+  query: z.object({
+    status: z.enum(DAMAGE_REPORT_STATUSES).optional(),
+  }),
+};
+
+// Mark complaint as fixed
+export const markDamageFixedSchema = {
+  params: z.object({
+    id: z.uuid("Invalid damage report ID"),
   }),
 };

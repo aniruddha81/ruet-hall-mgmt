@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
 import {
+  AlertTriangle,
   ClipboardList,
   CreditCard,
   Home,
@@ -59,6 +60,11 @@ export default function Sidebar() {
       label: "Admission",
       href: "/dashboard/admission",
       icon: ClipboardList,
+    },
+    {
+      label: "Report Damage",
+      href: "/dashboard/report-damage",
+      icon: AlertTriangle,
     },
     {
       label: "Payments",

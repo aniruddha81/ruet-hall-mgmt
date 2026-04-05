@@ -25,16 +25,6 @@ rooms [icon: door-open, color: blue] {
   updated_at datetime
 }
 
-assets [icon: package, color: red] {
-  id varchar [pk]
-  hall enum
-  name varchar
-  quantity int
-  asset_condition enum
-  created_at datetime
-  updated_at datetime
-}
-
 // --- Users & Auth ---
 uni_students [icon: users, color: green] {
   id varchar [pk]
@@ -188,12 +178,19 @@ expenses [icon: trending-down, color: red] {
 damage_reports [icon: alert-triangle, color: red] {
   id varchar [pk]
   student_id varchar
-  asset_id varchar
   hall enum
+  location_description text
+  asset_details text
   description text
   fine_amount int
-  damage_report_status enum
+  damage_cost int
+  is_student_responsible boolean
+  manager_note text
+  liable_student_id varchar
+  status enum
   verified_by varchar
+  fixed_by varchar
+  fixed_at datetime
   created_at datetime
   updated_at datetime
 }
@@ -204,7 +201,6 @@ damage_reports [icon: alert-triangle, color: red] {
 
 // Infrastructure Connections
 halls.name < rooms.hall
-halls.name < assets.hall
 
 // User & Admin Connections
 halls.name - uni_students.hall
@@ -233,11 +229,12 @@ meal_payments.student_id > uni_students.id
 uni_students.id < student_dues.student_id
 halls.name < expenses.hall
 expenses.approved_by > hall_admins.id
-uni_students.id <> damage_reports.student_id
-assets.id > damage_reports.asset_id
+uni_students.id < damage_reports.student_id
+uni_students.id < damage_reports.liable_student_id
 student_dues.hall < halls.name
 payments.student_id > uni_students.id
-halls.name < payments.hall 
+halls.name < payments.hall
 payments.due_id - student_dues.id
 halls.name < damage_reports.hall
 hall_admins.id < damage_reports.verified_by
+hall_admins.id < damage_reports.fixed_by

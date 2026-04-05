@@ -373,7 +373,7 @@ export default function AdminDashboard() {
             <div className="text-left">
               <h4 className="text-lg font-bold">Inventory</h4>
               <p className="text-muted-foreground text-sm mt-1">
-                Rooms &amp; assets
+                Rooms &amp; complaints
               </p>
             </div>
             <Wrench className="w-6 h-6" />

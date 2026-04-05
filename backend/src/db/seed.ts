@@ -11,7 +11,6 @@ import {
 } from "../types/enums.ts";
 import { db } from "./index.ts";
 import {
-  assets,
   damageReports,
   expenses,
   hallAdmins,
@@ -112,7 +111,6 @@ async function clearDatabase() {
   await db.delete(studentDues);
   await db.delete(expenses);
   await db.delete(damageReports);
-  await db.delete(assets);
   await db.delete(uniStudents); // must be before rooms (room_id FK)
   await db.delete(rooms);
   await db.delete(hallAdmins); // must be before halls if hall FK exists
@@ -365,43 +363,6 @@ async function seed() {
     currentRoom.currentOccupancy += 1;
   }
 
-  const assetsData = HALLS.flatMap((hall) => [
-    {
-      id: randomUUID(),
-      hall,
-      name: `${hall.replaceAll("_", " ")} Water Filter`,
-      quantity: 2,
-      condition: "GOOD" as const,
-    },
-    {
-      id: randomUUID(),
-      hall,
-      name: `${hall.replaceAll("_", " ")} Study Table`,
-      quantity: 30,
-      condition: "FAIR" as const,
-    },
-    {
-      id: randomUUID(),
-      hall,
-      name: `${hall.replaceAll("_", " ")} Ceiling Fan`,
-      quantity: 20,
-      condition: "DAMAGED" as const,
-    },
-  ]);
-  await db.insert(assets).values(assetsData);
-
-  const assetByHall = Object.fromEntries(
-    HALLS.map((hall) => [
-      hall,
-      assetsData.filter((asset) => asset.hall === hall),
-    ])
-  ) as Record<Hall, (typeof assetsData)[number][]>;
-
-  const ziaFanAsset = must(assetByHall.ZIA_HALL[2], "Missing ZIA fan asset");
-  const selimTableAsset = must(
-    assetByHall.SELIM_HALL[1],
-    "Missing SELIM study table asset"
-  );
   const ziaInventoryOfficerId = must(
     adminsData.find(
       (admin) =>
@@ -423,20 +384,30 @@ async function seed() {
     {
       id: randomUUID(),
       studentId: firstAllocation.studentId,
-      assetId: ziaFanAsset.id,
       hall: "ZIA_HALL" as const,
+      locationDescription: "Room 203, south wall near the window.",
+      assetDetails: "Ceiling fan regulator is burnt and fan speed is unstable.",
       description: "Fan regulator is damaged and needs replacement.",
       fineAmount: 600,
+      damageCost: null,
+      isStudentResponsible: true,
+      managerNote: "Student confirmed accidental damage during cleaning.",
+      liableStudentId: firstAllocation.studentId,
       status: "VERIFIED" as const,
       verifiedBy: ziaInventoryOfficerId,
     },
     {
       id: randomUUID(),
       studentId: secondAllocation.studentId,
-      assetId: selimTableAsset.id,
       hall: "SELIM_HALL" as const,
+      locationDescription: "Room 109, beside the study corner.",
+      assetDetails: "Study table leg is cracked and the table shakes heavily.",
       description: "Study table leg is loose and unstable.",
       fineAmount: null,
+      damageCost: null,
+      isStudentResponsible: null,
+      managerNote: null,
+      liableStudentId: null,
       status: "REPORTED" as const,
       verifiedBy: null,
     },

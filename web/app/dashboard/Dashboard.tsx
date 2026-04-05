@@ -346,7 +346,7 @@ export default function StudentDashboard() {
             <div className="text-left">
               <h4 className="text-lg font-bold">Report Damage</h4>
               <p className="text-muted-foreground text-sm mt-1">
-                Report damaged assets
+                Complain using location and asset details
               </p>
             </div>
             <AlertTriangle className="w-6 h-6" />

@@ -15,32 +15,99 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getApiErrorMessage } from "@/lib/api";
-import { createAsset, getRooms } from "@/lib/services/inventory.service";
-import type { Room } from "@/lib/types";
-import { ASSET_CONDITIONS, type AssetCondition } from "@/lib/types";
-import { Building, Loader2, Plus } from "lucide-react";
+import {
+  getDamageReports,
+  getRooms,
+  markDamageFixed,
+  verifyDamageReport,
+} from "@/lib/services/inventory.service";
+import type { DamageReport, Room } from "@/lib/types";
+import { Building, ClipboardList, Loader2, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
+
+type ComplaintActionMode = "STUDENT_FINE" | "MANAGER_COST";
+
+type ComplaintFormState = {
+  mode: ComplaintActionMode;
+  amount: string;
+  managerNote: string;
+};
+
+const currencyFormatter = new Intl.NumberFormat("en-BD", {
+  style: "currency",
+  currency: "BDT",
+  maximumFractionDigits: 0,
+});
+
+function defaultComplaintForm(report: DamageReport): ComplaintFormState {
+  if (report.isStudentResponsible === false) {
+    return {
+      mode: "MANAGER_COST",
+      amount: String(report.damageCost ?? 0),
+      managerNote: report.managerNote ?? "",
+    };
+  }
+
+  return {
+    mode: "STUDENT_FINE",
+    amount: String(report.fineAmount ?? 0),
+    managerNote: report.managerNote ?? "",
+  };
+}
+
+function getReportDateLabel(value: string | null | undefined) {
+  if (!value) return "N/A";
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "N/A";
+
+  return parsed.toLocaleString();
+}
 
 export default function InventoryManagement() {
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [damageReports, setDamageReports] = useState<DamageReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [complaintForms, setComplaintForms] = useState<
+    Record<string, ComplaintFormState>
+  >({});
+  const [submittingComplaintId, setSubmittingComplaintId] = useState<
+    string | null
+  >(null);
+  const [fixingComplaintId, setFixingComplaintId] = useState<string | null>(
+    null,
+  );
 
-  // Create asset form
-  const [showAssetForm, setShowAssetForm] = useState(false);
-  const [assetForm, setAssetForm] = useState({
-    name: "",
-    quantity: "1",
-    assetCondition: "GOOD" as AssetCondition,
-  });
-  const [creatingAsset, setCreatingAsset] = useState(false);
+  const getFormFromState = (
+    forms: Record<string, ComplaintFormState>,
+    report: DamageReport,
+  ): ComplaintFormState => {
+    return forms[report.id] ?? defaultComplaintForm(report);
+  };
 
   const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      const [roomsRes] = await Promise.allSettled([getRooms()]);
-      if (roomsRes.status === "fulfilled")
-        setRooms(roomsRes.value.data?.rooms ?? []);
+      const [roomsRes, reportsRes] = await Promise.all([
+        getRooms(),
+        getDamageReports(),
+      ]);
+
+      setRooms(roomsRes.data?.rooms ?? []);
+
+      const reports = reportsRes.data?.reports ?? [];
+      setDamageReports(reports);
+      setComplaintForms((prev) => {
+        const next: Record<string, ComplaintFormState> = {};
+        reports.forEach((report) => {
+          next[report.id] = prev[report.id] ?? defaultComplaintForm(report);
+        });
+        return next;
+      });
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -48,30 +115,96 @@ export default function InventoryManagement() {
     }
   };
 
+  const refreshDamageReports = async () => {
+    const reportsRes = await getDamageReports();
+    const reports = reportsRes.data?.reports ?? [];
+
+    setDamageReports(reports);
+    setComplaintForms((prev) => {
+      const next: Record<string, ComplaintFormState> = {};
+      reports.forEach((report) => {
+        next[report.id] = prev[report.id] ?? defaultComplaintForm(report);
+      });
+      return next;
+    });
+  };
+
   useEffect(() => {
     void fetchData();
   }, []);
 
-  const handleCreateAsset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCreatingAsset(true);
+  const updateComplaintForm = (
+    report: DamageReport,
+    patch: Partial<ComplaintFormState>,
+  ) => {
+    setComplaintForms((prev) => ({
+      ...prev,
+      [report.id]: {
+        ...getFormFromState(prev, report),
+        ...patch,
+      },
+    }));
+  };
+
+  const handleVerifyComplaint = async (report: DamageReport) => {
+    const form = getFormFromState(complaintForms, report);
+    const amount = Number(form.amount);
+
+    if (!Number.isFinite(amount) || amount < 0) {
+      setError("Please enter a valid non-negative amount.");
+      return;
+    }
+
+    setSubmittingComplaintId(report.id);
     setError(null);
     setSuccess(null);
+
     try {
-      await createAsset({
-        name: assetForm.name,
-        quantity: Number(assetForm.quantity),
-        assetCondition: assetForm.assetCondition,
+      await verifyDamageReport(report.id, {
+        isStudentResponsible: form.mode === "STUDENT_FINE",
+        fineAmount: form.mode === "STUDENT_FINE" ? amount : undefined,
+        damageCost: form.mode === "MANAGER_COST" ? amount : undefined,
+        managerNote: form.managerNote.trim() || undefined,
       });
-      setSuccess("Asset created successfully!");
-      setShowAssetForm(false);
-      setAssetForm({ name: "", quantity: "1", assetCondition: "GOOD" });
+
+      setSuccess(
+        form.mode === "STUDENT_FINE"
+          ? "Complaint verified and student fine assigned."
+          : "Complaint verified and manager-side damage cost recorded.",
+      );
+      await refreshDamageReports();
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
-      setCreatingAsset(false);
+      setSubmittingComplaintId(null);
     }
   };
+
+  const handleMarkFixed = async (reportId: string) => {
+    setFixingComplaintId(reportId);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await markDamageFixed(reportId);
+      setSuccess("Complaint marked as fixed and removed from active queue.");
+      await refreshDamageReports();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setFixingComplaintId(null);
+    }
+  };
+
+  const activeComplaints = damageReports.filter(
+    (report) => report.status !== "FIXED",
+  );
+  const reportedComplaints = activeComplaints.filter(
+    (report) => report.status === "REPORTED",
+  ).length;
+  const verifiedComplaints = activeComplaints.filter(
+    (report) => report.status === "VERIFIED",
+  ).length;
 
   if (loading) {
     return (
@@ -88,7 +221,9 @@ export default function InventoryManagement() {
           <Building className="h-8 w-8" />
           Inventory Management
         </h2>
-        <p className="text-muted-foreground mt-1">Manage rooms and assets</p>
+        <p className="text-muted-foreground mt-1">
+          Manage rooms and damage complaints
+        </p>
       </div>
 
       {error && (
@@ -102,11 +237,246 @@ export default function InventoryManagement() {
         </div>
       )}
 
-      <Tabs defaultValue="rooms">
+      <Tabs defaultValue="complaints">
         <TabsList>
+          <TabsTrigger value="complaints">
+            Complaints ({activeComplaints.length})
+          </TabsTrigger>
           <TabsTrigger value="rooms">Rooms ({rooms.length})</TabsTrigger>
-          <TabsTrigger value="assets">Assets</TabsTrigger>
         </TabsList>
+
+        {/* Complaints Tab */}
+        <TabsContent value="complaints" className="mt-6 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5" />
+                Damage Complaints Queue
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Waiting for Assessment
+                  </p>
+                  <p className="text-2xl font-semibold">{reportedComplaints}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Ready to Mark Fixed
+                  </p>
+                  <p className="text-2xl font-semibold">{verifiedComplaints}</p>
+                </div>
+              </div>
+
+              {activeComplaints.length === 0 ? (
+                <p className="text-muted-foreground text-center py-10">
+                  No active complaints. The queue is clear.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Report</TableHead>
+                      <TableHead>Reporter</TableHead>
+                      <TableHead>Details</TableHead>
+                      <TableHead>Assessment</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeComplaints.map((report) => {
+                      const form = getFormFromState(complaintForms, report);
+                      const isSubmitting = submittingComplaintId === report.id;
+                      const isFixing = fixingComplaintId === report.id;
+                      const isBusy = isSubmitting || isFixing;
+
+                      return (
+                        <TableRow key={report.id}>
+                          <TableCell className="align-top">
+                            <p className="font-mono text-xs">
+                              #{report.id.slice(0, 8)}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {getReportDateLabel(report.createdAt)}
+                            </p>
+                          </TableCell>
+
+                          <TableCell className="align-top">
+                            <p className="font-medium">
+                              {report.reporterName ??
+                                report.studentName ??
+                                "Student"}
+                            </p>
+                            {report.reporterRollNumber && (
+                              <p className="text-xs text-muted-foreground">
+                                Roll: {report.reporterRollNumber}
+                              </p>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="align-top">
+                            <p className="text-sm">
+                              {report.locationDescription ??
+                                "Location not provided"}
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {report.assetDetails ?? report.description}
+                            </p>
+                          </TableCell>
+
+                          <TableCell className="align-top min-w-70">
+                            {report.status === "REPORTED" ? (
+                              <div className="space-y-2">
+                                <div className="space-y-1">
+                                  <Label htmlFor={`mode-${report.id}`}>
+                                    Responsibility
+                                  </Label>
+                                  <select
+                                    id={`mode-${report.id}`}
+                                    value={form.mode}
+                                    onChange={(e) =>
+                                      updateComplaintForm(report, {
+                                        mode: e.target
+                                          .value as ComplaintActionMode,
+                                      })
+                                    }
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    disabled={isBusy}
+                                  >
+                                    <option value="STUDENT_FINE">
+                                      Student caused damage (fine student)
+                                    </option>
+                                    <option value="MANAGER_COST">
+                                      Not student-caused (log manager cost)
+                                    </option>
+                                  </select>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <Label htmlFor={`amount-${report.id}`}>
+                                    {form.mode === "STUDENT_FINE"
+                                      ? "Fine Amount (BDT)"
+                                      : "Damage Cost (BDT)"}
+                                  </Label>
+                                  <Input
+                                    id={`amount-${report.id}`}
+                                    type="number"
+                                    min="0"
+                                    value={form.amount}
+                                    onChange={(e) =>
+                                      updateComplaintForm(report, {
+                                        amount: e.target.value,
+                                      })
+                                    }
+                                    disabled={isBusy}
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <Label htmlFor={`note-${report.id}`}>
+                                    Manager Note (Optional)
+                                  </Label>
+                                  <Input
+                                    id={`note-${report.id}`}
+                                    value={form.managerNote}
+                                    onChange={(e) =>
+                                      updateComplaintForm(report, {
+                                        managerNote: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Brief inspection notes"
+                                    disabled={isBusy}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <p className="text-sm">
+                                  {report.isStudentResponsible
+                                    ? "Student liable"
+                                    : "Manager-side hall maintenance"}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {report.isStudentResponsible
+                                    ? "Fine"
+                                    : "Cost"}
+                                  :{" "}
+                                  {currencyFormatter.format(
+                                    report.isStudentResponsible
+                                      ? (report.fineAmount ?? 0)
+                                      : (report.damageCost ?? 0),
+                                  )}
+                                </p>
+                                {report.managerNote && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Note: {report.managerNote}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="align-top">
+                            <Badge
+                              variant={
+                                report.status === "REPORTED"
+                                  ? "secondary"
+                                  : report.status === "VERIFIED"
+                                    ? "default"
+                                    : "outline"
+                              }
+                            >
+                              {report.status}
+                            </Badge>
+                            {report.fixedAt && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Fixed: {getReportDateLabel(report.fixedAt)}
+                              </p>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="align-top">
+                            {report.status === "REPORTED" ? (
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  void handleVerifyComplaint(report)
+                                }
+                                disabled={isBusy}
+                              >
+                                {isSubmitting && (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                )}
+                                Verify Complaint
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void handleMarkFixed(report.id)}
+                                disabled={isBusy}
+                              >
+                                {isFixing ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : (
+                                  <Wrench className="h-4 w-4 mr-2" />
+                                )}
+                                Mark Fixed
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Rooms Tab */}
         <TabsContent value="rooms" className="mt-6">
@@ -167,102 +537,6 @@ export default function InventoryManagement() {
           </Card>
         </TabsContent>
 
-        {/* Assets Tab */}
-        <TabsContent value="assets" className="mt-6 space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => setShowAssetForm(!showAssetForm)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Asset
-            </Button>
-          </div>
-
-          {showAssetForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Create Asset</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form
-                  onSubmit={handleCreateAsset}
-                  className="space-y-4 max-w-lg"
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="assetName">Asset Name</Label>
-                    <Input
-                      id="assetName"
-                      value={assetForm.name}
-                      onChange={(e) =>
-                        setAssetForm({ ...assetForm, name: e.target.value })
-                      }
-                      placeholder="e.g., Chair, Table, Fan"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="assetQty">Quantity</Label>
-                      <Input
-                        id="assetQty"
-                        type="number"
-                        min="1"
-                        value={assetForm.quantity}
-                        onChange={(e) =>
-                          setAssetForm({
-                            ...assetForm,
-                            quantity: e.target.value,
-                          })
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="assetCondition">Condition</Label>
-                      <select
-                        id="assetCondition"
-                        value={assetForm.assetCondition}
-                        onChange={(e) =>
-                          setAssetForm({
-                            ...assetForm,
-                            assetCondition: e.target.value as AssetCondition,
-                          })
-                        }
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      >
-                        {ASSET_CONDITIONS.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={creatingAsset}>
-                      {creatingAsset && (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      )}
-                      Create Asset
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowAssetForm(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              Asset listing is managed through rooms. Create assets and they
-              will be associated with their rooms.
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );

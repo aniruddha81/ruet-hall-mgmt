@@ -86,8 +86,11 @@ export const SEAT_APPLICATION_STATUSES = [
 export const HALL_ADMIN_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
 
 // for inventory module
-export const ASSET_CONDITIONS = ["GOOD", "FAIR", "POOR", "DAMAGED"] as const;
-export const DAMAGE_REPORT_STATUSES = ["REPORTED", "VERIFIED"] as const;
+export const DAMAGE_REPORT_STATUSES = [
+  "REPORTED",
+  "VERIFIED",
+  "FIXED",
+] as const;
 
 // for finance module
 export const DUE_TYPES = ["RENT", "FINE", "OTHER"] as const;
@@ -103,7 +106,6 @@ export type AcademicDepartment = (typeof ACADEMIC_DEPARTMENTS)[number];
 export type Hall = (typeof HALLS)[number];
 export type RoomStatus = (typeof ROOM_STATUSES)[number];
 export type SeatApplicationStatus = (typeof SEAT_APPLICATION_STATUSES)[number];
-export type AssetCondition = (typeof ASSET_CONDITIONS)[number];
 export type DamageReportStatus = (typeof DAMAGE_REPORT_STATUSES)[number];
 export type DueType = (typeof DUE_TYPES)[number];
 export type DueStatus = (typeof DUE_STATUSES)[number];
