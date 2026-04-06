@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/dining/token-history?page=1&limit=10&status=ACTIVE"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+queryParams:
+  page: "1"
+  limit: "10"
+  status: ACTIVE
+order: 5000

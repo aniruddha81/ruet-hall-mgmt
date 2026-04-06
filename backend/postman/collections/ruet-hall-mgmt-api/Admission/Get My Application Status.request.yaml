@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/admission/my-status"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+order: 2000

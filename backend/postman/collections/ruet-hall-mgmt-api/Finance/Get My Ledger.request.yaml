@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get My Ledger
+url: "{{BASE_URL}}/api/finance/my-ledger"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+order: 11000

@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/finance/expenses"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+queryParams:
+  - key: hall
+    value: ZIA_HALL
+    disabled: true
+  - key: page
+    value: "1"
+    disabled: true
+  - key: limit
+    value: "20"
+    disabled: true
+order: 4000

@@ -1,0 +1,4 @@
+$kind: collection
+name: ruet-hall-mgmt-api
+variables:
+  BASE_URL: ""

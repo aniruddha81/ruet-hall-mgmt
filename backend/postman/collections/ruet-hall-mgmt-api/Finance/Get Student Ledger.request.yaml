@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/finance/student/ledger/:id"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+pathVariables:
+  id: student-uuid-here
+order: 5000

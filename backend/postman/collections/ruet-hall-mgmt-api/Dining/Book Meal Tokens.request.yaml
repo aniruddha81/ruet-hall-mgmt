@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/dining/book-tokens"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "menuId": "2ef998c9-67f9-4795-876c-0c7825214655",
+      "quantity": 2,
+      "paymentMethod": "BKASH"
+    }
+order: 2000

@@ -1,8 +1,0 @@
-$kind: http-request
-url: "{{BASE_URL}}/api/dining/report/daily?date=2026-02-24"
-method: GET
-headers:
-  Authorization: Bearer {{ACCESS_TOKEN}}
-queryParams:
-  date: 2026-02-24
-order: 15000

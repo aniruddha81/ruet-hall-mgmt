@@ -1,0 +1,18 @@
+$kind: http-request
+name: Verify Damage Report (Alt)
+url: "{{BASE_URL}}/api/inventory/damage/verify/:id"
+method: PATCH
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+pathVariables:
+  id: 96b0eb96-fcce-4021-bc0b-af1ba20ed794
+body:
+  type: json
+  content: |-
+    {
+      "isStudentResponsible": false,
+      "damageCost": 1200,
+      "managerNote": "Hall equipment damaged due to wear and tear."
+    }
+order: 3000

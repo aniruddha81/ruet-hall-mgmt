@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/finance/dues"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "studentId": "student-uuid-here",
+      "hall": "ZIA_HALL",
+      "type": "ROOM_RENT",
+      "amount": 5000
+    }
+order: 1000

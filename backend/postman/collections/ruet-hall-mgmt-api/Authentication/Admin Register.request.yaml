@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/auth/admin/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Mahendra Singh Dhoni",
+      "email": "admin@gmail.com",
+      "password": "AdminPass123!",
+      "confirmPassword": "AdminPass123!",
+      "academicDepartment": "CSE",
+      "hall": "ZIA_HALL",
+      "designation": "DINING_MANAGER",
+      "phone": "+8801712345678"
+    }
+order: 3000

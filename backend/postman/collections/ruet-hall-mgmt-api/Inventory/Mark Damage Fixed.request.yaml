@@ -1,0 +1,9 @@
+$kind: http-request
+name: Mark Damage Fixed
+url: "{{BASE_URL}}/api/inventory/damage/:id/fix"
+method: PATCH
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+pathVariables:
+  id: 96b0eb96-fcce-4021-bc0b-af1ba20ed794
+order: 7000

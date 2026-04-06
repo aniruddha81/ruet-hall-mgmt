@@ -1,0 +1,16 @@
+$kind: http-request
+name: Create Seat Charge
+url: "{{BASE_URL}}/api/admission/applications/:id/seat-charge"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+pathVariables:
+  id: 1cdaddcd-419c-45e6-a1eb-4a813a445a5d
+body:
+  type: json
+  content: |-
+    {
+      "amount": 3000
+    }
+order: 4500

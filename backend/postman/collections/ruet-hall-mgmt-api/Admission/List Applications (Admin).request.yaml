@@ -1,0 +1,20 @@
+$kind: http-request
+name: List Applications (Admin)
+url: "{{BASE_URL}}/api/admission/applications"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+queryParams:
+  - key: hall
+    value: ZIA_HALL
+    disabled: true
+  - key: status
+    value: PENDING
+    disabled: true
+  - key: page
+    value: "1"
+    disabled: true
+  - key: limit
+    value: "20"
+    disabled: true
+order: 3000

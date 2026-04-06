@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get My Dues
+url: "{{BASE_URL}}/api/finance/my-dues"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+order: 9000

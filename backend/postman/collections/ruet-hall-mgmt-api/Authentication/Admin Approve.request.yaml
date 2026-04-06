@@ -1,0 +1,15 @@
+$kind: http-request
+name: Admin Approve
+url: "{{BASE_URL}}/api/auth/admin/approve"
+method: PATCH
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "adminApplicationId": "application-uuid-here",
+      "status": "APPROVED"
+    }
+order: 8000

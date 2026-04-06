@@ -1,0 +1,20 @@
+$kind: http-request
+name: Student Register
+url: "{{BASE_URL}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Aniruddha Roy",
+      "email": "aniruddha@gmail.com",
+      "password": "StudentPass123!",
+      "confirmPassword": "StudentPass123!",
+      "rollNumber": 2210456,
+      "academicDepartment": "CSE",
+      "session": "2022-23",
+      "phone": "+8801712345678"
+    }
+order: 1000

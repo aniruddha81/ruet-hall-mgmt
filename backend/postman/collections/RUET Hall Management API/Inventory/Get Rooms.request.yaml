@@ -1,9 +1,0 @@
-$kind: http-request
-url: "{{BASE_URL}}/api/inventory/rooms?hall=ZIA_HALL&status=AVAILABLE"
-method: GET
-headers:
-  Authorization: Bearer {{ACCESS_TOKEN}}
-queryParams:
-  hall: ZIA_HALL
-  status: AVAILABLE
-order: 1000

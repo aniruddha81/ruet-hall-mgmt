@@ -1,0 +1,16 @@
+$kind: http-request
+name: Pay My Due
+url: "{{BASE_URL}}/api/finance/my-dues/pay/:id"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+pathVariables:
+  id: due-uuid-here
+body:
+  type: json
+  content: |-
+    {
+      "method": "BKASH"
+    }
+order: 10000

@@ -1,0 +1,11 @@
+$kind: http-request
+name: Get Damage Reports
+url: "{{BASE_URL}}/api/inventory/damage"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+queryParams:
+  - key: status
+    value: PENDING
+    disabled: true
+order: 2000

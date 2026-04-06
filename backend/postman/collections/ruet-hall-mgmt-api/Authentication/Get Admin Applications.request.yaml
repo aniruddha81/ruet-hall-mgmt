@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get Admin Applications
+url: "{{BASE_URL}}/api/auth/admin/approve"
+method: GET
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+order: 9000

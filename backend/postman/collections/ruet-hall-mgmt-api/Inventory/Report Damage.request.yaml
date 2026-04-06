@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{BASE_URL}}/api/inventory/damage"
+method: POST
+headers:
+  Authorization: Bearer {{ACCESS_TOKEN}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "locationDescription": "Room 212, 2nd Floor, Block B — desk area near the window",
+      "assetDetails": "Study lamp is broken and the switch is stuck in the ON position"
+    }
+order: 5000

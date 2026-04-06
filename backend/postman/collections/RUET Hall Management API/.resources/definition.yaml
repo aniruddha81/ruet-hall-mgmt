@@ -1,6 +1,0 @@
-$kind: collection
-description: Complete API collection for RUET Hall Management System with all
-  endpoints and request bodies
-variables:
-  BASE_URL: http://localhost:5000
-  ACCESS_TOKEN: ""

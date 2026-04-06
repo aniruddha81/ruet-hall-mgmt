@@ -1,9 +1,0 @@
-$kind: http-request
-url: "{{BASE_URL}}/api/dining/report/monthly?month=2&year=2026"
-method: GET
-headers:
-  Authorization: Bearer {{ACCESS_TOKEN}}
-queryParams:
-  month: "2"
-  year: "2026"
-order: 16000

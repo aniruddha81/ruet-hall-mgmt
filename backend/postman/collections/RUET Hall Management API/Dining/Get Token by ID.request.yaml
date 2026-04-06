@@ -1,8 +1,0 @@
-$kind: http-request
-url: "{{BASE_URL}}/api/dining/token/:tokenId"
-method: GET
-headers:
-  Authorization: Bearer {{ACCESS_TOKEN}}
-pathVariables:
-  tokenId: d9281ed0-4151-4af0-8607-30b4b2a93553
-order: 6000
