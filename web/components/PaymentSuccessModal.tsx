@@ -13,7 +13,6 @@ export default function PaymentSuccessModal({
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
-  const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -194,7 +193,7 @@ export default function PaymentSuccessModal({
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === backdropRef.current) {
+    if (e.target === e.currentTarget) {
       onClose();
     }
   };
@@ -203,22 +202,24 @@ export default function PaymentSuccessModal({
 
   const modal = (
     <div
-      ref={backdropRef}
-      onClick={handleBackdropClick}
-      className={`fixed inset-0 z-100 flex items-center justify-center p-4 transition-all duration-300 ${
+      className={`fixed inset-0 z-100 overflow-y-auto transition-all duration-300 ${
         animateIn
           ? "bg-black/50 backdrop-blur-sm"
           : "bg-transparent pointer-events-none"
       }`}
     >
-      <div
-        className={`relative w-full max-w-md transform transition-all duration-500 ease-out ${
-          animateIn
-            ? "translate-y-0 scale-100 opacity-100"
-            : "translate-y-8 scale-95 opacity-0"
-        }`}
+      <div 
+        className="flex min-h-full items-center justify-center p-4 py-8"
+        onClick={handleBackdropClick}
       >
-        {/* Close button */}
+        <div
+          className={`relative w-full max-w-md transform transition-all duration-500 ease-out ${
+            animateIn
+              ? "translate-y-0 scale-100 opacity-100"
+              : "translate-y-8 scale-95 opacity-0"
+          }`}
+        >
+          {/* Close button */}
         <button
           onClick={onClose}
           className="absolute -top-2 -right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-card text-muted-foreground shadow-lg transition-colors hover:bg-accent hover:text-foreground"
@@ -362,6 +363,7 @@ export default function PaymentSuccessModal({
             </Button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
