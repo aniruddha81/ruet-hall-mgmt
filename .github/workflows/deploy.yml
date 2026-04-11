@@ -12,7 +12,6 @@ on:
       - backend/**
       - pay/**
       - nginx.conf
-      - nginx.ssl.conf
       - docker-compose.yml
       - .github/workflows/deploy.yml
   workflow_dispatch:
@@ -30,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -71,7 +70,7 @@ jobs:
           echo "backend=$(has_changed '^backend/')" >> "$GITHUB_OUTPUT"
           echo "migrate=$(has_changed '^backend/(drizzle/|src/db/|drizzle\.config\.ts$)')" >> "$GITHUB_OUTPUT"
           echo "pay=$(has_changed '^pay/')" >> "$GITHUB_OUTPUT"
-          echo "nginx=$(has_changed '^(nginx\.conf|nginx\.ssl\.conf)$')" >> "$GITHUB_OUTPUT"
+          echo "nginx=$(has_changed '^nginx\.conf$')" >> "$GITHUB_OUTPUT"
           echo "compose=$(has_changed '^docker-compose\.yml$')" >> "$GITHUB_OUTPUT"
 
       - name: Deploy over SSH
@@ -97,16 +96,6 @@ jobs:
             git fetch origin deploy
             git checkout deploy
             git reset --hard origin/deploy
-
-            # ── Dynamic SSL Injection ──
-            SSL_APPLIED="false"
-            if [ -f /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem ] && [ -f nginx.ssl.conf ]; then
-              echo "✅ SSL certificates found. Applying SSL nginx config..."
-              cp nginx.ssl.conf nginx.conf
-              SSL_APPLIED="true"
-            else
-              echo "⚠️ No SSL certificates found. Using HTTP-only nginx config..."
-            fi
 
             if [ "$CHANGED_WEB" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ]; then
               echo "Building web..."
@@ -135,7 +124,7 @@ jobs:
 
             # Nginx uses a bind-mounted config file — Compose cannot detect
             # that the file content changed, so force-recreate it explicitly.
-            if [ "$CHANGED_NGINX" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ] || [ "$SSL_APPLIED" = "true" ]; then
+            if [ "$CHANGED_NGINX" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ]; then
               echo "Recreating nginx with updated config..."
               docker compose up -d --force-recreate nginx
             fi
@@ -153,22 +142,37 @@ jobs:
             docker builder prune -f --keep-storage=2g
 
             # ── Post-deploy health verification ──
-            echo "Waiting for services to become healthy..."
-            sleep 10
+            declare -A SVC_MAP
+            SVC_MAP[backend]="hallmgmt-backend"
+            SVC_MAP[admin]="hallmgmt-admin-web"
+            SVC_MAP[web]="hallmgmt-student-web"
+            SVC_MAP[pay]="hallmgmt-pay-server"
 
-            HEALTHY=true
-            for svc in backend admin web; do
-              STATUS=$(docker inspect --format='{{.State.Health.Status}}' hallmgmt-$(echo $svc | sed 's/admin/admin-web/' | sed 's/web$/student-web/' | sed 's/backend/backend/') 2>/dev/null || echo "missing")
-              echo "  $svc: $STATUS"
-              if [ "$STATUS" != "healthy" ]; then
-                HEALTHY=false
+            HEALTHY="false"
+            for i in $(seq 1 30); do
+              echo "Health check attempt $i/30..."
+              HEALTHY="true"
+
+              for svc in backend admin web pay; do
+                CONTAINER="${SVC_MAP[$svc]}"
+                STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$CONTAINER" 2>/dev/null || echo "missing")
+                echo "  $svc ($CONTAINER): $STATUS"
+                if [ "$STATUS" != "healthy" ] && [ "$STATUS" != "running" ]; then
+                  HEALTHY="false"
+                fi
+              done
+
+              if [ "$HEALTHY" = "true" ]; then
+                break
               fi
+
+              sleep 5
             done
 
             if [ "$HEALTHY" = "false" ]; then
               echo "⚠️  Some services are not healthy yet. Checking logs..."
               docker compose ps
-              docker compose logs --tail=20 admin web backend
+              docker compose logs --tail=20 admin web backend pay
             fi
 
             echo "Deployment complete!"
