@@ -12,6 +12,7 @@ on:
       - backend/**
       - pay/**
       - nginx.conf
+      - nginx.ssl.conf
       - docker-compose.yml
       - .github/workflows/deploy.yml
   workflow_dispatch:
@@ -70,7 +71,7 @@ jobs:
           echo "backend=$(has_changed '^backend/')" >> "$GITHUB_OUTPUT"
           echo "migrate=$(has_changed '^backend/(drizzle/|src/db/|drizzle\.config\.ts$)')" >> "$GITHUB_OUTPUT"
           echo "pay=$(has_changed '^pay/')" >> "$GITHUB_OUTPUT"
-          echo "nginx=$(has_changed '^nginx\.conf$')" >> "$GITHUB_OUTPUT"
+          echo "nginx=$(has_changed '^(nginx\.conf|nginx\.ssl\.conf)$')" >> "$GITHUB_OUTPUT"
           echo "compose=$(has_changed '^docker-compose\.yml$')" >> "$GITHUB_OUTPUT"
 
       - name: Deploy over SSH
@@ -96,6 +97,14 @@ jobs:
             git fetch origin deploy
             git checkout deploy
             git reset --hard origin/deploy
+
+            # ── Dynamic SSL Injection ──
+            if [ -f /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem ] && [ -f nginx.ssl.conf ]; then
+              echo "✅ SSL certificates found. Applying SSL nginx config..."
+              cp nginx.ssl.conf nginx.conf
+            else
+              echo "⚠️ No SSL certificates found. Using HTTP-only nginx config..."
+            fi
 
             if [ "$CHANGED_WEB" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ]; then
               echo "Building web..."
@@ -140,6 +149,25 @@ jobs:
 
             docker image prune -f
             docker builder prune -f --keep-storage=2g
+
+            # ── Post-deploy health verification ──
+            echo "Waiting for services to become healthy..."
+            sleep 10
+
+            HEALTHY=true
+            for svc in backend admin web; do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' hallmgmt-$(echo $svc | sed 's/admin/admin-web/' | sed 's/web$/student-web/' | sed 's/backend/backend/') 2>/dev/null || echo "missing")
+              echo "  $svc: $STATUS"
+              if [ "$STATUS" != "healthy" ]; then
+                HEALTHY=false
+              fi
+            done
+
+            if [ "$HEALTHY" = "false" ]; then
+              echo "⚠️  Some services are not healthy yet. Checking logs..."
+              docker compose ps
+              docker compose logs --tail=20 admin web backend
+            fi
 
             echo "Deployment complete!"
 

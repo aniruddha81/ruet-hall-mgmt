@@ -74,6 +74,7 @@ git checkout deploy
 git reset --hard origin/deploy
 
 # 3. Build and start
+#    nginx.conf in the repo already contains SSL blocks — no manual patching needed.
 docker compose build
 docker compose up -d
 
@@ -84,116 +85,11 @@ docker compose exec mysql sh -lc \
   'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
 docker compose exec backend npm run db-all
 
-# 5. Re-apply SSL nginx.conf
-#    (git reset in step 2 wiped local changes to this file)
-cat > ~/ruet-hall-mgmt/nginx.conf <<'EOF'
-limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/m;
-
-server {
-  listen 80;
-  server_name app.aniruddha81.tech;
-
-  location /.well-known/acme-challenge/ {
-    root /var/www/certbot;
-  }
-
-  location / {
-    return 301 https://$host$request_uri;
-  }
-}
-
-server {
-  listen 443 ssl;
-  server_name app.aniruddha81.tech;
-
-  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
-
-  location / {
-    proxy_pass         http://web:3001;
-    proxy_http_version 1.1;
-    proxy_set_header   Upgrade $http_upgrade;
-    proxy_set_header   Connection "upgrade";
-    proxy_set_header   Host $host;
-    proxy_set_header   X-Real-IP $remote_addr;
-    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-  }
-}
-
-server {
-  listen 80;
-  server_name admin.aniruddha81.tech;
-
-  location /.well-known/acme-challenge/ {
-    root /var/www/certbot;
-  }
-
-  location / {
-    return 301 https://$host$request_uri;
-  }
-}
-
-server {
-  listen 443 ssl;
-  server_name admin.aniruddha81.tech;
-
-  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
-
-  location / {
-    proxy_pass         http://admin:4001;
-    proxy_http_version 1.1;
-    proxy_set_header   Upgrade $http_upgrade;
-    proxy_set_header   Connection "upgrade";
-    proxy_set_header   Host $host;
-    proxy_set_header   X-Real-IP $remote_addr;
-    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-  }
-}
-
-server {
-  listen 80;
-  server_name api.aniruddha81.tech;
-
-  location /.well-known/acme-challenge/ {
-    root /var/www/certbot;
-  }
-
-  location / {
-    return 301 https://$host$request_uri;
-  }
-}
-
-server {
-  listen 443 ssl;
-  server_name api.aniruddha81.tech;
-
-  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
-
-  location / {
-    limit_req          zone=api_limit burst=10 nodelay;
-    proxy_pass         http://backend:8000;
-    proxy_http_version 1.1;
-    proxy_set_header   Upgrade $http_upgrade;
-    proxy_set_header   Connection "upgrade";
-    proxy_set_header   Host $host;
-    proxy_set_header   X-Real-IP $remote_addr;
-    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-  }
-}
-EOF
-
-docker compose up -d --force-recreate nginx
+# 5. Verify all services are healthy
+docker compose ps
 ```
 
-Expected result: all services up, HTTPS working with the existing cert.
+Expected result: all services up and healthy, HTTPS working with the existing cert. No need to manually write `nginx.conf` — the SSL version is committed to the repo.
 
 ---
 
@@ -499,115 +395,18 @@ Expected pass:
 - `fullchain.pem` exists under `aniruddha81.tech`
 - Certificate includes all 3 domains in SAN list
 
-### 8.3 Replace nginx config with SSL blocks
+### 8.3 Apply the SSL nginx config
+
+Now that the certificates exist, copy the SSL configuration over the default HTTP-only one:
 
 ```bash
-cat > ~/ruet-hall-mgmt/nginx.conf <<'EOF'
-limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/m;
-
-server {
-  listen 80;
-  server_name app.aniruddha81.tech;
-
-  location /.well-known/acme-challenge/ {
-    root /var/www/certbot;
-  }
-
-  location / {
-    return 301 https://$host$request_uri;
-  }
-}
-
-server {
-  listen 443 ssl;
-  server_name app.aniruddha81.tech;
-
-  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
-
-  location / {
-    proxy_pass         http://web:3001;
-    proxy_http_version 1.1;
-    proxy_set_header   Upgrade $http_upgrade;
-    proxy_set_header   Connection "upgrade";
-    proxy_set_header   Host $host;
-    proxy_set_header   X-Real-IP $remote_addr;
-    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-  }
-}
-
-server {
-  listen 80;
-  server_name admin.aniruddha81.tech;
-
-  location /.well-known/acme-challenge/ {
-    root /var/www/certbot;
-  }
-
-  location / {
-    return 301 https://$host$request_uri;
-  }
-}
-
-server {
-  listen 443 ssl;
-  server_name admin.aniruddha81.tech;
-
-  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
-
-  location / {
-    proxy_pass         http://admin:4001;
-    proxy_http_version 1.1;
-    proxy_set_header   Upgrade $http_upgrade;
-    proxy_set_header   Connection "upgrade";
-    proxy_set_header   Host $host;
-    proxy_set_header   X-Real-IP $remote_addr;
-    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-  }
-}
-
-server {
-  listen 80;
-  server_name api.aniruddha81.tech;
-
-  location /.well-known/acme-challenge/ {
-    root /var/www/certbot;
-  }
-
-  location / {
-    return 301 https://$host$request_uri;
-  }
-}
-
-server {
-  listen 443 ssl;
-  server_name api.aniruddha81.tech;
-
-  ssl_certificate     /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/aniruddha81.tech/privkey.pem;
-
-  location / {
-    limit_req          zone=api_limit burst=10 nodelay;
-    proxy_pass         http://backend:8000;
-    proxy_http_version 1.1;
-    proxy_set_header   Upgrade $http_upgrade;
-    proxy_set_header   Connection "upgrade";
-    proxy_set_header   Host $host;
-    proxy_set_header   X-Real-IP $remote_addr;
-    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-  }
-}
-EOF
+cd ~/ruet-hall-mgmt
+cp nginx.ssl.conf nginx.conf
 ```
 
-### 8.4 Start nginx and validate logs
+*(Note: In the future, the GitHub Actions deployment workflow will do this automatically whenever it sees that the SSL certificates exist on the machine).*
+
+### 8.4 Restart nginx and validate logs
 
 ```bash
 docker compose up -d --force-recreate nginx
@@ -740,28 +539,69 @@ docker compose logs -f nginx
 
 If you disconnect SSH, stop the VM from Azure Portal, and later start it again:
 
-- Containers should auto-start if Docker daemon starts at boot and containers were not manually stopped before shutdown.
-- This runbook already enables Docker at boot (`sudo systemctl enable docker`) and services use `restart: unless-stopped`.
+- Docker daemon starts automatically at boot (`sudo systemctl enable docker` was set in step 1).
+- All services use `restart: unless-stopped`, so Docker will auto-restart every container that was running before shutdown.
+- The `nginx.conf` in the repo is the SSL version. No manual patching is needed — `git reset --hard` preserves HTTPS.
+- `depends_on: service_healthy` ensures correct startup order: mysql → backend → admin/web → nginx.
 
-Quick verification after VM boot:
+### Quick Verification After VM Boot
 
 ```bash
-sudo systemctl is-enabled docker
-sudo systemctl is-active docker
+sudo systemctl is-enabled docker   # expect: enabled
+sudo systemctl is-active docker    # expect: active
 cd ~/ruet-hall-mgmt
 docker compose ps
 ```
 
-If any service is not running:
+Expected: All 6 services show `Up` and `(healthy)` for mysql, backend, admin, web.
+
+If nginx shows `Up` but HTTPS doesn't work, check that certs still exist:
+
+```bash
+sudo ls /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem
+```
+
+### If Any Service Is Not Running
 
 ```bash
 cd ~/ruet-hall-mgmt
 docker compose up -d
 ```
 
-Important:
+This brings up any stopped/crashed containers while leaving healthy ones untouched.
+
+### Full Health Check Script (Run After Any Restart)
+
+```bash
+cd ~/ruet-hall-mgmt
+docker compose up -d
+
+# Wait for all health checks to pass
+echo "Waiting for services to become healthy..."
+for i in $(seq 1 30); do
+  UNHEALTHY=$(docker compose ps --format json | grep -c '"unhealthy"\|"starting"' || true)
+  if [ "$UNHEALTHY" -eq 0 ]; then
+    echo "✅ All services healthy!"
+    break
+  fi
+  echo "  Attempt $i/30 — $UNHEALTHY service(s) still starting..."
+  sleep 5
+done
+
+docker compose ps
+
+# Quick HTTPS verification
+curl -sI --resolve app.aniruddha81.tech:443:127.0.0.1 https://app.aniruddha81.tech | head -1
+curl -sI --resolve admin.aniruddha81.tech:443:127.0.0.1 https://admin.aniruddha81.tech | head -1
+curl -sI --resolve api.aniruddha81.tech:443:127.0.0.1 https://api.aniruddha81.tech | head -1
+```
+
+Expected: HTTP/1.1 200/301/307 responses for all three.
+
+### Important Notes
 
 - If you had manually run `docker compose stop ...` before shutting down the VM, those stopped containers may stay stopped after reboot. Use `docker compose up -d` to start them.
+- The health check ordering guarantees nginx won't start proxying until admin/web/backend are actually ready (no more 502s).
 
 ## 12. MySQL Backup to Private GitHub Repo
 
