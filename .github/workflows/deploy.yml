@@ -99,9 +99,11 @@ jobs:
             git reset --hard origin/deploy
 
             # ── Dynamic SSL Injection ──
+            SSL_APPLIED="false"
             if [ -f /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem ] && [ -f nginx.ssl.conf ]; then
               echo "✅ SSL certificates found. Applying SSL nginx config..."
               cp nginx.ssl.conf nginx.conf
+              SSL_APPLIED="true"
             else
               echo "⚠️ No SSL certificates found. Using HTTP-only nginx config..."
             fi
@@ -133,7 +135,7 @@ jobs:
 
             # Nginx uses a bind-mounted config file — Compose cannot detect
             # that the file content changed, so force-recreate it explicitly.
-            if [ "$CHANGED_NGINX" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ]; then
+            if [ "$CHANGED_NGINX" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ] || [ "$SSL_APPLIED" = "true" ]; then
               echo "Recreating nginx with updated config..."
               docker compose up -d --force-recreate nginx
             fi
