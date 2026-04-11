@@ -22,9 +22,42 @@ Use this path if you had a VM issue and need to redeploy **without** wiping SSL 
 
 ```bash
 # 1. Prep VM tools (only if wiped)
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y git docker-compose-plugin
+sudo apt remove -y $(dpkg --get-selections docker.io docker-compose docker-compose-v2 docker-doc podman-docker containerd runc | cut -f1)
+
+# Add Docker's official GPG key:
+sudo apt update
+sudo apt install -y ca-certificates curl git
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+sudo apt update
+
+sudo apt upgrade -y
+
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+sudo systemctl status docker
+
+sudo systemctl start docker
+
 sudo systemctl enable docker
+
+
+sudo usermod -aG docker $USER
+
+
+newgrp docker
 
 # 2. Pull latest code (repo already exists on VM)
 cd ~/ruet-hall-mgmt
@@ -41,10 +74,7 @@ git checkout deploy
 git reset --hard origin/deploy
 
 # 3. Build and start
-docker compose build web
-docker compose build admin
-docker compose build backend
-docker compose build pay
+docker compose build
 docker compose up -d
 
 # 4. Init DB (only if data was lost)
@@ -195,9 +225,42 @@ Expected pass:
 ## 1. Prepare VM
 
 ```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y git docker-compose-plugin
+sudo apt remove -y $(dpkg --get-selections docker.io docker-compose docker-compose-v2 docker-doc podman-docker containerd runc | cut -f1)
+
+# Add Docker's official GPG key:
+sudo apt update
+sudo apt install -y ca-certificates curl git
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+sudo apt update
+
+sudo apt upgrade -y
+
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+sudo systemctl status docker
+
+sudo systemctl start docker
+
 sudo systemctl enable docker
+
+
+sudo usermod -aG docker $USER
+
+
+newgrp docker
 
 # Install certbot via snap (auto-renewal timer included)
 sudo apt remove certbot -y 2>/dev/null || true
@@ -315,10 +378,7 @@ On small VM, build frontends one at a time to avoid RAM spike:
 
 ```bash
 cd ~/ruet-hall-mgmt
-docker compose build web
-docker compose build admin
-docker compose build backend
-docker compose build pay
+docker compose build
 ```
 
 Start:
@@ -646,10 +706,7 @@ Update deployment:
 ```bash
 cd ~/ruet-hall-mgmt
 git pull
-docker compose build web
-docker compose build admin
-docker compose build backend
-docker compose build pay
+docker compose build
 docker compose up -d
 docker image prune -f
 docker builder prune -f --keep-storage=2g
