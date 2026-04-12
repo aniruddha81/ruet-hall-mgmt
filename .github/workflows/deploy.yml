@@ -101,8 +101,20 @@ jobs:
 
             CERT_FULLCHAIN="/etc/letsencrypt/live/aniruddha81.tech/fullchain.pem"
             CERT_PRIVKEY="/etc/letsencrypt/live/aniruddha81.tech/privkey.pem"
+            HAS_SSL_CERTS="false"
 
             if [ -f "$CERT_FULLCHAIN" ] && [ -f "$CERT_PRIVKEY" ]; then
+              HAS_SSL_CERTS="true"
+            else
+              for cert_dir in /etc/letsencrypt/live/*; do
+                if [ -d "$cert_dir" ] && [ -f "$cert_dir/fullchain.pem" ] && [ -f "$cert_dir/privkey.pem" ]; then
+                  HAS_SSL_CERTS="true"
+                  break
+                fi
+              done
+            fi
+
+            if [ "$HAS_SSL_CERTS" = "true" ]; then
               echo "SSL certificate found. Activating nginx.ssl.conf"
               cp nginx.ssl.conf nginx.conf
             else
