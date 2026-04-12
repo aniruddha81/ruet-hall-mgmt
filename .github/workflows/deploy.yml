@@ -12,6 +12,8 @@ on:
       - backend/**
       - pay/**
       - nginx.conf
+      - nginx.http.conf
+      - nginx.ssl.conf
       - docker-compose.yml
       - .github/workflows/deploy.yml
   workflow_dispatch:
@@ -70,7 +72,7 @@ jobs:
           echo "backend=$(has_changed '^backend/')" >> "$GITHUB_OUTPUT"
           echo "migrate=$(has_changed '^backend/(drizzle/|src/db/|drizzle\.config\.ts$)')" >> "$GITHUB_OUTPUT"
           echo "pay=$(has_changed '^pay/')" >> "$GITHUB_OUTPUT"
-          echo "nginx=$(has_changed '^nginx\.conf$')" >> "$GITHUB_OUTPUT"
+          echo "nginx=$(has_changed '^nginx\.(conf|http\.conf|ssl\.conf)$')" >> "$GITHUB_OUTPUT"
           echo "compose=$(has_changed '^docker-compose\.yml$')" >> "$GITHUB_OUTPUT"
 
       - name: Deploy over SSH
@@ -97,6 +99,17 @@ jobs:
             git checkout deploy
             git reset --hard origin/deploy
 
+            CERT_FULLCHAIN="/etc/letsencrypt/live/aniruddha81.tech/fullchain.pem"
+            CERT_PRIVKEY="/etc/letsencrypt/live/aniruddha81.tech/privkey.pem"
+
+            if [ -f "$CERT_FULLCHAIN" ] && [ -f "$CERT_PRIVKEY" ]; then
+              echo "SSL certificate found. Activating nginx.ssl.conf"
+              cp nginx.ssl.conf nginx.conf
+            else
+              echo "SSL certificate not found. Activating nginx.http.conf"
+              cp nginx.http.conf nginx.conf
+            fi
+
             if [ "$CHANGED_WEB" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ]; then
               echo "Building web..."
               docker compose build web
@@ -122,12 +135,10 @@ jobs:
             # rebuilt so it is left running untouched.
             docker compose up -d
 
-            # Nginx uses a bind-mounted config file — Compose cannot detect
-            # that the file content changed, so force-recreate it explicitly.
-            if [ "$CHANGED_NGINX" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ]; then
-              echo "Recreating nginx with updated config..."
-              docker compose up -d --force-recreate nginx
-            fi
+            # nginx.conf is bind-mounted and selected dynamically above,
+            # so always recreate nginx to apply the active config.
+            echo "Recreating nginx with active config..."
+            docker compose up -d --force-recreate nginx
 
             # Run backend migrations only when migration/schema files changed.
             if [ "$CHANGED_MIGRATE" = "true" ]; then

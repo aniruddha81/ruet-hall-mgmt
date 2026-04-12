@@ -246,7 +246,13 @@ Expected pass:
 
 ## 4. Ensure HTTP Nginx Config First
 
-Before SSL, keep `nginx.conf` in HTTP-only mode (listen 80 only). It should already contain `location /.well-known/acme-challenge/` blocks for certbot webroot validation.
+Before SSL, activate the HTTP bootstrap config (listen 80 only). This allows first-time browser access over HTTP and certbot challenge validation.
+
+```bash
+cd ~/ruet-hall-mgmt
+cp nginx.http.conf nginx.conf
+docker compose up -d --force-recreate nginx
+```
 
 Quick check:
 
@@ -397,19 +403,19 @@ Expected pass:
 
 ### 8.3 Apply the SSL nginx config
 
-Now that the certificates exist, copy the SSL configuration over the default HTTP-only one:
+Now that certificates exist, switch to the SSL nginx config.
 
 ```bash
 cd ~/ruet-hall-mgmt
 cp nginx.ssl.conf nginx.conf
+docker compose up -d --force-recreate nginx
 ```
 
-*(Note: In the future, the GitHub Actions deployment workflow will do this automatically whenever it sees that the SSL certificates exist on the machine).*
+*(After this, normal deploy workflow will keep things safe: it auto-selects `nginx.ssl.conf` when cert files exist, otherwise `nginx.http.conf`.)*
 
 ### 8.4 Restart nginx and validate logs
 
 ```bash
-docker compose up -d --force-recreate nginx
 docker compose logs nginx --tail=100
 ```
 
