@@ -8,7 +8,7 @@ import ApiResponse from "../../utils/ApiResponse.ts";
 import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
 
 /**
- * POST /api/v1/profile/upload-image
+ * POST /api/profile/upload-image
  * Upload user avatar image to Cloudinary
  */
 export const uploadImage = async (req: Request, res: Response) => {

@@ -13,7 +13,7 @@ RUN npm ci --include=dev && npm cache clean --force
 COPY drizzle.config.ts ./
 COPY src ./src
 
-RUN mkdir -p public
+RUN mkdir -p public/temp
 
 EXPOSE 8000
 
