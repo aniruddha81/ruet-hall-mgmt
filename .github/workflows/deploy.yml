@@ -93,26 +93,23 @@ jobs:
           envs: CHANGED_WEB,CHANGED_ADMIN,CHANGED_BACKEND,CHANGED_PAY,CHANGED_MIGRATE,CHANGED_NGINX,CHANGED_COMPOSE
           script: |
             set -euo pipefail
-            cd ~/ruet-hall-mgmt
 
+            # 1) Sync code on VM
+            cd ~/ruet-hall-mgmt
             git fetch origin deploy
             git checkout deploy
             git reset --hard origin/deploy
 
-            CERT_FULLCHAIN="/etc/letsencrypt/live/aniruddha81.tech/fullchain.pem"
-            CERT_PRIVKEY="/etc/letsencrypt/live/aniruddha81.tech/privkey.pem"
+            # 2) Choose nginx mode based on certbot cert availability.
+            # Rule: if any certbot live cert pair exists -> SSL mode, otherwise HTTP mode.
             HAS_SSL_CERTS="false"
-
-            if [ -f "$CERT_FULLCHAIN" ] && [ -f "$CERT_PRIVKEY" ]; then
-              HAS_SSL_CERTS="true"
-            else
-              for cert_dir in /etc/letsencrypt/live/*; do
-                if [ -d "$cert_dir" ] && [ -f "$cert_dir/fullchain.pem" ] && [ -f "$cert_dir/privkey.pem" ]; then
-                  HAS_SSL_CERTS="true"
-                  break
-                fi
-              done
-            fi
+            for cert_dir in /etc/letsencrypt/live/*; do
+              [ -d "$cert_dir" ] || continue
+              if [ -L "$cert_dir/fullchain.pem" ] && [ -L "$cert_dir/privkey.pem" ]; then
+                HAS_SSL_CERTS="true"
+                break
+              fi
+            done
 
             if [ "$HAS_SSL_CERTS" = "true" ]; then
               echo "SSL certificate found. Activating nginx.ssl.conf"
@@ -122,6 +119,7 @@ jobs:
               cp nginx.http.conf nginx.conf
             fi
 
+            # 3) Build only changed services (or everything relevant when compose changes)
             if [ "$CHANGED_WEB" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ]; then
               echo "Building web..."
               docker compose build web
@@ -142,17 +140,12 @@ jobs:
               docker compose build pay
             fi
 
-            # Bring up all services. Compose automatically recreates containers
-            # whose image digest changed (i.e. just rebuilt). MySQL is not
-            # rebuilt so it is left running untouched.
+            # 4) Bring up services and always recreate nginx to pick up active nginx.conf
             docker compose up -d
-
-            # nginx.conf is bind-mounted and selected dynamically above,
-            # so always recreate nginx to apply the active config.
             echo "Recreating nginx with active config..."
             docker compose up -d --force-recreate nginx
 
-            # Run backend migrations only when migration/schema files changed.
+            # 5) Run backend migrations only when schema-related files changed
             if [ "$CHANGED_MIGRATE" = "true" ]; then
               echo "Ensuring database exists..."
               docker compose exec -T mysql sh -lc \
@@ -161,10 +154,11 @@ jobs:
               docker compose exec -T backend npm run db
             fi
 
+            # 6) Cleanup build cache and dangling images
             docker image prune -f
             docker builder prune -f --keep-storage=2g
 
-            # ── Post-deploy health verification ──
+            # 7) Post-deploy health verification
             declare -A SVC_MAP
             SVC_MAP[backend]="hallmgmt-backend"
             SVC_MAP[admin]="hallmgmt-admin-web"
