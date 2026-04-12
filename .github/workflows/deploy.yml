@@ -101,15 +101,19 @@ jobs:
             git reset --hard origin/deploy
 
             # 2) Choose nginx mode based on certbot cert availability.
-            # Rule: if any certbot live cert pair exists -> SSL mode, otherwise HTTP mode.
+            # /etc/letsencrypt/live is root-owned (often 700), so use sudo for detection.
             HAS_SSL_CERTS="false"
-            for cert_dir in /etc/letsencrypt/live/*; do
-              [ -d "$cert_dir" ] || continue
-              if [ -L "$cert_dir/fullchain.pem" ] && [ -L "$cert_dir/privkey.pem" ]; then
-                HAS_SSL_CERTS="true"
-                break
-              fi
-            done
+            if sudo -n test -f /etc/letsencrypt/live/aniruddha81.tech/fullchain.pem && \
+               sudo -n test -f /etc/letsencrypt/live/aniruddha81.tech/privkey.pem; then
+              HAS_SSL_CERTS="true"
+            else
+              while IFS= read -r cert_dir; do
+                if sudo -n test -f "$cert_dir/fullchain.pem" && sudo -n test -f "$cert_dir/privkey.pem"; then
+                  HAS_SSL_CERTS="true"
+                  break
+                fi
+              done < <(sudo -n find /etc/letsencrypt/live -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true)
+            fi
 
             if [ "$HAS_SSL_CERTS" = "true" ]; then
               echo "SSL certificate found. Activating nginx.ssl.conf"
