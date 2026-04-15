@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   allocateSeat,
@@ -27,6 +28,7 @@ import { useEffect, useState } from "react";
 type ReviewableStatus = Extract<SeatApplicationStatus, "APPROVED" | "REJECTED">;
 
 export default function AdmissionsManagement() {
+  const { user } = useAuth();
   const [applications, setApplications] = useState<SeatApplication[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,8 +47,6 @@ export default function AdmissionsManagement() {
     {},
   );
 
-  const roomMap = new Map(rooms.map((room) => [room.id, room]));
-
   const loadApplications = async () => {
     const params: { status?: SeatApplicationStatus } = {};
     if (statusFilter) {
@@ -58,7 +58,14 @@ export default function AdmissionsManagement() {
   };
 
   const loadInventory = async () => {
-    const [roomsRes] = await Promise.allSettled([getRooms()]);
+    if (!user?.hall) {
+      setRooms([]);
+      return;
+    }
+
+    const [roomsRes] = await Promise.allSettled([
+      getRooms({ hall: user.hall }),
+    ]);
     if (roomsRes.status === "fulfilled") {
       setRooms(roomsRes.value.data?.rooms ?? []);
     }
@@ -86,7 +93,9 @@ export default function AdmissionsManagement() {
 
         const [applicationsRes, roomsRes] = await Promise.allSettled([
           getApplications(params),
-          getRooms(),
+          user?.hall
+            ? getRooms({ hall: user.hall })
+            : Promise.resolve({ data: { rooms: [] } }),
         ]);
 
         if (applicationsRes.status === "fulfilled") {
@@ -103,7 +112,7 @@ export default function AdmissionsManagement() {
     };
 
     void run();
-  }, [statusFilter]);
+  }, [statusFilter, user?.hall]);
 
   const handleReview = async (
     applicationId: string,

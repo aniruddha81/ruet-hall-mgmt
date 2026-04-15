@@ -110,9 +110,11 @@ export const getMyStatus = async (req: Request, res: Response) => {
     const [allocation] = await db
       .select({
         roomId: seatAllocations.roomId,
+        roomNo: rooms.roomNumber,
         allocatedAt: seatAllocations.allocatedAt,
       })
       .from(seatAllocations)
+      .innerJoin(rooms, eq(seatAllocations.roomId, rooms.id))
       .where(eq(seatAllocations.studentId, studentId))
       .limit(1);
 
@@ -187,10 +189,12 @@ export const getApplications = async (req: Request, res: Response) => {
         const [allocation] = await db
           .select({
             roomId: seatAllocations.roomId,
+            roomNo: rooms.roomNumber,
             allocatedAt: seatAllocations.allocatedAt,
             allocatedByName: hallAdmins.name,
           })
           .from(seatAllocations)
+          .innerJoin(rooms, eq(seatAllocations.roomId, rooms.id))
           .innerJoin(hallAdmins, eq(seatAllocations.allocatedBy, hallAdmins.id))
           .where(eq(seatAllocations.studentId, application.studentId))
           .limit(1);

@@ -252,10 +252,10 @@ export default function AdmissionPage() {
                             <CardContent className="grid gap-4 md:grid-cols-2">
                               <div>
                                 <p className="text-sm text-emerald-600 dark:text-emerald-300">
-                                  Room ID
+                                  Room No
                                 </p>
                                 <p className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-                                  {application.roomAllocation.roomId}
+                                  {application.roomAllocation.roomNo}
                                 </p>
                               </div>
                               <div>

@@ -220,6 +220,7 @@ export interface SeatApplication {
   canAllocate?: boolean;
   roomAllocation?: {
     roomId: string;
+    roomNo: number;
     allocatedAt: string;
     allocatedByName: string;
   } | null;
