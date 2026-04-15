@@ -11,13 +11,18 @@ import {
 } from "../types/enums.ts";
 import { db } from "./index.ts";
 import {
+  academicSessions,
   damageReports,
   expenses,
   hallAdmins,
   halls as hallsTable,
+  mealItems,
+  mealMenuItems,
   mealMenus,
   mealPayments,
   mealTokens,
+  notificationReads,
+  notifications,
   payments,
   refreshTokens,
   rooms,
@@ -101,10 +106,14 @@ const pickDepartment = (index: number): AcademicDepartment =>
   );
 
 async function clearDatabase() {
+  await db.delete(notificationReads);
+  await db.delete(notifications);
   await db.delete(refreshTokens);
+  await db.delete(mealMenuItems);
   await db.delete(mealTokens);
   await db.delete(mealPayments);
   await db.delete(mealMenus);
+  await db.delete(mealItems);
   await db.delete(seatAllocations);
   await db.delete(seatApplications);
   await db.delete(payments);
@@ -113,6 +122,8 @@ async function clearDatabase() {
   await db.delete(damageReports);
   await db.delete(uniStudents); // must be before rooms (room_id FK)
   await db.delete(rooms);
+  await db.delete(academicSessions);
+  await db.update(hallAdmins).set({ reportingToId: null });
   await db.delete(hallAdmins); // must be before halls if hall FK exists
   await db.delete(hallsTable);
 }
@@ -212,6 +223,28 @@ async function seed() {
       hallAdminStatus: "REJECTED",
       isActive: false,
       avatarUrl: null,
+    },
+  ]);
+
+  // Signup session options created by admins (non-dining management feature)
+  await db.insert(academicSessions).values([
+    {
+      id: randomUUID(),
+      label: DEFAULT_SESSION,
+      isActive: true,
+      createdByAdminId: ziaProvostId,
+    },
+    {
+      id: randomUUID(),
+      label: "2023-2024",
+      isActive: true,
+      createdByAdminId: selimProvostId,
+    },
+    {
+      id: randomUUID(),
+      label: "2022-2023",
+      isActive: false,
+      createdByAdminId: ziaProvostId,
     },
   ]);
 
@@ -515,6 +548,57 @@ async function seed() {
   });
   await db.insert(mealMenus).values(menusData);
 
+  const mealItemsData = [
+    "Rice",
+    "Dal",
+    "Vegetable",
+    "Chicken Curry",
+    "Beef Bhuna",
+    "Salad",
+    "Polao",
+    "Dessert",
+  ].map((name, index) => {
+    const fallbackAdminId = must(adminsData[0], "Missing fallback admin").id;
+    const diningAdminId =
+      adminsData.find(
+        (admin) =>
+          admin.designation === "DINING_MANAGER" ||
+          admin.designation === "ASST_DINING"
+      )?.id ?? fallbackAdminId;
+
+    return {
+      id: randomUUID(),
+      name,
+      isActive: index === 7 ? 0 : 1,
+      createdBy: diningAdminId,
+      updatedBy: diningAdminId,
+    };
+  });
+
+  await db.insert(mealItems).values(mealItemsData);
+
+  const mealItemIdByName = Object.fromEntries(
+    mealItemsData.map((item) => [item.name, item.id])
+  ) as Record<string, string>;
+
+  const mealMenuItemsData = menusData.flatMap((menu) => {
+    const itemNames =
+      menu.mealType === "LUNCH"
+        ? ["Rice", "Chicken Curry", "Dal", "Vegetable", "Salad"]
+        : ["Polao", "Beef Bhuna", "Dal", "Dessert"];
+
+    return itemNames.map((itemName) => ({
+      id: randomUUID(),
+      menuId: menu.id,
+      mealItemId: must(
+        mealItemIdByName[itemName],
+        `Missing meal item mapping for ${itemName}`
+      ),
+    }));
+  });
+
+  await db.insert(mealMenuItems).values(mealMenuItemsData);
+
   const lunchMenuByHall = Object.fromEntries(
     HALLS.map((hall) => [
       hall,
@@ -659,6 +743,56 @@ async function seed() {
       ip: "127.0.0.1",
       userAgent: "Seed Script Student Session",
       expiresAt: addDays(today, 7),
+    },
+  ]);
+
+  const firstAdmin = must(
+    adminsData[0],
+    "Missing first admin for notifications"
+  );
+  const secondAdmin = must(
+    adminsData[1],
+    "Missing second admin for notifications"
+  );
+
+  const notificationsData = [
+    {
+      id: randomUUID(),
+      title: "Seat Application Deadline",
+      message: "Submit your hall seat application before Friday 5 PM.",
+      targetAudience: "STUDENT" as const,
+      createdByAdminId: firstAdmin.id,
+    },
+    {
+      id: randomUUID(),
+      title: "Dining Token Update",
+      message: "Tomorrow lunch token window closes at 10 PM tonight.",
+      targetAudience: "STUDENT" as const,
+      createdByAdminId: secondAdmin.id,
+    },
+    {
+      id: randomUUID(),
+      title: "Admin Coordination Meeting",
+      message: "All section officers must join the monthly coordination call.",
+      targetAudience: "ADMIN" as const,
+      createdByAdminId: firstAdmin.id,
+    },
+  ];
+
+  await db.insert(notifications).values(notificationsData);
+
+  const firstNotification = must(
+    notificationsData[0],
+    "Missing first notification"
+  );
+
+  await db.insert(notificationReads).values([
+    {
+      id: randomUUID(),
+      notificationId: firstNotification.id,
+      readerId: studentUser.id,
+      readerRole: "STUDENT",
+      readAt: today,
     },
   ]);
 
