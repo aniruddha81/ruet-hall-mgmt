@@ -3,6 +3,7 @@ import {
   authenticateToken,
   authorizeRoles,
 } from "../../middlewares/auth.middleware.ts";
+import { upload } from "../../middlewares/multer.middleware.ts";
 import {
   bookMealTokens,
   cancelMealToken,
@@ -64,6 +65,7 @@ diningRouter.post(
   "/book-tokens",
   authenticateToken,
   authorizeRoles("STUDENT"),
+  upload.single("receiptImage"),
   validateRequest(bookMealTokensSchema),
   bookMealTokens
 );

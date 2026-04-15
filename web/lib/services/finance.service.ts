@@ -2,11 +2,11 @@
 import type {
   ApiResponse,
   DuePaymentReceipt,
+  FinancePaymentMethod,
   MealPayment,
   Payment,
   StudentDue,
   StudentLedger,
-  FinancePaymentMethod,
 } from "@/lib/types";
 
 type RawStudentDue = {
@@ -28,6 +28,9 @@ type RawPayment = {
   dueId: string | null;
   amount: number;
   method: Payment["method"];
+  bankReceiptUrl?: string | null;
+  receiptVerifiedAt?: string | null;
+  receiptVerifiedBy?: string | null;
   createdAt: string;
 };
 
@@ -53,6 +56,9 @@ function mapPayment(raw: RawPayment): Payment {
     dueId: raw.dueId,
     amount: raw.amount,
     method: raw.method,
+    bankReceiptUrl: raw.bankReceiptUrl,
+    receiptVerifiedAt: raw.receiptVerifiedAt,
+    receiptVerifiedBy: raw.receiptVerifiedBy,
     createdAt: raw.createdAt,
   };
 }
@@ -76,11 +82,33 @@ export async function getMyDues() {
 
 export async function payMyDue(
   dueId: string,
-  data: { method: FinancePaymentMethod },
+  data: { method: FinancePaymentMethod; receiptImage?: File | null },
 ) {
+  if (data.method === "BANK") {
+    if (!data.receiptImage) {
+      throw new Error("Bank receipt image is required for BANK payments");
+    }
+
+    const formData = new FormData();
+    formData.append("method", data.method);
+    formData.append("receiptImage", data.receiptImage);
+
+    const res = await api.post<ApiResponse<DuePaymentReceipt>>(
+      `/finance/my-dues/pay/${dueId}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return res.data;
+  }
+
   const res = await api.post<ApiResponse<DuePaymentReceipt>>(
     `/finance/my-dues/pay/${dueId}`,
-    data,
+    { method: data.method },
   );
   return res.data;
 }

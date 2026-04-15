@@ -174,10 +174,22 @@ export async function createMealPayment(
 export async function createDuePayment(
   params: CreateDuePaymentParams
 ): Promise<DuePaymentResult> {
-  const { dueId, studentId, hall, amount, paymentMethod, dueType } = params;
+  const {
+    dueId,
+    studentId,
+    hall,
+    amount,
+    paymentMethod,
+    dueType,
+    bankReceiptUrl,
+  } = params;
 
   if (amount <= 0) {
     throw new ApiError(400, "Payment amount must be greater than 0");
+  }
+
+  if (paymentMethod === "BANK" && !bankReceiptUrl) {
+    throw new ApiError(400, "Bank receipt image is required for BANK payments");
   }
 
   const paymentId = randomUUID();
@@ -206,6 +218,7 @@ export async function createDuePayment(
       dueId,
       amount,
       method: paymentMethod,
+      bankReceiptUrl: bankReceiptUrl ?? null,
     });
   });
 
@@ -263,6 +276,8 @@ export async function createDuePayment(
     status: "PAID",
     transactionId,
     paidAt,
+    bankReceiptUrl: bankReceiptUrl ?? null,
+    receiptVerifiedAt: null,
   };
 }
 

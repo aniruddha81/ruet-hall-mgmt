@@ -136,6 +136,9 @@ meal_payments [icon: credit-card, color: amber] {
   total_quantity tinyint
   payment_method enum
   transaction_id varchar
+  bank_receipt_url text
+  receipt_verified_at datetime
+  receipt_verified_by varchar
   payment_date datetime
   refunded_at datetime
   refund_amount int
@@ -163,6 +166,9 @@ payments [color: red, icon: dollar-sign] {
   due_id varchar
   amount int
   method enum
+  bank_receipt_url text
+  receipt_verified_at datetime
+  receipt_verified_by varchar
   created_at datetime
 }
 expenses [icon: trending-down, color: red] {
@@ -225,6 +231,7 @@ meal_menus.id < meal_tokens.menu_id
 meal_payments.id < meal_tokens.payment_id
 meal_tokens.hall < halls.name
 meal_payments.student_id > uni_students.id
+meal_payments.receipt_verified_by > hall_admins.id
 
 // Finance & Damage Connections
 uni_students.id < student_dues.student_id
@@ -236,6 +243,7 @@ student_dues.hall < halls.name
 payments.student_id > uni_students.id
 halls.name < payments.hall
 payments.due_id - student_dues.id
+payments.receipt_verified_by > hall_admins.id
 halls.name < damage_reports.hall
 hall_admins.id < damage_reports.verified_by
 hall_admins.id < damage_reports.fixed_by

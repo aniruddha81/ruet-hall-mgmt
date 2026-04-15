@@ -20,16 +20,23 @@ import {
 } from "../../db/models/index.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
+import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
 import { toDateString } from "../../utils/helpers.ts";
 import {
-  requestPayment,
   getStudentInfo,
+  requestPayment,
   sendReceiptEmail,
 } from "../finance/finance.service.ts";
 import {
   requireAdminAccount,
   requireStudentAccount,
 } from "./dining.service.ts";
+
+const isSupportedReceiptFile = (mimetype?: string) =>
+  Boolean(
+    mimetype &&
+    (mimetype.startsWith("image/") || mimetype === "application/pdf")
+  );
 
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
 
@@ -65,8 +72,35 @@ export const bookMealTokens = async (req: Request, res: Response) => {
   const student = requireStudentAccount(req);
   const { menuId, quantity, paymentMethod } = req.body;
 
+  let bankReceiptUrl: string | null = null;
+  if (paymentMethod === "BANK") {
+    const receiptFile = req.file;
+    if (!receiptFile?.path) {
+      throw new ApiError(
+        400,
+        "Bank receipt file (PDF/Image) is required for BANK payments."
+      );
+    }
+
+    if (!isSupportedReceiptFile(receiptFile.mimetype)) {
+      throw new ApiError(
+        400,
+        "Only PDF or image files are allowed for bank receipt upload."
+      );
+    }
+
+    const uploadedReceipt = await uploadOnCloudinary(receiptFile.path);
+    if (!uploadedReceipt?.url) {
+      throw new ApiError(500, "Failed to upload bank receipt file.");
+    }
+    bankReceiptUrl = uploadedReceipt.url;
+  }
+
   if (quantity <= 0 || quantity > 20) {
-    throw new ApiError(400, "You can only book between 1 and 20 tokens at a time.");
+    throw new ApiError(
+      400,
+      "You can only book between 1 and 20 tokens at a time."
+    );
   }
 
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
@@ -90,7 +124,10 @@ export const bookMealTokens = async (req: Request, res: Response) => {
 
     const alreadyBooked = Number(existingTokensResult?.total || 0);
     if (alreadyBooked + quantity > 20) {
-      throw new ApiError(400, `You can only book up to 20 tokens per menu. You already have ${alreadyBooked} tokens booked.`);
+      throw new ApiError(
+        400,
+        `You can only book up to 20 tokens per menu. You already have ${alreadyBooked} tokens booked.`
+      );
     }
 
     const [menu] = await trx
@@ -133,6 +170,7 @@ export const bookMealTokens = async (req: Request, res: Response) => {
       amount: totalAmount,
       totalQuantity: quantity,
       paymentMethod,
+      bankReceiptUrl,
     });
 
     // Insert token record
@@ -214,6 +252,8 @@ export const bookMealTokens = async (req: Request, res: Response) => {
         mealDate: reservation.mealDate,
         transactionId,
         paymentMethod,
+        bankReceiptUrl,
+        receiptVerifiedAt: null,
       },
       "Meal tokens booked successfully"
     )
@@ -425,6 +465,9 @@ export const getMyTokenById = async (req: Request, res: Response) => {
       paymentId: mealPayments.id,
       paymentMethod: mealPayments.paymentMethod,
       transactionId: mealPayments.transactionId,
+      bankReceiptUrl: mealPayments.bankReceiptUrl,
+      receiptVerifiedAt: mealPayments.receiptVerifiedAt,
+      receiptVerifiedBy: mealPayments.receiptVerifiedBy,
       paymentDate: mealPayments.paymentDate,
       refundAmount: mealPayments.refundAmount,
       refundedAt: mealPayments.refundedAt,
@@ -707,6 +750,8 @@ export const getAllBookingsForMenu = async (req: Request, res: Response) => {
       bookingTime: mealTokens.bookingTime,
       cancelledAt: mealTokens.cancelledAt,
       paymentMethod: mealPayments.paymentMethod,
+      bankReceiptUrl: mealPayments.bankReceiptUrl,
+      receiptVerifiedAt: mealPayments.receiptVerifiedAt,
     })
     .from(mealTokens)
     .innerJoin(uniStudents, eq(mealTokens.studentId, uniStudents.id))

@@ -30,6 +30,9 @@ type RawPayment = {
   dueId: string | null;
   amount: number;
   method: Payment["method"];
+  bankReceiptUrl?: string | null;
+  receiptVerifiedAt?: string | null;
+  receiptVerifiedBy?: string | null;
   createdAt: string;
 };
 
@@ -55,6 +58,9 @@ function mapPayment(raw: RawPayment): Payment {
     dueId: raw.dueId,
     amount: raw.amount,
     method: raw.method,
+    bankReceiptUrl: raw.bankReceiptUrl,
+    receiptVerifiedAt: raw.receiptVerifiedAt,
+    receiptVerifiedBy: raw.receiptVerifiedBy,
     createdAt: raw.createdAt,
   };
 }
@@ -82,11 +88,33 @@ export async function createDue(data: {
 
 export async function payDue(
   id: string,
-  data: { method: FinancePaymentMethod },
+  data: { method: FinancePaymentMethod; receiptImage?: File | null },
 ) {
+  if (data.method === "BANK") {
+    if (!data.receiptImage) {
+      throw new Error("Bank receipt image is required for BANK payments");
+    }
+
+    const formData = new FormData();
+    formData.append("method", data.method);
+    formData.append("receiptImage", data.receiptImage);
+
+    const res = await api.patch<ApiResponse<{ paymentId: string }>>(
+      `/finance/dues/pay/${id}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return res.data;
+  }
+
   const res = await api.patch<ApiResponse<{ paymentId: string }>>(
     `/finance/dues/pay/${id}`,
-    data,
+    { method: data.method },
   );
   return res.data;
 }
@@ -162,5 +190,27 @@ export async function getMealPaymentById(id: string) {
   const res = await api.get<ApiResponse<MealPayment>>(
     `/finance/meal-payment/${id}`,
   );
+  return res.data;
+}
+
+export async function verifyPaymentReceipt(id: string) {
+  const res = await api.patch<
+    ApiResponse<{
+      id: string;
+      receiptVerifiedAt: string;
+      receiptVerifiedBy: string;
+    }>
+  >(`/finance/payments/${id}/verify-receipt`);
+  return res.data;
+}
+
+export async function verifyMealPaymentReceipt(id: string) {
+  const res = await api.patch<
+    ApiResponse<{
+      id: string;
+      receiptVerifiedAt: string;
+      receiptVerifiedBy: string;
+    }>
+  >(`/finance/meal-payment/${id}/verify-receipt`);
   return res.data;
 }

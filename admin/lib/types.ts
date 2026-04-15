@@ -178,6 +178,9 @@ export interface MealPayment {
   totalQuantity: number;
   paymentMethod: PaymentMethod;
   transactionId: string;
+  bankReceiptUrl?: string | null;
+  receiptVerifiedAt?: string | null;
+  receiptVerifiedBy?: string | null;
   paymentDate: string;
   refundedAt: string | null;
   refundAmount: number | null;
@@ -275,6 +278,9 @@ export interface Payment {
   dueId: string | null;
   amount: number;
   method: FinancePaymentMethod;
+  bankReceiptUrl?: string | null;
+  receiptVerifiedAt?: string | null;
+  receiptVerifiedBy?: string | null;
   createdAt: string;
 }
 

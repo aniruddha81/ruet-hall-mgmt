@@ -33,6 +33,7 @@ export default function AdmissionPage() {
   const [hall, setHall] = useState<Hall | null>(null);
   const [paymentMethod, setPaymentMethod] =
     useState<FinancePaymentMethod>(DEFAULT_METHOD);
+  const [bankReceiptImage, setBankReceiptImage] = useState<File | null>(null);
 
   const fetchStatus = async () => {
     try {
@@ -95,6 +96,7 @@ export default function AdmissionPage() {
     try {
       const res = await payMyDue(application.seatCharge.id, {
         method: paymentMethod,
+        receiptImage: paymentMethod === "BANK" ? bankReceiptImage : null,
       });
       setSuccess(
         `Seat charge paid successfully. Reference: ${res.data.transactionId}`,
@@ -300,9 +302,30 @@ export default function AdmissionPage() {
                             ))}
                           </select>
                         </label>
+                        {paymentMethod === "BANK" ? (
+                          <label className="space-y-2 text-sm">
+                            <span className="font-medium">
+                              Bank Receipt (PDF/Image)
+                            </span>
+                            <input
+                              type="file"
+                              accept=".pdf,image/*"
+                              required
+                              onChange={(event) =>
+                                setBankReceiptImage(
+                                  event.target.files?.[0] ?? null,
+                                )
+                              }
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm md:max-w-xs"
+                            />
+                          </label>
+                        ) : null}
                         <Button
                           onClick={handlePaySeatCharge}
-                          disabled={payingSeatCharge}
+                          disabled={
+                            payingSeatCharge ||
+                            (paymentMethod === "BANK" && !bankReceiptImage)
+                          }
                         >
                           {payingSeatCharge ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

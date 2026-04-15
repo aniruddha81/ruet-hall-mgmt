@@ -5,6 +5,7 @@ import {
   int,
   mysqlEnum,
   mysqlTable,
+  text,
   varchar,
 } from "drizzle-orm/mysql-core";
 import {
@@ -82,6 +83,14 @@ export const payments = mysqlTable(
     amount: int("amount", { unsigned: true }).notNull(),
 
     method: financePaymentMethodSQL_Enum().notNull(),
+
+    bankReceiptUrl: text("bank_receipt_url"),
+
+    receiptVerifiedAt: datetime("receipt_verified_at", { mode: "date" }),
+
+    receiptVerifiedBy: varchar("receipt_verified_by", {
+      length: 36,
+    }).references(() => hallAdmins.id),
 
     createdAt: datetime("created_at", { mode: "date" })
       .notNull()

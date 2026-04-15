@@ -1,5 +1,9 @@
 ﻿import { z } from "zod";
-import { DUE_TYPES, FINANCE_PAYMENT_METHODS, HALLS } from "../../types/enums.ts";
+import {
+  DUE_TYPES,
+  FINANCE_PAYMENT_METHODS,
+  HALLS,
+} from "../../types/enums.ts";
 
 // Create a due for a student
 export const createDueSchema = {
@@ -62,5 +66,17 @@ export const listExpensesSchema = {
 export const studentLedgerSchema = {
   params: z.object({
     id: z.uuid("Invalid student ID"),
+  }),
+};
+
+export const verifyPaymentReceiptSchema = {
+  params: z.object({
+    id: z.uuid("Invalid payment ID"),
+  }),
+};
+
+export const verifyMealPaymentReceiptSchema = {
+  params: z.object({
+    id: z.uuid("Invalid meal payment ID"),
   }),
 };

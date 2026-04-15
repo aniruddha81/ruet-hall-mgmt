@@ -21,7 +21,12 @@ import {
   getMyTokenHistory,
   getTomorrowMenus,
 } from "@/lib/services/dining.service";
-import type { MealMenu, MealToken, PaymentMethod, PaymentSuccessData } from "@/lib/types";
+import type {
+  MealMenu,
+  MealToken,
+  PaymentMethod,
+  PaymentSuccessData,
+} from "@/lib/types";
 import { PAYMENT_METHODS } from "@/lib/types";
 import { Loader2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -36,6 +41,7 @@ type BookingState = Record<
   {
     quantity: number;
     paymentMethod: PaymentMethod;
+    receiptImage: File | null;
   }
 >;
 
@@ -58,6 +64,7 @@ export default function DiningPage() {
     bookingState[menuId] ?? {
       quantity: 1,
       paymentMethod: DEFAULT_PAYMENT_METHOD,
+      receiptImage: null,
     };
 
   const getAlreadyBookedTokens = (menuId: string) => {
@@ -68,7 +75,11 @@ export default function DiningPage() {
 
   const updateBookingOptions = (
     menuId: string,
-    patch: Partial<{ quantity: number; paymentMethod: PaymentMethod }>,
+    patch: Partial<{
+      quantity: number;
+      paymentMethod: PaymentMethod;
+      receiptImage: File | null;
+    }>,
   ) => {
     setBookingState((prev) => ({
       ...prev,
@@ -126,6 +137,8 @@ export default function DiningPage() {
         menuId: menu.id,
         quantity: options.quantity,
         paymentMethod: options.paymentMethod,
+        receiptImage:
+          options.paymentMethod === "BANK" ? options.receiptImage : null,
       });
 
       // Show payment success modal
@@ -204,16 +217,28 @@ export default function DiningPage() {
                       <input
                         type="number"
                         min={1}
-                        max={Math.min(menu.availableTokens, Math.max(0, 20 - getAlreadyBookedTokens(menu.id)))}
+                        max={Math.min(
+                          menu.availableTokens,
+                          Math.max(0, 20 - getAlreadyBookedTokens(menu.id)),
+                        )}
                         value={options.quantity}
-                        disabled={Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0}
+                        disabled={
+                          Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) ===
+                          0
+                        }
                         onChange={(event) =>
                           updateBookingOptions(menu.id, {
                             quantity: Math.max(
                               1,
                               Math.min(
                                 Number(event.target.value) || 1,
-                                Math.min(menu.availableTokens, Math.max(0, 20 - getAlreadyBookedTokens(menu.id))),
+                                Math.min(
+                                  menu.availableTokens,
+                                  Math.max(
+                                    0,
+                                    20 - getAlreadyBookedTokens(menu.id),
+                                  ),
+                                ),
                               ),
                             ),
                           })
@@ -228,6 +253,7 @@ export default function DiningPage() {
                         onChange={(event) =>
                           updateBookingOptions(menu.id, {
                             paymentMethod: event.target.value as PaymentMethod,
+                            receiptImage: null,
                           })
                         }
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -240,6 +266,23 @@ export default function DiningPage() {
                       </select>
                     </label>
                   </div>
+                  {options.paymentMethod === "BANK" ? (
+                    <label className="space-y-2 text-sm">
+                      <span className="font-medium">
+                        Bank Receipt (PDF/Image)
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,image/*"
+                        onChange={(event) =>
+                          updateBookingOptions(menu.id, {
+                            receiptImage: event.target.files?.[0] ?? null,
+                          })
+                        }
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      />
+                    </label>
+                  ) : null}
                   <div className="flex items-center justify-between border-t pt-4">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -252,13 +295,20 @@ export default function DiningPage() {
                     <Button
                       onClick={() => handleBook(menu)}
                       disabled={
-                        bookingMenuId === menu.id || menu.availableTokens <= 0 || Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0
+                        bookingMenuId === menu.id ||
+                        menu.availableTokens <= 0 ||
+                        Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) ===
+                          0 ||
+                        (options.paymentMethod === "BANK" &&
+                          !options.receiptImage)
                       }
                     >
                       {bookingMenuId === menu.id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : null}
-                      {Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0 ? "Max Limit Reached" : "Pay & Book"}
+                      {Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0
+                        ? "Max Limit Reached"
+                        : "Pay & Book"}
                     </Button>
                   </div>
                 </CardContent>

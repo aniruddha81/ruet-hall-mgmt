@@ -22,6 +22,8 @@ import {
   getExpenses,
   getStudentLedger,
   payDue,
+  verifyMealPaymentReceipt,
+  verifyPaymentReceipt,
 } from "@/lib/services/finance.service";
 import {
   DUE_TYPES,
@@ -61,6 +63,7 @@ export default function FinanceManagement() {
   const [payForm, setPayForm] = useState({
     dueId: "",
     method: "CASH" as FinancePaymentMethod,
+    receiptImage: null as File | null,
   });
   const [payingDue, setPayingDue] = useState(false);
 
@@ -77,6 +80,12 @@ export default function FinanceManagement() {
   const [ledgerStudentId, setLedgerStudentId] = useState("");
   const [ledger, setLedger] = useState<StudentLedger | null>(null);
   const [loadingLedger, setLoadingLedger] = useState(false);
+  const [verifyingPaymentId, setVerifyingPaymentId] = useState<string | null>(
+    null,
+  );
+  const [verifyingMealPaymentId, setVerifyingMealPaymentId] = useState<
+    string | null
+  >(null);
 
   const fetchExpenses = async () => {
     try {
@@ -128,10 +137,11 @@ export default function FinanceManagement() {
     try {
       await payDue(payForm.dueId, {
         method: payForm.method,
+        receiptImage: payForm.method === "BANK" ? payForm.receiptImage : null,
       });
       setSuccess("Payment recorded successfully!");
       setShowPayForm(false);
-      setPayForm({ dueId: "", method: "CASH" });
+      setPayForm({ dueId: "", method: "CASH", receiptImage: null });
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -173,6 +183,40 @@ export default function FinanceManagement() {
       setError(getApiErrorMessage(err));
     } finally {
       setLoadingLedger(false);
+    }
+  };
+
+  const handleVerifyPaymentReceipt = async (paymentId: string) => {
+    if (!ledgerStudentId) return;
+    setVerifyingPaymentId(paymentId);
+    setError(null);
+    setSuccess(null);
+    try {
+      await verifyPaymentReceipt(paymentId);
+      const res = await getStudentLedger(ledgerStudentId);
+      setLedger(res.data ?? null);
+      setSuccess("Payment receipt verified successfully.");
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setVerifyingPaymentId(null);
+    }
+  };
+
+  const handleVerifyMealPaymentReceipt = async (paymentId: string) => {
+    if (!ledgerStudentId) return;
+    setVerifyingMealPaymentId(paymentId);
+    setError(null);
+    setSuccess(null);
+    try {
+      await verifyMealPaymentReceipt(paymentId);
+      const res = await getStudentLedger(ledgerStudentId);
+      setLedger(res.data ?? null);
+      setSuccess("Meal payment receipt verified successfully.");
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setVerifyingMealPaymentId(null);
     }
   };
 
@@ -357,6 +401,7 @@ export default function FinanceManagement() {
                         setPayForm({
                           ...payForm,
                           method: e.target.value as FinancePaymentMethod,
+                          receiptImage: null,
                         })
                       }
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -368,8 +413,30 @@ export default function FinanceManagement() {
                       ))}
                     </select>
                   </div>
+                  {payForm.method === "BANK" ? (
+                    <div className="space-y-2">
+                      <Label>Bank Receipt Photo</Label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setPayForm({
+                            ...payForm,
+                            receiptImage: e.target.files?.[0] ?? null,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+                  ) : null}
                   <div className="flex gap-2">
-                    <Button type="submit" disabled={payingDue}>
+                    <Button
+                      type="submit"
+                      disabled={
+                        payingDue ||
+                        (payForm.method === "BANK" && !payForm.receiptImage)
+                      }
+                    >
                       {payingDue && (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       )}{" "}
@@ -633,6 +700,8 @@ export default function FinanceManagement() {
                           <TableHead>Due ID</TableHead>
                           <TableHead>Amount</TableHead>
                           <TableHead>Method</TableHead>
+                          <TableHead>Receipt</TableHead>
+                          <TableHead>Verification</TableHead>
                           <TableHead>Hall</TableHead>
                           <TableHead>Date</TableHead>
                         </TableRow>
@@ -644,12 +713,55 @@ export default function FinanceManagement() {
                               #{payment.id.slice(0, 8)}
                             </TableCell>
                             <TableCell className="font-mono text-xs">
-                              {payment.dueId ? `#${payment.dueId.slice(0, 8)}` : "-"}
+                              {payment.dueId
+                                ? `#${payment.dueId.slice(0, 8)}`
+                                : "-"}
                             </TableCell>
                             <TableCell className="font-semibold">
                               ৳{payment.amount}
                             </TableCell>
                             <TableCell>{payment.method}</TableCell>
+                            <TableCell>
+                              {payment.bankReceiptUrl ? (
+                                <a
+                                  href={payment.bankReceiptUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-primary underline"
+                                >
+                                  View
+                                </a>
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {payment.method === "BANK" ? (
+                                payment.receiptVerifiedAt ? (
+                                  <Badge>Verified</Badge>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                      verifyingPaymentId === payment.id ||
+                                      !payment.bankReceiptUrl
+                                    }
+                                    onClick={() =>
+                                      handleVerifyPaymentReceipt(payment.id)
+                                    }
+                                  >
+                                    {verifyingPaymentId === payment.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      "Verify"
+                                    )}
+                                  </Button>
+                                )
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
                             <TableCell className="text-muted-foreground">
                               {payment.hall?.replace(/_/g, " ")}
                             </TableCell>
@@ -689,6 +801,8 @@ export default function FinanceManagement() {
                           <TableHead>Qty</TableHead>
                           <TableHead>Method</TableHead>
                           <TableHead>Transaction</TableHead>
+                          <TableHead>Receipt</TableHead>
+                          <TableHead>Verification</TableHead>
                           <TableHead>Date</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -705,6 +819,47 @@ export default function FinanceManagement() {
                             <TableCell>{mp.paymentMethod}</TableCell>
                             <TableCell className="font-mono text-xs">
                               {mp.transactionId?.slice(0, 12) ?? "-"}
+                            </TableCell>
+                            <TableCell>
+                              {mp.bankReceiptUrl ? (
+                                <a
+                                  href={mp.bankReceiptUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-primary underline"
+                                >
+                                  View
+                                </a>
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {mp.paymentMethod === "BANK" ? (
+                                mp.receiptVerifiedAt ? (
+                                  <Badge>Verified</Badge>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                      verifyingMealPaymentId === mp.id ||
+                                      !mp.bankReceiptUrl
+                                    }
+                                    onClick={() =>
+                                      handleVerifyMealPaymentReceipt(mp.id)
+                                    }
+                                  >
+                                    {verifyingMealPaymentId === mp.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      "Verify"
+                                    )}
+                                  </Button>
+                                )
+                              ) : (
+                                "-"
+                              )}
                             </TableCell>
                             <TableCell className="text-muted-foreground">
                               {mp.paymentDate

@@ -3,6 +3,7 @@ import {
   authenticateToken,
   authorizeRoles,
 } from "../../middlewares/auth.middleware.ts";
+import { upload } from "../../middlewares/multer.middleware.ts";
 import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
   createDue,
@@ -16,6 +17,8 @@ import {
   getStudentLedger,
   payDue,
   payMyDue,
+  verifyMealPaymentReceipt,
+  verifyPaymentReceipt,
 } from "./finance.controller.ts";
 import {
   createDueSchema,
@@ -24,6 +27,8 @@ import {
   payDueSchema,
   payMyDueSchema,
   studentLedgerSchema,
+  verifyMealPaymentReceiptSchema,
+  verifyPaymentReceiptSchema,
 } from "./finance.validators.ts";
 
 const financeRouter = Router();
@@ -45,6 +50,7 @@ financeRouter.post(
   "/my-dues/pay/:id",
   authenticateToken,
   authorizeRoles("STUDENT"),
+  upload.single("receiptImage"),
   validateRequest(payMyDueSchema),
   payMyDue
 );
@@ -75,8 +81,17 @@ financeRouter.patch(
   "/dues/pay/:id",
   authenticateToken,
   authorizeRoles("ASST_FINANCE"),
+  upload.single("receiptImage"),
   validateRequest(payDueSchema),
   payDue
+);
+
+financeRouter.patch(
+  "/payments/:id/verify-receipt",
+  authenticateToken,
+  authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER"),
+  validateRequest(verifyPaymentReceiptSchema),
+  verifyPaymentReceipt
 );
 
 // ==============================================================
@@ -140,6 +155,14 @@ financeRouter.get(
   authenticateToken,
   authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER"),
   getMealPaymentById
+);
+
+financeRouter.patch(
+  "/meal-payment/:id/verify-receipt",
+  authenticateToken,
+  authorizeRoles("ASST_FINANCE", "FINANCE_SECTION_OFFICER"),
+  validateRequest(verifyMealPaymentReceiptSchema),
+  verifyMealPaymentReceipt
 );
 
 export default financeRouter;

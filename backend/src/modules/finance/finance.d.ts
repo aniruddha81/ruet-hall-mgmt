@@ -29,6 +29,7 @@ export type CreateDuePaymentParams = {
   amount: number;
   paymentMethod: FinancePaymentMethod;
   dueType: DueType;
+  bankReceiptUrl?: string;
 };
 
 export type DuePaymentResult = {
@@ -39,4 +40,6 @@ export type DuePaymentResult = {
   status: "PAID";
   transactionId: string;
   paidAt: Date;
+  bankReceiptUrl?: string | null;
+  receiptVerifiedAt?: Date | null;
 };

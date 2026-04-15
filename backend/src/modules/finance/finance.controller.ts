@@ -2,17 +2,24 @@ import { randomUUID } from "crypto";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
-import { uniStudents } from "../../db/models/index.ts";
 import { mealPayments } from "../../db/models/dining.models.ts";
 import {
   expenses,
   payments,
   studentDues,
 } from "../../db/models/finance.models.ts";
+import { uniStudents } from "../../db/models/index.ts";
 import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
+import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
 import { createDuePayment } from "./finance.service.ts";
+
+const isSupportedReceiptFile = (mimetype?: string) =>
+  Boolean(
+    mimetype &&
+    (mimetype.startsWith("image/") || mimetype === "application/pdf")
+  );
 
 // ========================
 // DUES
@@ -62,6 +69,30 @@ export const payDue = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const { method } = req.body;
 
+  let bankReceiptUrl: string | null = null;
+  if (method === "BANK") {
+    const receiptFile = req.file;
+    if (!receiptFile?.path) {
+      throw new ApiError(
+        400,
+        "Bank receipt file (PDF/Image) is required for BANK payments"
+      );
+    }
+
+    if (!isSupportedReceiptFile(receiptFile.mimetype)) {
+      throw new ApiError(
+        400,
+        "Only PDF or image files are allowed for bank receipt upload"
+      );
+    }
+
+    const uploadedReceipt = await uploadOnCloudinary(receiptFile.path);
+    if (!uploadedReceipt?.url) {
+      throw new ApiError(500, "Failed to upload bank receipt file");
+    }
+    bankReceiptUrl = uploadedReceipt.url;
+  }
+
   const [due] = await db
     .select()
     .from(studentDues)
@@ -82,6 +113,7 @@ export const payDue = async (req: Request, res: Response) => {
       dueId: id,
       amount: due.amount,
       method: method as FinancePaymentMethod,
+      bankReceiptUrl,
     });
 
     await trx
@@ -90,15 +122,21 @@ export const payDue = async (req: Request, res: Response) => {
       .where(eq(studentDues.id, id));
   });
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { paymentId, dueId: id, amount: due.amount, method, status: "PAID" },
-        "Due paid successfully"
-      )
-    );
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        paymentId,
+        dueId: id,
+        amount: due.amount,
+        method,
+        status: "PAID",
+        bankReceiptUrl,
+        receiptVerifiedAt: null,
+      },
+      "Due paid successfully"
+    )
+  );
 };
 
 /**
@@ -109,6 +147,30 @@ export const payMyDue = async (req: Request, res: Response) => {
   const studentId = req.user!.userId;
   const { id } = req.params as { id: string };
   const { method } = req.body;
+
+  let bankReceiptUrl: string | undefined;
+  if (method === "BANK") {
+    const receiptFile = req.file;
+    if (!receiptFile?.path) {
+      throw new ApiError(
+        400,
+        "Bank receipt file (PDF/Image) is required for BANK payments"
+      );
+    }
+
+    if (!isSupportedReceiptFile(receiptFile.mimetype)) {
+      throw new ApiError(
+        400,
+        "Only PDF or image files are allowed for bank receipt upload"
+      );
+    }
+
+    const uploadedReceipt = await uploadOnCloudinary(receiptFile.path);
+    if (!uploadedReceipt?.url) {
+      throw new ApiError(500, "Failed to upload bank receipt file");
+    }
+    bankReceiptUrl = uploadedReceipt.url;
+  }
 
   const [due] = await db
     .select()
@@ -126,11 +188,10 @@ export const payMyDue = async (req: Request, res: Response) => {
     amount: due.amount,
     paymentMethod: method as FinancePaymentMethod,
     dueType: due.type,
+    bankReceiptUrl,
   });
 
-  res
-    .status(200)
-    .json(new ApiResponse(200, payment, "Due paid successfully"));
+  res.status(200).json(new ApiResponse(200, payment, "Due paid successfully"));
 };
 
 // ========================
@@ -254,6 +315,9 @@ export const getStudentLedger = async (req: Request, res: Response) => {
       dueId: payments.dueId,
       amount: payments.amount,
       method: payments.method,
+      bankReceiptUrl: payments.bankReceiptUrl,
+      receiptVerifiedAt: payments.receiptVerifiedAt,
+      receiptVerifiedBy: payments.receiptVerifiedBy,
       createdAt: payments.createdAt,
     })
     .from(payments)
@@ -267,6 +331,9 @@ export const getStudentLedger = async (req: Request, res: Response) => {
       totalQuantity: mealPayments.totalQuantity,
       paymentMethod: mealPayments.paymentMethod,
       transactionId: mealPayments.transactionId,
+      bankReceiptUrl: mealPayments.bankReceiptUrl,
+      receiptVerifiedAt: mealPayments.receiptVerifiedAt,
+      receiptVerifiedBy: mealPayments.receiptVerifiedBy,
       paymentDate: mealPayments.paymentDate,
       refundAmount: mealPayments.refundAmount,
       refundedAt: mealPayments.refundedAt,
@@ -335,6 +402,9 @@ export const getMealPayments = async (req: Request, res: Response) => {
       totalQuantity: mealPayments.totalQuantity,
       paymentMethod: mealPayments.paymentMethod,
       transactionId: mealPayments.transactionId,
+      bankReceiptUrl: mealPayments.bankReceiptUrl,
+      receiptVerifiedAt: mealPayments.receiptVerifiedAt,
+      receiptVerifiedBy: mealPayments.receiptVerifiedBy,
       paymentDate: mealPayments.paymentDate,
       refundAmount: mealPayments.refundAmount,
       refundedAt: mealPayments.refundedAt,
@@ -389,6 +459,9 @@ export const getMealPaymentById = async (req: Request, res: Response) => {
       totalQuantity: mealPayments.totalQuantity,
       paymentMethod: mealPayments.paymentMethod,
       transactionId: mealPayments.transactionId,
+      bankReceiptUrl: mealPayments.bankReceiptUrl,
+      receiptVerifiedAt: mealPayments.receiptVerifiedAt,
+      receiptVerifiedBy: mealPayments.receiptVerifiedBy,
       paymentDate: mealPayments.paymentDate,
       refundAmount: mealPayments.refundAmount,
       refundedAt: mealPayments.refundedAt,
@@ -545,6 +618,9 @@ export const getMyLedger = async (req: Request, res: Response) => {
       dueId: payments.dueId,
       amount: payments.amount,
       method: payments.method,
+      bankReceiptUrl: payments.bankReceiptUrl,
+      receiptVerifiedAt: payments.receiptVerifiedAt,
+      receiptVerifiedBy: payments.receiptVerifiedBy,
       createdAt: payments.createdAt,
     })
     .from(payments)
@@ -558,6 +634,9 @@ export const getMyLedger = async (req: Request, res: Response) => {
       totalQuantity: mealPayments.totalQuantity,
       paymentMethod: mealPayments.paymentMethod,
       transactionId: mealPayments.transactionId,
+      bankReceiptUrl: mealPayments.bankReceiptUrl,
+      receiptVerifiedAt: mealPayments.receiptVerifiedAt,
+      receiptVerifiedBy: mealPayments.receiptVerifiedBy,
       paymentDate: mealPayments.paymentDate,
       refundAmount: mealPayments.refundAmount,
       refundedAt: mealPayments.refundedAt,
@@ -582,6 +661,120 @@ export const getMyLedger = async (req: Request, res: Response) => {
         summary: { totalDue, totalPaid },
       },
       "Ledger retrieved successfully"
+    )
+  );
+};
+
+export const verifyPaymentReceipt = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const verifierId = req.user!.userId;
+
+  const [payment] = await db
+    .select({
+      id: payments.id,
+      method: payments.method,
+      bankReceiptUrl: payments.bankReceiptUrl,
+      receiptVerifiedAt: payments.receiptVerifiedAt,
+    })
+    .from(payments)
+    .where(eq(payments.id, id))
+    .limit(1);
+
+  if (!payment) {
+    throw new ApiError(404, "Payment not found");
+  }
+
+  if (payment.method !== "BANK") {
+    throw new ApiError(
+      400,
+      "Receipt verification is only applicable for BANK payments"
+    );
+  }
+
+  if (!payment.bankReceiptUrl) {
+    throw new ApiError(400, "No bank receipt image found for this payment");
+  }
+
+  if (payment.receiptVerifiedAt) {
+    throw new ApiError(400, "Receipt is already verified");
+  }
+
+  const receiptVerifiedAt = new Date();
+
+  await db
+    .update(payments)
+    .set({
+      receiptVerifiedAt,
+      receiptVerifiedBy: verifierId,
+    })
+    .where(eq(payments.id, id));
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        id,
+        receiptVerifiedAt,
+        receiptVerifiedBy: verifierId,
+      },
+      "Payment receipt verified successfully"
+    )
+  );
+};
+
+export const verifyMealPaymentReceipt = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const verifierId = req.user!.userId;
+
+  const [payment] = await db
+    .select({
+      id: mealPayments.id,
+      paymentMethod: mealPayments.paymentMethod,
+      bankReceiptUrl: mealPayments.bankReceiptUrl,
+      receiptVerifiedAt: mealPayments.receiptVerifiedAt,
+    })
+    .from(mealPayments)
+    .where(eq(mealPayments.id, id))
+    .limit(1);
+
+  if (!payment) {
+    throw new ApiError(404, "Meal payment not found");
+  }
+
+  if (payment.paymentMethod !== "BANK") {
+    throw new ApiError(
+      400,
+      "Receipt verification is only applicable for BANK payments"
+    );
+  }
+
+  if (!payment.bankReceiptUrl) {
+    throw new ApiError(400, "No bank receipt image found for this payment");
+  }
+
+  if (payment.receiptVerifiedAt) {
+    throw new ApiError(400, "Receipt is already verified");
+  }
+
+  const receiptVerifiedAt = new Date();
+
+  await db
+    .update(mealPayments)
+    .set({
+      receiptVerifiedAt,
+      receiptVerifiedBy: verifierId,
+    })
+    .where(eq(mealPayments.id, id));
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        id,
+        receiptVerifiedAt,
+        receiptVerifiedBy: verifierId,
+      },
+      "Meal payment receipt verified successfully"
     )
   );
 };

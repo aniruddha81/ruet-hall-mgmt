@@ -53,10 +53,39 @@ export async function bookMealTokens(data: {
   menuId: string;
   quantity: number;
   paymentMethod: PaymentMethod;
+  receiptImage?: File | null;
 }) {
+  if (data.paymentMethod === "BANK") {
+    if (!data.receiptImage) {
+      throw new Error("Bank receipt image is required for BANK payments");
+    }
+
+    const formData = new FormData();
+    formData.append("menuId", data.menuId);
+    formData.append("quantity", String(data.quantity));
+    formData.append("paymentMethod", data.paymentMethod);
+    formData.append("receiptImage", data.receiptImage);
+
+    const res = await api.post<ApiResponse<MealBookingReceipt>>(
+      "/dining/book-tokens",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return res.data;
+  }
+
   const res = await api.post<ApiResponse<MealBookingReceipt>>(
     "/dining/book-tokens",
-    data,
+    {
+      menuId: data.menuId,
+      quantity: data.quantity,
+      paymentMethod: data.paymentMethod,
+    },
   );
   return res.data;
 }

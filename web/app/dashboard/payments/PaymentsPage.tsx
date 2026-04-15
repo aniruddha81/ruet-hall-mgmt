@@ -47,6 +47,9 @@ export default function PaymentsPage() {
   const [dueMethods, setDueMethods] = useState<
     Record<string, FinancePaymentMethod>
   >({});
+  const [dueReceipts, setDueReceipts] = useState<Record<string, File | null>>(
+    {},
+  );
   const [paymentSuccess, setPaymentSuccess] =
     useState<PaymentSuccessData | null>(null);
 
@@ -77,7 +80,10 @@ export default function PaymentsPage() {
     setSuccess(null);
 
     try {
-      const res = await payMyDue(due.id, { method });
+      const res = await payMyDue(due.id, {
+        method,
+        receiptImage: method === "BANK" ? (dueReceipts[due.id] ?? null) : null,
+      });
 
       // Show payment success modal
       setPaymentSuccess({
@@ -255,10 +261,29 @@ export default function PaymentsPage() {
                                   </option>
                                 ))}
                               </select>
+                              {(dueMethods[due.id] ?? DEFAULT_METHOD) ===
+                              "BANK" ? (
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(event) =>
+                                    setDueReceipts((prev) => ({
+                                      ...prev,
+                                      [due.id]: event.target.files?.[0] ?? null,
+                                    }))
+                                  }
+                                  className="flex h-9 max-w-55 rounded-md border border-input bg-background px-2 text-xs"
+                                />
+                              ) : null}
                               <Button
                                 size="sm"
                                 onClick={() => handlePayDue(due)}
-                                disabled={payingDueId === due.id}
+                                disabled={
+                                  payingDueId === due.id ||
+                                  ((dueMethods[due.id] ?? DEFAULT_METHOD) ===
+                                    "BANK" &&
+                                    !dueReceipts[due.id])
+                                }
                               >
                                 {payingDueId === due.id ? (
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -295,6 +320,8 @@ export default function PaymentsPage() {
                       <TableHead>Due ID</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Method</TableHead>
+                      <TableHead>Receipt</TableHead>
+                      <TableHead>Verified</TableHead>
                       <TableHead>Date</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -311,6 +338,37 @@ export default function PaymentsPage() {
                           BDT {payment.amount}
                         </TableCell>
                         <TableCell>{payment.method}</TableCell>
+                        <TableCell>
+                          {payment.bankReceiptUrl ? (
+                            <a
+                              href={payment.bankReceiptUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary underline"
+                            >
+                              View
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {payment.method === "BANK" ? (
+                            <Badge
+                              variant={
+                                payment.receiptVerifiedAt
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {payment.receiptVerifiedAt
+                                ? "Verified"
+                                : "Pending"}
+                            </Badge>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(payment.createdAt).toLocaleDateString(
                             "en-GB",
@@ -343,6 +401,8 @@ export default function PaymentsPage() {
                       <TableHead>Qty</TableHead>
                       <TableHead>Method</TableHead>
                       <TableHead>Reference</TableHead>
+                      <TableHead>Receipt</TableHead>
+                      <TableHead>Verified</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Refund</TableHead>
                     </TableRow>
@@ -357,6 +417,37 @@ export default function PaymentsPage() {
                         <TableCell>{mealPayment.paymentMethod}</TableCell>
                         <TableCell className="font-mono text-xs">
                           {mealPayment.transactionId}
+                        </TableCell>
+                        <TableCell>
+                          {mealPayment.bankReceiptUrl ? (
+                            <a
+                              href={mealPayment.bankReceiptUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary underline"
+                            >
+                              View
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {mealPayment.paymentMethod === "BANK" ? (
+                            <Badge
+                              variant={
+                                mealPayment.receiptVerifiedAt
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {mealPayment.receiptVerifiedAt
+                                ? "Verified"
+                                : "Pending"}
+                            </Badge>
+                          ) : (
+                            "-"
+                          )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(mealPayment.paymentDate).toLocaleDateString(

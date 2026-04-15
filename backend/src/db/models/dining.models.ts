@@ -190,6 +190,14 @@ export const mealPayments = mysqlTable(
     transactionId: varchar("transaction_id", { length: 255 }).unique(),
     // Unique transaction ID from payment gateway
 
+    bankReceiptUrl: text("bank_receipt_url"),
+
+    receiptVerifiedAt: datetime("receipt_verified_at", { mode: "date" }),
+
+    receiptVerifiedBy: varchar("receipt_verified_by", {
+      length: 36,
+    }).references(() => hallAdmins.id),
+
     paymentDate: datetime("payment_date", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
