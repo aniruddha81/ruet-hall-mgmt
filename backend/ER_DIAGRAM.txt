@@ -181,6 +181,7 @@ damage_reports [icon: alert-triangle, color: red] {
   hall enum
   location_description text
   asset_details text
+  image_url text
   description text
   fine_amount int
   damage_cost int

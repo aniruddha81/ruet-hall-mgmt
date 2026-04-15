@@ -13,6 +13,7 @@ import type {
 } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
+import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
 
 type VerifyDamagePayload = {
   isStudentResponsible: boolean;
@@ -73,7 +74,17 @@ export const reportDamage = async (req: Request, res: Response) => {
     throw new ApiError(400, "Hall information is required to report damage");
   }
 
+  const imageLocalPath = req.file?.path;
   const { locationDescription, assetDetails } = req.body;
+
+  if (!imageLocalPath) {
+    throw new ApiError(400, "Damage proof image is required");
+  }
+
+  const uploadedImage = await uploadOnCloudinary(imageLocalPath);
+  if (!uploadedImage?.url) {
+    throw new ApiError(500, "Failed to upload damage proof image");
+  }
 
   const id = randomUUID();
   const description = `Location: ${locationDescription}\nAsset details: ${assetDetails}`;
@@ -84,6 +95,7 @@ export const reportDamage = async (req: Request, res: Response) => {
     hall: user.hall,
     locationDescription,
     assetDetails,
+    imageUrl: uploadedImage.url,
     description,
   });
 
@@ -95,6 +107,7 @@ export const reportDamage = async (req: Request, res: Response) => {
         hall: user.hall,
         locationDescription,
         assetDetails,
+        imageUrl: uploadedImage.url,
         status: "REPORTED",
       },
       "Damage complaint submitted successfully"
@@ -128,6 +141,7 @@ export const getDamageReports = async (req: Request, res: Response) => {
       hall: damageReports.hall,
       locationDescription: damageReports.locationDescription,
       assetDetails: damageReports.assetDetails,
+      imageUrl: damageReports.imageUrl,
       description: damageReports.description,
       fineAmount: damageReports.fineAmount,
       damageCost: damageReports.damageCost,

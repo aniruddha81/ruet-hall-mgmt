@@ -3,6 +3,7 @@ import {
   authenticateToken,
   authorizeRoles,
 } from "../../middlewares/auth.middleware.ts";
+import { upload } from "../../middlewares/multer.middleware.ts";
 import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
 import {
   getDamageReports,
@@ -45,6 +46,7 @@ inventoryRouter.post(
   "/damage",
   authenticateToken,
   authorizeRoles("STUDENT"),
+  upload.single("image"),
   validateRequest(reportDamageSchema),
   reportDamage
 );

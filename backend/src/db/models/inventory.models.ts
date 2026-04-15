@@ -36,6 +36,8 @@ export const damageReports = mysqlTable(
 
     assetDetails: text("asset_details"),
 
+    imageUrl: text("image_url"),
+
     description: text("description").notNull(),
 
     fineAmount: int("fine_amount", { unsigned: true }),

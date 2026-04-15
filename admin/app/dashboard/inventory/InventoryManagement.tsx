@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   getDamageReports,
@@ -65,6 +66,7 @@ function getReportDateLabel(value: string | null | undefined) {
 }
 
 export default function InventoryManagement() {
+  const { user } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [damageReports, setDamageReports] = useState<DamageReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +95,7 @@ export default function InventoryManagement() {
 
     try {
       const [roomsRes, reportsRes] = await Promise.all([
-        getRooms(),
+        getRooms({ hall: user?.hall }),
         getDamageReports(),
       ]);
 
@@ -325,6 +327,24 @@ export default function InventoryManagement() {
                             <p className="text-sm text-muted-foreground mt-1">
                               {report.assetDetails ?? report.description}
                             </p>
+                            {report.imageUrl ? (
+                              <a
+                                href={report.imageUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-3 block overflow-hidden rounded-md border border-border/60"
+                              >
+                                <img
+                                  src={report.imageUrl}
+                                  alt="Damage proof"
+                                  className="h-24 w-full object-cover"
+                                />
+                              </a>
+                            ) : (
+                              <p className="mt-3 text-xs text-muted-foreground">
+                                No image proof uploaded.
+                              </p>
+                            )}
                           </TableCell>
 
                           <TableCell className="align-top min-w-70">

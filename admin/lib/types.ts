@@ -236,6 +236,7 @@ export interface DamageReport {
   hall: Hall;
   locationDescription?: string | null;
   assetDetails?: string | null;
+  imageUrl?: string | null;
   description: string;
   fineAmount: number | null;
   damageCost: number | null;
