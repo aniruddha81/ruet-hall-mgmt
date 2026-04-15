@@ -4,6 +4,7 @@ import {
   count,
   desc,
   eq,
+  inArray,
   isNotNull,
   isNull,
   not,
@@ -13,6 +14,8 @@ import {
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
 import {
+  mealItems,
+  mealMenuItems,
   mealMenus,
   mealPayments,
   mealTokens,
@@ -37,6 +40,24 @@ const isSupportedReceiptFile = (mimetype?: string) =>
     mimetype &&
     (mimetype.startsWith("image/") || mimetype === "application/pdf")
   );
+
+const getActiveMealItemsByIds = async (itemIds: string[]) => {
+  const uniqueIds = Array.from(new Set(itemIds));
+  if (!uniqueIds.length) {
+    throw new ApiError(400, "Select at least one meal item");
+  }
+
+  const items = await db
+    .select({ id: mealItems.id, name: mealItems.name })
+    .from(mealItems)
+    .where(and(inArray(mealItems.id, uniqueIds), eq(mealItems.isActive, 1)));
+
+  if (items.length !== uniqueIds.length) {
+    throw new ApiError(400, "One or more selected meal items are invalid");
+  }
+
+  return items;
+};
 
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
 
@@ -496,7 +517,7 @@ export const getMyTokenById = async (req: Request, res: Response) => {
 // POST /api/v1/dining/menu/create - Create menu for tomorrow
 export const createTomorrowMenu = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
-  const { mealType, menuDescription, price, totalTokens } = req.body;
+  const { mealType, mealItemIds, price, totalTokens } = req.body;
   const hall = manager.hall;
 
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
@@ -526,15 +547,27 @@ export const createTomorrowMenu = async (req: Request, res: Response) => {
   }
 
   const id = randomUUID();
+  const selectedItems = await getActiveMealItemsByIds(mealItemIds);
+  const menuDescription = selectedItems.map((item) => item.name).join(", ");
 
-  await db.insert(mealMenus).values({
-    id,
-    hall: hall,
-    mealType,
-    menuDescription,
-    price,
-    totalTokens: totalTokens,
-    createdBy: manager.id,
+  await db.transaction(async (tx) => {
+    await tx.insert(mealMenus).values({
+      id,
+      hall: hall,
+      mealType,
+      menuDescription,
+      price,
+      totalTokens: totalTokens,
+      createdBy: manager.id,
+    });
+
+    await tx.insert(mealMenuItems).values(
+      selectedItems.map((item) => ({
+        id: randomUUID(),
+        menuId: id,
+        mealItemId: item.id,
+      }))
+    );
   });
 
   res.status(201).json(
@@ -556,7 +589,7 @@ export const createTomorrowMenu = async (req: Request, res: Response) => {
 // PATCH /api/v1/dining/menu/:menuId/update - Update tomorrow's menu
 export const updateTomorrowMenu = async (req: Request, res: Response) => {
   const { menuId } = req.params as { menuId: string };
-  const { menuDescription, price, totalTokens } = req.body;
+  const { mealItemIds, price, totalTokens } = req.body;
   const manager = requireAdminAccount(req);
 
   const [menu] = await db
@@ -592,12 +625,35 @@ export const updateTomorrowMenu = async (req: Request, res: Response) => {
   }
 
   const updateData: any = {};
-  if (menuDescription !== undefined)
-    updateData.menuDescription = menuDescription;
+
   if (price !== undefined) updateData.price = price;
   if (totalTokens !== undefined) updateData.totalTokens = totalTokens;
 
-  await db.update(mealMenus).set(updateData).where(eq(mealMenus.id, menuId));
+  if (mealItemIds !== undefined) {
+    const selectedItems = await getActiveMealItemsByIds(mealItemIds);
+    updateData.menuDescription = selectedItems
+      .map((item) => item.name)
+      .join(", ");
+
+    await db.transaction(async (tx) => {
+      await tx.delete(mealMenuItems).where(eq(mealMenuItems.menuId, menuId));
+      await tx.insert(mealMenuItems).values(
+        selectedItems.map((item) => ({
+          id: randomUUID(),
+          menuId,
+          mealItemId: item.id,
+        }))
+      );
+      await tx
+        .update(mealMenus)
+        .set(updateData)
+        .where(eq(mealMenus.id, menuId));
+    });
+  }
+
+  if (mealItemIds === undefined && Object.keys(updateData).length > 0) {
+    await db.update(mealMenus).set(updateData).where(eq(mealMenus.id, menuId));
+  }
 
   res
     .status(200)
@@ -702,6 +758,152 @@ export const getTodayMenus = async (req: Request, res: Response) => {
   res
     .status(200)
     .json(new ApiResponse(200, menus, "Today's menus retrieved successfully"));
+};
+
+// GET /api/v1/dining/meal-items - List meal items for dropdown composition
+export const getMealItems = async (_req: Request, res: Response) => {
+  const items = await db
+    .select({
+      id: mealItems.id,
+      name: mealItems.name,
+      isActive: mealItems.isActive,
+      createdBy: mealItems.createdBy,
+      updatedBy: mealItems.updatedBy,
+      createdAt: mealItems.createdAt,
+      updatedAt: mealItems.updatedAt,
+    })
+    .from(mealItems)
+    .orderBy(mealItems.name);
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, { items }, "Meal items retrieved successfully"));
+};
+
+// POST /api/v1/dining/meal-items - Create a new meal item
+export const createMealItem = async (req: Request, res: Response) => {
+  const manager = requireAdminAccount(req);
+  const { name } = req.body;
+
+  const normalizedName = String(name).trim();
+
+  const [existing] = await db
+    .select({ id: mealItems.id })
+    .from(mealItems)
+    .where(eq(mealItems.name, normalizedName))
+    .limit(1);
+
+  if (existing) {
+    throw new ApiError(409, "Meal item already exists");
+  }
+
+  const id = randomUUID();
+  await db.insert(mealItems).values({
+    id,
+    name: normalizedName,
+    isActive: 1,
+    createdBy: manager.id,
+    updatedBy: manager.id,
+  });
+
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        id,
+        name: normalizedName,
+        isActive: 1,
+      },
+      "Meal item created successfully"
+    )
+  );
+};
+
+// PATCH /api/v1/dining/meal-items/:itemId - Update meal item
+export const updateMealItem = async (req: Request, res: Response) => {
+  const manager = requireAdminAccount(req);
+  const { itemId } = req.params as { itemId: string };
+  const { name, isActive } = req.body;
+
+  const [existing] = await db
+    .select({ id: mealItems.id })
+    .from(mealItems)
+    .where(eq(mealItems.id, itemId))
+    .limit(1);
+
+  if (!existing) {
+    throw new ApiError(404, "Meal item not found");
+  }
+
+  const updateData: { name?: string; isActive?: number; updatedBy: string } = {
+    updatedBy: manager.id,
+  };
+
+  if (name !== undefined) {
+    const normalizedName = String(name).trim();
+    const [duplicate] = await db
+      .select({ id: mealItems.id })
+      .from(mealItems)
+      .where(
+        and(eq(mealItems.name, normalizedName), not(eq(mealItems.id, itemId)))
+      )
+      .limit(1);
+
+    if (duplicate) {
+      throw new ApiError(409, "Another meal item already uses this name");
+    }
+
+    updateData.name = normalizedName;
+  }
+
+  if (isActive !== undefined) {
+    updateData.isActive = isActive ? 1 : 0;
+  }
+
+  await db.update(mealItems).set(updateData).where(eq(mealItems.id, itemId));
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { id: itemId, ...updateData },
+        "Meal item updated successfully"
+      )
+    );
+};
+
+// DELETE /api/v1/dining/meal-items/:itemId - Delete unused meal item
+export const deleteMealItem = async (req: Request, res: Response) => {
+  const { itemId } = req.params as { itemId: string };
+
+  const [existing] = await db
+    .select({ id: mealItems.id })
+    .from(mealItems)
+    .where(eq(mealItems.id, itemId))
+    .limit(1);
+
+  if (!existing) {
+    throw new ApiError(404, "Meal item not found");
+  }
+
+  const [mapped] = await db
+    .select({ id: mealMenuItems.id })
+    .from(mealMenuItems)
+    .where(eq(mealMenuItems.mealItemId, itemId))
+    .limit(1);
+
+  if (mapped) {
+    throw new ApiError(400, "Cannot delete a meal item already used in menus");
+  }
+
+  await db.delete(mealItems).where(eq(mealItems.id, itemId));
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, { id: itemId }, "Meal item deleted successfully")
+    );
 };
 
 /**

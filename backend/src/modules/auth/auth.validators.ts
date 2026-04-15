@@ -31,7 +31,10 @@ const studentRegisterSchema = {
       confirmPassword: passwordStrengthSchema,
       rollNumber: z.number().int(),
       academicDepartment: z.enum(ACADEMIC_DEPARTMENTS),
-      session: z.string().max(10),
+      session: z
+        .string()
+        .min(4, "Session is required")
+        .max(10, "Session cannot exceed 10 characters"),
       phone: z.string().max(20),
     })
     .refine((data) => data.password === data.confirmPassword, {
@@ -89,6 +92,33 @@ const adminLoginSchema = {
   }),
 };
 
+const createAcademicSessionSchema = {
+  body: z.object({
+    label: z
+      .string()
+      .min(4, "Session label must be at least 4 characters")
+      .max(10, "Session label cannot exceed 10 characters"),
+  }),
+};
+
+const updateAcademicSessionSchema = {
+  params: z.object({
+    sessionId: z.uuid("Invalid session ID"),
+  }),
+  body: z
+    .object({
+      label: z
+        .string()
+        .min(4, "Session label must be at least 4 characters")
+        .max(10, "Session label cannot exceed 10 characters")
+        .optional(),
+      isActive: z.boolean().optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, {
+      message: "At least one field is required",
+    }),
+};
+
 /**
  * Validation schema for endpoints that expect a refresh token in cookies
  */
@@ -102,7 +132,9 @@ export {
   adminApprovalSchema,
   adminLoginSchema,
   adminRegisterSchema,
+  createAcademicSessionSchema,
   refreshTokenCookieSchema,
   studentLoginSchema,
   studentRegisterSchema,
+  updateAcademicSessionSchema,
 };

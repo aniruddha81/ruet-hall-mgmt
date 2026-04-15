@@ -31,6 +31,42 @@ export const tokenStatusSQL_Enum = () =>
 
 export const paymentMethodSQL_Enum = () =>
   mysqlEnum("payment_method", PAYMENT_METHODS);
+
+// ============================================
+// 0. MEAL ITEMS TABLE
+// Master list used to compose lunch/dinner menus
+// ============================================
+export const mealItems = mysqlTable(
+  "meal_items",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().notNull(),
+
+    name: varchar("name", { length: 120 }).notNull().unique(),
+
+    isActive: tinyint("is_active", { unsigned: true }).notNull().default(1),
+
+    createdBy: varchar("created_by", { length: 36 })
+      .notNull()
+      .references(() => hallAdmins.id),
+
+    updatedBy: varchar("updated_by", { length: 36 })
+      .notNull()
+      .references(() => hallAdmins.id),
+
+    createdAt: datetime("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+
+    updatedAt: datetime("updated_at", { mode: "date" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`)
+      .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [
+    index("idx_meal_items_name").on(t.name),
+    index("idx_meal_items_active").on(t.isActive),
+  ]
+);
 // ['BKASH', 'NAGAD', 'ROCKET', 'BANK', 'CASH']
 
 // ============================================
@@ -220,5 +256,33 @@ export const mealPayments = mysqlTable(
   (t) => [
     index("idx_meal_payments_student").on(t.studentId),
     index("idx_meal_payments_date").on(t.paymentDate),
+  ]
+);
+
+// ============================================
+// 4. MEAL MENU ITEMS TABLE
+// Combination mapping between menus and meal items
+// ============================================
+export const mealMenuItems = mysqlTable(
+  "meal_menu_items",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().notNull(),
+
+    menuId: varchar("menu_id", { length: 36 })
+      .notNull()
+      .references(() => mealMenus.id, { onDelete: "cascade" }),
+
+    mealItemId: varchar("meal_item_id", { length: 36 })
+      .notNull()
+      .references(() => mealItems.id, { onDelete: "cascade" }),
+
+    createdAt: datetime("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [
+    index("idx_meal_menu_items_menu").on(t.menuId),
+    index("idx_meal_menu_items_item").on(t.mealItemId),
+    index("uq_meal_menu_item_pair").on(t.menuId, t.mealItemId),
   ]
 );

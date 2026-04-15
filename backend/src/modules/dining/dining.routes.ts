@@ -7,12 +7,15 @@ import { upload } from "../../middlewares/multer.middleware.ts";
 import {
   bookMealTokens,
   cancelMealToken,
+  createMealItem,
   // Dining Manager Controllers
   createTomorrowMenu,
+  deleteMealItem,
   deleteTomorrowMenu,
   getAllBookingsForMenu,
   getDailyReport,
   getDateRangeSalesReport,
+  getMealItems,
   getMonthlyReport,
   getMyActiveTokens,
   getMyTokenById,
@@ -26,6 +29,7 @@ import {
   markTokensAsConsumed,
   // Payment Controllers
   processRefund,
+  updateMealItem,
   updateTomorrowMenu,
 } from "./dining.controller.ts";
 
@@ -33,7 +37,9 @@ import { validateRequest } from "../../middlewares/validateRequest.middleware.ts
 import {
   bookMealTokensSchema,
   cancelMealTokenSchema,
+  createMealItemSchema,
   createMenuSchema,
+  deleteMealItemSchema,
   deleteMenuSchema,
   getDailyReportSchema,
   getDateRangeSalesReportSchema,
@@ -44,6 +50,7 @@ import {
   getTokenHistorySchema,
   markTokensConsumedSchema,
   processRefundSchema,
+  updateMealItemSchema,
   updateMenuSchema,
 } from "./dining.validators.ts";
 
@@ -115,7 +122,7 @@ diningRouter.get(
 diningRouter.post(
   "/menu/create",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   validateRequest(createMenuSchema),
   createTomorrowMenu
 );
@@ -124,7 +131,7 @@ diningRouter.post(
 diningRouter.patch(
   "/menu/:menuId/update",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   validateRequest(updateMenuSchema),
   updateTomorrowMenu
 );
@@ -133,16 +140,48 @@ diningRouter.patch(
 diningRouter.delete(
   "/menu/:menuId",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   validateRequest(deleteMenuSchema),
   deleteTomorrowMenu
+);
+
+// Meal item master data (used for composing menus)
+diningRouter.get(
+  "/meal-items",
+  authenticateToken,
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
+  getMealItems
+);
+
+diningRouter.post(
+  "/meal-items",
+  authenticateToken,
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
+  validateRequest(createMealItemSchema),
+  createMealItem
+);
+
+diningRouter.patch(
+  "/meal-items/:itemId",
+  authenticateToken,
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
+  validateRequest(updateMealItemSchema),
+  updateMealItem
+);
+
+diningRouter.delete(
+  "/meal-items/:itemId",
+  authenticateToken,
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
+  validateRequest(deleteMealItemSchema),
+  deleteMealItem
 );
 
 // Get tomorrow's created menus (lunch & dinner breakdown)
 diningRouter.get(
   "/menus/tomorrow",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   getTomorrowMenusList
 );
 
@@ -150,7 +189,7 @@ diningRouter.get(
 diningRouter.get(
   "/menus/today",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   getTodayMenus
 );
 
@@ -158,7 +197,7 @@ diningRouter.get(
 diningRouter.get(
   "/bookings/menu/:menuId",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   validateRequest(getMenuBookingsSchema),
   getAllBookingsForMenu
 );
@@ -167,7 +206,7 @@ diningRouter.get(
 diningRouter.get(
   "/bookings/tomorrow",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   getTomorrowBookings
 );
 
@@ -175,7 +214,7 @@ diningRouter.get(
 diningRouter.patch(
   "/tokens/mark-consumed",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   validateRequest(markTokensConsumedSchema),
   markTokensAsConsumed
 );
@@ -184,7 +223,7 @@ diningRouter.patch(
 diningRouter.get(
   "/report/daily",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   validateRequest(getDailyReportSchema),
   getDailyReport
 );
@@ -193,7 +232,7 @@ diningRouter.get(
 diningRouter.get(
   "/report/range",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   validateRequest(getDateRangeSalesReportSchema),
   getDateRangeSalesReport
 );
@@ -202,7 +241,7 @@ diningRouter.get(
 diningRouter.get(
   "/report/monthly",
   authenticateToken,
-  authorizeRoles("DINING_MANAGER"),
+  authorizeRoles("DINING_MANAGER", "ASST_DINING"),
   validateRequest(getMonthlyReportSchema),
   getMonthlyReport
 );
@@ -215,7 +254,7 @@ diningRouter.get(
 diningRouter.get(
   "/payment/:paymentId",
   authenticateToken,
-  authorizeRoles("STUDENT", "DINING_MANAGER"),
+  authorizeRoles("STUDENT", "DINING_MANAGER", "ASST_DINING"),
   validateRequest(getPaymentDetailsSchema),
   getPaymentDetails
 );
@@ -224,7 +263,7 @@ diningRouter.get(
 diningRouter.post(
   "/payment/:paymentId/refund",
   authenticateToken,
-  authorizeRoles("STUDENT", "DINING_MANAGER"),
+  authorizeRoles("STUDENT", "DINING_MANAGER", "ASST_DINING"),
   validateRequest(processRefundSchema),
   processRefund
 );

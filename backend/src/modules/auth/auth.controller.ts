@@ -1,9 +1,10 @@
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, not } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
 import {
+  academicSessions,
   hallAdmins,
   refreshTokens,
   uniStudents,
@@ -43,6 +44,21 @@ export const studentRegister = async (req: Request, res: Response) => {
 
   if (existingUser) {
     throw new ApiError(409, "User with this email already exists");
+  }
+
+  const [validSession] = await db
+    .select({ id: academicSessions.id })
+    .from(academicSessions)
+    .where(
+      and(
+        eq(academicSessions.label, session),
+        eq(academicSessions.isActive, true)
+      )
+    )
+    .limit(1);
+
+  if (!validSession) {
+    throw new ApiError(400, "Please select a valid active session");
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -94,6 +110,160 @@ export const studentRegister = async (req: Request, res: Response) => {
         },
       },
       "User registered successfully"
+    )
+  );
+};
+
+/**
+ * GET /api/v1/auth/sessions
+ * Public endpoint to retrieve active sessions for student signup
+ */
+export const getActiveAcademicSessions = async (
+  _req: Request,
+  res: Response
+) => {
+  const sessions = await db
+    .select({
+      id: academicSessions.id,
+      label: academicSessions.label,
+    })
+    .from(academicSessions)
+    .where(eq(academicSessions.isActive, true))
+    .orderBy(desc(academicSessions.createdAt));
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, { sessions }, "Sessions retrieved successfully")
+    );
+};
+
+/**
+ * GET /api/v1/auth/sessions/manage
+ * Admin endpoint to retrieve all sessions for management
+ */
+export const getAllAcademicSessions = async (_req: Request, res: Response) => {
+  const sessions = await db
+    .select({
+      id: academicSessions.id,
+      label: academicSessions.label,
+      isActive: academicSessions.isActive,
+      createdByAdminId: academicSessions.createdByAdminId,
+      createdAt: academicSessions.createdAt,
+      updatedAt: academicSessions.updatedAt,
+    })
+    .from(academicSessions)
+    .orderBy(desc(academicSessions.createdAt));
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, { sessions }, "Sessions retrieved successfully")
+    );
+};
+
+/**
+ * POST /api/v1/auth/sessions
+ * Create a new academic session (allowed for non-dining admins)
+ */
+export const createAcademicSession = async (req: Request, res: Response) => {
+  const admin =
+    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+  if (!admin) {
+    throw new ApiError(401, "Admin authentication required");
+  }
+
+  const { label } = req.body;
+  const normalizedLabel = String(label).trim();
+
+  const [existing] = await db
+    .select({ id: academicSessions.id })
+    .from(academicSessions)
+    .where(eq(academicSessions.label, normalizedLabel))
+    .limit(1);
+
+  if (existing) {
+    throw new ApiError(409, "This session already exists");
+  }
+
+  const sessionId = randomUUID();
+  await db.insert(academicSessions).values({
+    id: sessionId,
+    label: normalizedLabel,
+    createdByAdminId: admin.id,
+    isActive: true,
+  });
+
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        id: sessionId,
+        label: normalizedLabel,
+        isActive: true,
+      },
+      "Session created successfully"
+    )
+  );
+};
+
+/**
+ * PATCH /api/v1/auth/sessions/:sessionId
+ * Update academic session label/active status (allowed for non-dining admins)
+ */
+export const updateAcademicSession = async (req: Request, res: Response) => {
+  const { sessionId } = req.params as { sessionId: string };
+  const { label, isActive } = req.body;
+
+  const [existing] = await db
+    .select({ id: academicSessions.id, label: academicSessions.label })
+    .from(academicSessions)
+    .where(eq(academicSessions.id, sessionId))
+    .limit(1);
+
+  if (!existing) {
+    throw new ApiError(404, "Session not found");
+  }
+
+  const updateData: { label?: string; isActive?: boolean } = {};
+
+  if (label !== undefined) {
+    const normalizedLabel = String(label).trim();
+    const [duplicate] = await db
+      .select({ id: academicSessions.id })
+      .from(academicSessions)
+      .where(
+        and(
+          eq(academicSessions.label, normalizedLabel),
+          not(eq(academicSessions.id, sessionId))
+        )
+      )
+      .limit(1);
+
+    if (duplicate) {
+      throw new ApiError(409, "Another session already uses this label");
+    }
+
+    updateData.label = normalizedLabel;
+  }
+
+  if (isActive !== undefined) {
+    updateData.isActive = Boolean(isActive);
+  }
+
+  await db
+    .update(academicSessions)
+    .set(updateData)
+    .where(eq(academicSessions.id, sessionId));
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        id: sessionId,
+        ...updateData,
+      },
+      "Session updated successfully"
     )
   );
 };
@@ -203,11 +373,20 @@ export const adminRegister = async (req: Request, res: Response) => {
     let operationalUnit: OperationalUnit;
 
     // setting operational unit based on the designation
-    if (designation === "INVENTORY_SECTION_OFFICER" || designation === "ASST_INVENTORY") {
+    if (
+      designation === "INVENTORY_SECTION_OFFICER" ||
+      designation === "ASST_INVENTORY"
+    ) {
       operationalUnit = "INVENTORY";
-    } else if (designation === "DINING_MANAGER" || designation === "ASST_DINING") {
+    } else if (
+      designation === "DINING_MANAGER" ||
+      designation === "ASST_DINING"
+    ) {
       operationalUnit = "DINING";
-    } else if (designation === "FINANCE_SECTION_OFFICER" || designation === "ASST_FINANCE") {
+    } else if (
+      designation === "FINANCE_SECTION_OFFICER" ||
+      designation === "ASST_FINANCE"
+    ) {
       operationalUnit = "FINANCE";
     } else {
       operationalUnit = "ALL"; // For PROVOST or any other unhandled roles

@@ -1,6 +1,7 @@
 import api from "@/lib/api";
 import type {
   AcademicDepartment,
+  AcademicSession,
   AdminData,
   AdminLoginResponse,
   AdminRegisterResponse,
@@ -66,5 +67,31 @@ export async function approveAdmin(adminApplicationId: string, status: string) {
   const res = await api.patch<
     ApiResponse<{ adminApplicationId: string; status: string }>
   >("/auth/admin/approve", { adminApplicationId, status });
+  return res.data;
+}
+
+export async function getManagedAcademicSessions() {
+  const res = await api.get<ApiResponse<{ sessions: AcademicSession[] }>>(
+    "/auth/sessions/manage",
+  );
+  return res.data;
+}
+
+export async function createAcademicSession(data: { label: string }) {
+  const res = await api.post<ApiResponse<AcademicSession>>(
+    "/auth/sessions",
+    data,
+  );
+  return res.data;
+}
+
+export async function updateAcademicSession(
+  sessionId: string,
+  data: { label?: string; isActive?: boolean },
+) {
+  const res = await api.patch<ApiResponse<AcademicSession>>(
+    `/auth/sessions/${sessionId}`,
+    data,
+  );
   return res.data;
 }

@@ -207,6 +207,25 @@ export interface MealPayment {
   updatedAt?: string;
 }
 
+export interface AcademicSession {
+  id: string;
+  label: string;
+  isActive: boolean;
+  createdByAdminId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MealItem {
+  id: string;
+  name: string;
+  isActive: number;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // =================== ADMISSION TYPES ===================
 export interface SeatApplication {
   id: string;

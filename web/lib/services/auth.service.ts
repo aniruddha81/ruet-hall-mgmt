@@ -1,6 +1,7 @@
 import api from "@/lib/api";
 import type {
   AcademicDepartment,
+  AcademicSession,
   ApiResponse,
   LoginResponse,
   RegisterResponse,
@@ -44,5 +45,13 @@ export async function logout() {
 
 export async function logoutAll() {
   const res = await api.post<ApiResponse<null>>("/auth/logout-all");
+  return res.data;
+}
+
+export async function getAcademicSessions() {
+  const res =
+    await api.get<ApiResponse<{ sessions: AcademicSession[] }>>(
+      "/auth/sessions",
+    );
   return res.data;
 }

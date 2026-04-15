@@ -16,16 +16,21 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getApiErrorMessage } from "@/lib/api";
 import {
+  createMealItem,
   createTomorrowMenu,
+  deleteMealItem,
   deleteTomorrowMenu,
   getDateRangeSalesReport,
+  getMealItems,
   getTodayMenus,
   getTomorrowBookings,
   getTomorrowMenusList,
   markTokensAsConsumed,
+  updateMealItem,
 } from "@/lib/services/dining.service";
 import type {
   DiningDateRangeSalesReport,
+  MealItem,
   MealMenu,
   MealToken,
   MealType,
@@ -62,26 +67,36 @@ export default function DiningManagement() {
   // New menu form
   const [showForm, setShowForm] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [mealItems, setMealItems] = useState<MealItem[]>([]);
+  const [newMealItemName, setNewMealItemName] = useState("");
+  const [creatingMealItem, setCreatingMealItem] = useState(false);
+  const [updatingMealItemId, setUpdatingMealItemId] = useState<string | null>(
+    null,
+  );
   const [menuForm, setMenuForm] = useState({
     mealType: "" as MealType | "",
-    menuDescription: "",
+    mealItemIds: [] as string[],
     price: "",
     totalTokens: "",
   });
 
   const fetchData = async () => {
     try {
-      const [todayRes, tomorrowRes, bookingsRes] = await Promise.allSettled([
-        getTodayMenus(),
-        getTomorrowMenusList(),
-        getTomorrowBookings(),
-      ]);
+      const [todayRes, tomorrowRes, bookingsRes, mealItemsRes] =
+        await Promise.allSettled([
+          getTodayMenus(),
+          getTomorrowMenusList(),
+          getTomorrowBookings(),
+          getMealItems(),
+        ]);
       if (todayRes.status === "fulfilled")
         setTodayMenus(todayRes.value.data?.menus ?? []);
       if (tomorrowRes.status === "fulfilled")
         setTomorrowMenus(tomorrowRes.value.data?.menus ?? []);
       if (bookingsRes.status === "fulfilled")
         setBookings(bookingsRes.value.data?.bookings ?? []);
+      if (mealItemsRes.status === "fulfilled")
+        setMealItems(mealItemsRes.value.data.items ?? []);
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -96,13 +111,17 @@ export default function DiningManagement() {
   const handleCreateMenu = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!menuForm.mealType) return;
+    if (menuForm.mealItemIds.length === 0) {
+      setError("Please select at least one meal item for the menu.");
+      return;
+    }
     setCreating(true);
     setError(null);
     setSuccess(null);
     try {
       await createTomorrowMenu({
         mealType: menuForm.mealType as MealType,
-        menuDescription: menuForm.menuDescription,
+        mealItemIds: menuForm.mealItemIds,
         price: Number(menuForm.price),
         totalTokens: Number(menuForm.totalTokens),
       });
@@ -110,7 +129,7 @@ export default function DiningManagement() {
       setShowForm(false);
       setMenuForm({
         mealType: "",
-        menuDescription: "",
+        mealItemIds: [],
         price: "",
         totalTokens: "",
       });
@@ -141,6 +160,55 @@ export default function DiningManagement() {
       await fetchData();
     } catch (err) {
       setError(getApiErrorMessage(err));
+    }
+  };
+
+  const handleCreateMealItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMealItemName.trim()) return;
+
+    setCreatingMealItem(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await createMealItem({ name: newMealItemName.trim() });
+      setNewMealItemName("");
+      setSuccess("Meal item added successfully.");
+      await fetchData();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setCreatingMealItem(false);
+    }
+  };
+
+  const handleToggleMealItem = async (item: MealItem) => {
+    setUpdatingMealItemId(item.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      await updateMealItem(item.id, { isActive: item.isActive !== 1 });
+      setSuccess("Meal item updated.");
+      await fetchData();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setUpdatingMealItemId(null);
+    }
+  };
+
+  const handleDeleteMealItem = async (itemId: string) => {
+    setUpdatingMealItemId(itemId);
+    setError(null);
+    setSuccess(null);
+    try {
+      await deleteMealItem(itemId);
+      setSuccess("Meal item deleted.");
+      await fetchData();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setUpdatingMealItemId(null);
     }
   };
 
@@ -332,6 +400,76 @@ export default function DiningManagement() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Meal Items Table</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form onSubmit={handleCreateMealItem} className="flex gap-2">
+            <Input
+              value={newMealItemName}
+              onChange={(e) => setNewMealItemName(e.target.value)}
+              placeholder="e.g. Rice, Dal, Chicken Curry"
+              required
+            />
+            <Button type="submit" disabled={creatingMealItem}>
+              {creatingMealItem && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              )}
+              Add Item
+            </Button>
+          </form>
+
+          {mealItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No meal items yet. Add items first, then create menus from them.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mealItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={item.isActive === 1 ? "default" : "secondary"}
+                      >
+                        {item.isActive === 1 ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={updatingMealItemId === item.id}
+                        onClick={() => handleToggleMealItem(item)}
+                      >
+                        {item.isActive === 1 ? "Deactivate" : "Activate"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={updatingMealItemId === item.id}
+                        onClick={() => handleDeleteMealItem(item.id)}
+                      >
+                        Delete
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Create Menu Form */}
       {showForm && (
         <Card>
@@ -363,19 +501,73 @@ export default function DiningManagement() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="menuDescription">Menu Description</Label>
-                <Input
-                  id="menuDescription"
-                  value={menuForm.menuDescription}
-                  onChange={(e) =>
-                    setMenuForm({
-                      ...menuForm,
-                      menuDescription: e.target.value,
-                    })
-                  }
-                  placeholder="Rice, Dal, Chicken Curry..."
-                  required
-                />
+                <Label>Meal Items (Combination)</Label>
+                <div className="space-y-2 rounded-md border border-input p-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setMenuForm((prev) => ({
+                          ...prev,
+                          mealItemIds: mealItems
+                            .filter((item) => item.isActive === 1)
+                            .map((item) => item.id),
+                        }))
+                      }
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setMenuForm((prev) => ({
+                          ...prev,
+                          mealItemIds: [],
+                        }))
+                      }
+                    >
+                      Clear
+                    </Button>
+                  </div>
+
+                  <div className="max-h-40 space-y-2 overflow-y-auto">
+                    {mealItems.filter((item) => item.isActive === 1).length ===
+                    0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No active meal items available.
+                      </p>
+                    ) : (
+                      mealItems
+                        .filter((item) => item.isActive === 1)
+                        .map((item) => (
+                          <label
+                            key={item.id}
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={menuForm.mealItemIds.includes(item.id)}
+                              onChange={(event) =>
+                                setMenuForm((prev) => ({
+                                  ...prev,
+                                  mealItemIds: event.target.checked
+                                    ? [...prev.mealItemIds, item.id]
+                                    : prev.mealItemIds.filter(
+                                        (id) => id !== item.id,
+                                      ),
+                                }))
+                              }
+                            />
+                            {item.name}
+                          </label>
+                        ))
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

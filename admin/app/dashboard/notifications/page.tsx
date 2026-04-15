@@ -1,4 +1,4 @@
-import NotificationsManagement from "./NotificationsManagement.tsx";
+import NotificationsManagement from "./NotificationsManagement";
 
 export default function NotificationsPage() {
   return <NotificationsManagement />;

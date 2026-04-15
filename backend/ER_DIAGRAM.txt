@@ -73,6 +73,15 @@ refresh_tokens [icon: key, color: green] {
   created_at datetime
 }
 
+academic_sessions [icon: calendar, color: green] {
+  id varchar [pk]
+  label varchar
+  is_active boolean
+  created_by_admin_id varchar
+  created_at datetime
+  updated_at datetime
+}
+
 // --- Seat Management ---
 seat_applications [icon: file-text, color: blue] {
   id varchar [pk]
@@ -111,6 +120,23 @@ meal_menus [icon: list, color: amber] {
   created_by varchar
   created_at datetime
   updated_at datetime
+}
+
+meal_items [icon: list-plus, color: amber] {
+  id varchar [pk]
+  name varchar
+  is_active tinyint
+  created_by varchar
+  updated_by varchar
+  created_at datetime
+  updated_at datetime
+}
+
+meal_menu_items [icon: link, color: amber] {
+  id varchar [pk]
+  menu_id varchar
+  meal_item_id varchar
+  created_at datetime
 }
 
 meal_tokens [icon: ticket, color: amber] {
@@ -234,6 +260,7 @@ halls.name - uni_students.hall
 rooms.id < uni_students.room_id
 halls.name < hall_admins.hall
 hall_admins.id > hall_admins.reporting_to_id
+hall_admins.id < academic_sessions.created_by_admin_id
 
 // Seat Management Connections
 uni_students.id < seat_applications.student_id
@@ -252,6 +279,10 @@ meal_payments.id < meal_tokens.payment_id
 meal_tokens.hall < halls.name
 meal_payments.student_id > uni_students.id
 meal_payments.receipt_verified_by > hall_admins.id
+meal_menus.id < meal_menu_items.menu_id
+meal_items.id < meal_menu_items.meal_item_id
+hall_admins.id < meal_items.created_by
+hall_admins.id < meal_items.updated_by
 
 // Finance & Damage Connections
 uni_students.id < student_dues.student_id

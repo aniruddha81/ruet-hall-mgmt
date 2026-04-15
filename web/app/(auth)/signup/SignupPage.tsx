@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,13 +14,17 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
-import { studentRegister } from "@/lib/services/auth.service";
-import type { AcademicDepartment } from "@/lib/types";
+import {
+  getAcademicSessions,
+  studentRegister,
+} from "@/lib/services/auth.service";
+import type { AcademicDepartment, AcademicSession } from "@/lib/types";
 import { ACADEMIC_DEPARTMENTS } from "@/lib/types";
 import { Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -39,9 +42,18 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [sessions, setSessions] = useState<AcademicSession[]>([]);
 
   const router = useRouter();
   const { setUser } = useAuth();
+
+  useEffect(() => {
+    getAcademicSessions()
+      .then((res) => setSessions(res.data.sessions ?? []))
+      .catch(() => {
+        setSessions([]);
+      });
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -63,6 +75,11 @@ export default function SignupPage() {
 
     if (!formData.academicDepartment) {
       setError("Please select your department");
+      return;
+    }
+
+    if (!formData.session) {
+      setError("Please select your session");
       return;
     }
 
@@ -108,7 +125,6 @@ export default function SignupPage() {
       <div className="w-full max-w-6xl">
         <Card className="overflow-hidden shadow-2xl">
           <div className="grid md:grid-cols-2">
-
             {/* LEFT IMAGE SECTION */}
             <section className="relative hidden md:block">
               <Image
@@ -151,7 +167,6 @@ export default function SignupPage() {
 
               <CardContent className="px-0">
                 <form onSubmit={handleSubmit} className="space-y-4">
-
                   {error && (
                     <div className="rounded-lg border border-red-400 bg-red-100 p-3 text-sm text-red-600">
                       {error}
@@ -196,18 +211,24 @@ export default function SignupPage() {
 
                     <div className="space-y-2">
                       <Label>Session</Label>
-                      <Input
+                      <select
                         name="session"
                         required
                         value={formData.session}
                         onChange={handleChange}
-                        placeholder="2020-21"
-                      />
+                        className="w-full border rounded-md h-10 px-3 dark:bg-gray-800 dark:text-white"
+                      >
+                        <option value="">Select</option>
+                        {sessions.map((session) => (
+                          <option key={session.id} value={session.label}>
+                            {session.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-
                     <div className="space-y-2">
                       <Label>Department</Label>
                       <select
@@ -236,7 +257,6 @@ export default function SignupPage() {
                         placeholder="01XXXXXXXXX"
                       />
                     </div>
-
                   </div>
 
                   {/* PASSWORD */}
@@ -258,7 +278,11 @@ export default function SignupPage() {
                         className="absolute right-3 top-3"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -293,11 +317,7 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Creating..." : "Sign Up"}
                   </Button>
                 </form>

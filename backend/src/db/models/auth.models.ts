@@ -30,6 +30,34 @@ export const academicDepartmentsSQL_Enum = () =>
 export const hallAdminStatusSQL_Enum = () =>
   mysqlEnum("hall_admin_status", HALL_ADMIN_STATUSES);
 
+export const academicSessions = mysqlTable(
+  "academic_sessions",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().notNull(),
+
+    label: varchar("label", { length: 10 }).notNull().unique(),
+
+    isActive: boolean("is_active").notNull().default(true),
+
+    createdByAdminId: varchar("created_by_admin_id", { length: 36 })
+      .notNull()
+      .references(() => hallAdmins.id, { onDelete: "cascade" }),
+
+    createdAt: datetime("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+
+    updatedAt: datetime("updated_at", { mode: "date" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`)
+      .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [
+    index("idx_academic_sessions_label").on(t.label),
+    index("idx_academic_sessions_active").on(t.isActive),
+  ]
+);
+
 export const refreshTokens = mysqlTable(
   "refresh_tokens",
   {

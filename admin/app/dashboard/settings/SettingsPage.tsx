@@ -16,16 +16,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   approveAdmin,
+  createAcademicSession,
   getAdminApplications,
+  getManagedAcademicSessions,
   logoutAll,
+  updateAcademicSession,
 } from "@/lib/services/auth.service";
-import type { AdminData } from "@/lib/types";
+import type { AcademicSession, AdminData } from "@/lib/types";
 import { CheckCircle, Loader2, LogOut, ShieldCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const isProvost = user?.designation === "PROVOST";
+  const canManageSignupSessions =
+    user?.designation === "PROVOST" ||
+    user?.designation === "ASST_FINANCE" ||
+    user?.designation === "FINANCE_SECTION_OFFICER" ||
+    user?.designation === "ASST_INVENTORY" ||
+    user?.designation === "INVENTORY_SECTION_OFFICER";
 
   const [loggingOutAll, setLoggingOutAll] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -35,6 +44,14 @@ export default function SettingsPage() {
   const [applications, setApplications] = useState<AdminData[]>([]);
   const [loadingApps, setLoadingApps] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [academicSessions, setAcademicSessions] = useState<AcademicSession[]>(
+    [],
+  );
+  const [newSessionLabel, setNewSessionLabel] = useState("");
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionProcessingId, setSessionProcessingId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (isProvost) {
@@ -45,6 +62,23 @@ export default function SettingsPage() {
         .finally(() => setLoadingApps(false));
     }
   }, [isProvost]);
+
+  const fetchAcademicSessions = async () => {
+    if (!canManageSignupSessions) return;
+    setSessionsLoading(true);
+    try {
+      const res = await getManagedAcademicSessions();
+      setAcademicSessions(res.data.sessions ?? []);
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchAcademicSessions();
+  }, [canManageSignupSessions]);
 
   const handleLogoutAll = async () => {
     setLoggingOutAll(true);
@@ -73,6 +107,38 @@ export default function SettingsPage() {
       setError(getApiErrorMessage(err));
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleCreateAcademicSession = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newSessionLabel.trim()) return;
+
+    setSessionProcessingId("new");
+    setError(null);
+    try {
+      await createAcademicSession({ label: newSessionLabel.trim() });
+      setNewSessionLabel("");
+      setSuccess("Academic session created successfully.");
+      await fetchAcademicSessions();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setSessionProcessingId(null);
+    }
+  };
+
+  const handleToggleAcademicSession = async (session: AcademicSession) => {
+    setSessionProcessingId(session.id);
+    setError(null);
+    try {
+      await updateAcademicSession(session.id, { isActive: !session.isActive });
+      setSuccess("Academic session updated successfully.");
+      await fetchAcademicSessions();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setSessionProcessingId(null);
     }
   };
 
@@ -191,6 +257,82 @@ export default function SettingsPage() {
                             Reject
                           </Button>
                         </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {canManageSignupSessions && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Signup Session Options</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Student signup session options are controlled here. Dining
+              managers cannot manage this list.
+            </p>
+
+            <form onSubmit={handleCreateAcademicSession} className="flex gap-2">
+              <input
+                value={newSessionLabel}
+                onChange={(event) => setNewSessionLabel(event.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="e.g. 2022-23"
+                required
+              />
+              <Button type="submit" disabled={sessionProcessingId === "new"}>
+                {sessionProcessingId === "new" ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Add
+              </Button>
+            </form>
+
+            {sessionsLoading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+            ) : academicSessions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No session options found.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Session</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {academicSessions.map((session) => (
+                    <TableRow key={session.id}>
+                      <TableCell className="font-medium">
+                        {session.label}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={session.isActive ? "default" : "secondary"}
+                        >
+                          {session.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={sessionProcessingId === session.id}
+                          onClick={() => handleToggleAcademicSession(session)}
+                        >
+                          {session.isActive ? "Deactivate" : "Activate"}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

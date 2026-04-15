@@ -1,3 +1,4 @@
+import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
 import {
   authenticateToken,
@@ -9,21 +10,26 @@ import {
   adminApproval,
   adminLogin,
   adminRegister,
+  createAcademicSession,
+  getActiveAcademicSessions,
+  getAllAcademicSessions,
   logout,
   logoutAll,
   renewAccessToken,
   studentLogin,
   studentRegister,
+  updateAcademicSession,
 } from "./auth.controller.ts";
 import {
   adminApprovalSchema,
   adminLoginSchema,
   adminRegisterSchema,
+  createAcademicSessionSchema,
   refreshTokenCookieSchema,
   studentLoginSchema,
   studentRegisterSchema,
+  updateAcademicSessionSchema,
 } from "./auth.validators.ts";
-import type { NextFunction, Request, Response } from "express";
 
 const authRouter = Router();
 
@@ -76,6 +82,7 @@ authRouter.post(
   studentRegister
 );
 authRouter.post("/login", validateRequest(studentLoginSchema), studentLogin);
+authRouter.get("/sessions", getActiveAcademicSessions);
 
 // admin routes
 authRouter.post(
@@ -98,6 +105,47 @@ authRouter.get(
   authenticateToken,
   authorizeRoles(),
   adminApplications
+);
+
+authRouter.get(
+  "/sessions/manage",
+  authenticateToken,
+  authorizeRoles(
+    "PROVOST",
+    "ASST_FINANCE",
+    "FINANCE_SECTION_OFFICER",
+    "ASST_INVENTORY",
+    "INVENTORY_SECTION_OFFICER"
+  ),
+  getAllAcademicSessions
+);
+
+authRouter.post(
+  "/sessions",
+  authenticateToken,
+  authorizeRoles(
+    "PROVOST",
+    "ASST_FINANCE",
+    "FINANCE_SECTION_OFFICER",
+    "ASST_INVENTORY",
+    "INVENTORY_SECTION_OFFICER"
+  ),
+  validateRequest(createAcademicSessionSchema),
+  createAcademicSession
+);
+
+authRouter.patch(
+  "/sessions/:sessionId",
+  authenticateToken,
+  authorizeRoles(
+    "PROVOST",
+    "ASST_FINANCE",
+    "FINANCE_SECTION_OFFICER",
+    "ASST_INVENTORY",
+    "INVENTORY_SECTION_OFFICER"
+  ),
+  validateRequest(updateAcademicSessionSchema),
+  updateAcademicSession
 );
 
 authRouter.post("/admin/login", validateRequest(adminLoginSchema), adminLogin);

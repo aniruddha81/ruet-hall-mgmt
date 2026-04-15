@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   DailyReport,
   DiningDateRangeSalesReport,
+  MealItem,
   MealMenu,
   MealPayment,
   MealToken,
@@ -14,7 +15,7 @@ import type {
 
 export async function createTomorrowMenu(data: {
   mealType: MealType;
-  menuDescription: string;
+  mealItemIds: string[];
   price: number;
   totalTokens: number;
 }) {
@@ -28,7 +29,7 @@ export async function createTomorrowMenu(data: {
 export async function updateTomorrowMenu(
   menuId: string,
   data: {
-    menuDescription?: string;
+    mealItemIds?: string[];
     price?: number;
     totalTokens?: number;
   },
@@ -91,6 +92,38 @@ export async function getTodayMenus() {
     ...res.data,
     data: { menus },
   };
+}
+
+export async function getMealItems() {
+  const res =
+    await api.get<ApiResponse<{ items: MealItem[] }>>("/dining/meal-items");
+  return res.data;
+}
+
+export async function createMealItem(data: { name: string }) {
+  const res = await api.post<ApiResponse<{ id: string; name: string }>>(
+    "/dining/meal-items",
+    data,
+  );
+  return res.data;
+}
+
+export async function updateMealItem(
+  itemId: string,
+  data: { name?: string; isActive?: boolean },
+) {
+  const res = await api.patch<ApiResponse<{ id: string }>>(
+    `/dining/meal-items/${itemId}`,
+    data,
+  );
+  return res.data;
+}
+
+export async function deleteMealItem(itemId: string) {
+  const res = await api.delete<ApiResponse<{ id: string }>>(
+    `/dining/meal-items/${itemId}`,
+  );
+  return res.data;
 }
 
 // =================== BOOKING MANAGEMENT ===================

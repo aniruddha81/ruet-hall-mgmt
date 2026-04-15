@@ -125,6 +125,12 @@ export interface RegisterResponse {
   };
 }
 
+export interface AcademicSession {
+  id: string;
+  label: string;
+  isActive?: boolean;
+}
+
 // =================== DINING TYPES ===================
 export interface MealMenu {
   id: string;

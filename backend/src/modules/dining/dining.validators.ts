@@ -98,13 +98,10 @@ export const getTokenByIdSchema = {
 export const createMenuSchema = {
   body: z.object({
     mealType: z.enum(MEAL_TYPES).describe("Type of meal (LUNCH or DINNER)"),
-    menuDescription: z
-      .string()
-      .min(5, "Menu description must be at least 5 characters")
-      .max(500, "Menu description cannot exceed 500 characters")
-      .describe(
-        "Description of the meal menu (e.g., Rice, Chicken Curry, Dal, Salad)"
-      ),
+    mealItemIds: z
+      .array(z.uuid("Each meal item ID must be a valid UUID"))
+      .nonempty("Select at least one meal item")
+      .describe("Selected meal item IDs used to compose the menu"),
     price: z
       .number()
       .int("Price must be an integer")
@@ -133,12 +130,11 @@ export const updateMenuSchema = {
   }),
   body: z
     .object({
-      menuDescription: z
-        .string()
-        .min(5, "Menu description must be at least 5 characters")
-        .max(500, "Menu description cannot exceed 500 characters")
+      mealItemIds: z
+        .array(z.uuid("Each meal item ID must be a valid UUID"))
+        .nonempty("Select at least one meal item")
         .optional()
-        .describe("Updated menu description"),
+        .describe("Updated meal item combination"),
       price: z
         .number()
         .int("Price must be an integer")
@@ -158,6 +154,39 @@ export const updateMenuSchema = {
       (data) => Object.keys(data).length > 0,
       "At least one field must be provided for update"
     ),
+};
+
+export const createMealItemSchema = {
+  body: z.object({
+    name: z
+      .string()
+      .min(2, "Meal item name must be at least 2 characters")
+      .max(120, "Meal item name cannot exceed 120 characters"),
+  }),
+};
+
+export const updateMealItemSchema = {
+  params: z.object({
+    itemId: z.uuid("Invalid meal item ID"),
+  }),
+  body: z
+    .object({
+      name: z
+        .string()
+        .min(2, "Meal item name must be at least 2 characters")
+        .max(120, "Meal item name cannot exceed 120 characters")
+        .optional(),
+      isActive: z.boolean().optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, {
+      message: "At least one field must be provided for update",
+    }),
+};
+
+export const deleteMealItemSchema = {
+  params: z.object({
+    itemId: z.uuid("Invalid meal item ID"),
+  }),
 };
 
 /**
@@ -338,6 +367,9 @@ export type GetTokenHistoryInput = z.infer<typeof getTokenHistorySchema>;
 export type GetTokenByIdInput = z.infer<typeof getTokenByIdSchema>;
 export type CreateMenuInput = z.infer<typeof createMenuSchema>;
 export type UpdateMenuInput = z.infer<typeof updateMenuSchema>;
+export type CreateMealItemInput = z.infer<typeof createMealItemSchema>;
+export type UpdateMealItemInput = z.infer<typeof updateMealItemSchema>;
+export type DeleteMealItemInput = z.infer<typeof deleteMealItemSchema>;
 export type DeleteMenuInput = z.infer<typeof deleteMenuSchema>;
 export type GetMenuBookingsInput = z.infer<typeof getMenuBookingsSchema>;
 export type MarkTokensConsumedInput = z.infer<typeof markTokensConsumedSchema>;
