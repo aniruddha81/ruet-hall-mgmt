@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import PaymentSuccessModal from "@/components/PaymentSuccessModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
   HALLS,
   type FinancePaymentMethod,
   type Hall,
+  type PaymentSuccessData,
   type SeatApplication,
 } from "@/lib/types";
 import { ClipboardList, Loader2 } from "lucide-react";
@@ -34,6 +36,8 @@ export default function AdmissionPage() {
   const [paymentMethod, setPaymentMethod] =
     useState<FinancePaymentMethod>(DEFAULT_METHOD);
   const [bankReceiptImage, setBankReceiptImage] = useState<File | null>(null);
+  const [paymentSuccess, setPaymentSuccess] =
+    useState<PaymentSuccessData | null>(null);
 
   const fetchStatus = async () => {
     try {
@@ -98,9 +102,21 @@ export default function AdmissionPage() {
         method: paymentMethod,
         receiptImage: paymentMethod === "BANK" ? bankReceiptImage : null,
       });
-      setSuccess(
-        `Seat charge paid successfully. Reference: ${res.data.transactionId}`,
-      );
+
+      setPaymentSuccess({
+        type: "DUE",
+        amount: res.data.amount,
+        transactionId: res.data.transactionId,
+        paymentMethod,
+        details: {
+          "Due Type": application.seatCharge.dueType,
+          Hall: application.hall.replace(/_/g, " "),
+          "Due Reference": `#${application.seatCharge.id.slice(0, 8)}`,
+          Status: "PAID",
+        },
+      });
+
+      setSuccess("Seat charge paid successfully.");
       await fetchStatus();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -400,6 +416,11 @@ export default function AdmissionPage() {
           </CardContent>
         </Card>
       )}
+
+      <PaymentSuccessModal
+        data={paymentSuccess}
+        onClose={() => setPaymentSuccess(null)}
+      />
     </div>
   );
 }
