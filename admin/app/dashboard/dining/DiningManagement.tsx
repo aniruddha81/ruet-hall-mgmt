@@ -18,15 +18,30 @@ import { getApiErrorMessage } from "@/lib/api";
 import {
   createTomorrowMenu,
   deleteTomorrowMenu,
+  getDateRangeSalesReport,
   getTodayMenus,
   getTomorrowBookings,
   getTomorrowMenusList,
   markTokensAsConsumed,
 } from "@/lib/services/dining.service";
-import type { MealMenu, MealToken, MealType } from "@/lib/types";
+import type {
+  DiningDateRangeSalesReport,
+  MealMenu,
+  MealToken,
+  MealType,
+} from "@/lib/types";
 import { MEAL_TYPES } from "@/lib/types";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Loader2, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useState } from "react";
+
+const formatDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 export default function DiningManagement() {
   const [todayMenus, setTodayMenus] = useState<MealMenu[]>([]);
@@ -35,6 +50,14 @@ export default function DiningManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [reportRange, setReportRange] = useState(() => {
+    const today = formatDateInput(new Date());
+    return {
+      startDate: today,
+      endDate: today,
+    };
+  });
 
   // New menu form
   const [showForm, setShowForm] = useState(false);
@@ -121,6 +144,104 @@ export default function DiningManagement() {
     }
   };
 
+  const handleGenerateDateRangePdf = async () => {
+    setError(null);
+    setSuccess(null);
+
+    const { startDate, endDate } = reportRange;
+    if (!startDate || !endDate) {
+      setError("Please select both start and end dates.");
+      return;
+    }
+
+    if (startDate > endDate) {
+      setError("Start date cannot be after end date.");
+      return;
+    }
+
+    const rangeInDays =
+      Math.floor(
+        (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+          (24 * 60 * 60 * 1000),
+      ) + 1;
+
+    if (rangeInDays > 366) {
+      setError("Please select a range of 366 days or fewer.");
+      return;
+    }
+
+    setGeneratingPdf(true);
+    try {
+      const reportResponse = await getDateRangeSalesReport(startDate, endDate);
+      const report = reportResponse.data as DiningDateRangeSalesReport;
+      const reports = report.days ?? [];
+
+      const rows = reports.map((report) => [
+        report.date,
+        Number(report.lunchTokens ?? 0),
+        Number(report.lunchRevenue ?? 0),
+        Number(report.dinnerTokens ?? 0),
+        Number(report.dinnerRevenue ?? 0),
+        Number(report.totalTokensSold ?? 0),
+        Number(report.totalRevenue ?? 0),
+        Number(report.totalCancellations ?? 0),
+      ]);
+
+      const totalTokens = Number(report.summary?.totalTokensSold ?? 0);
+      const totalRevenue = Number(report.summary?.totalRevenue ?? 0);
+      const totalCancellations = Number(
+        report.summary?.totalCancellations ?? 0,
+      );
+
+      const doc = new jsPDF({ orientation: "landscape" });
+      doc.setFontSize(14);
+      doc.text("Dining Date Range Report", 14, 14);
+      doc.setFontSize(10);
+      doc.text(`Range: ${startDate} to ${endDate}`, 14, 20);
+
+      autoTable(doc, {
+        startY: 26,
+        head: [
+          [
+            "Date",
+            "Lunch Tokens",
+            "Lunch Revenue (BDT)",
+            "Dinner Tokens",
+            "Dinner Revenue (BDT)",
+            "Total Tokens",
+            "Total Revenue (BDT)",
+            "Cancellations",
+          ],
+        ],
+        body: rows,
+        styles: {
+          fontSize: 9,
+        },
+        headStyles: {
+          fillColor: [35, 35, 35],
+        },
+      });
+
+      const summaryY =
+        ((doc as unknown as { lastAutoTable?: { finalY: number } })
+          .lastAutoTable?.finalY ?? 26) + 10;
+
+      doc.setFontSize(10);
+      doc.text(
+        `Summary: Total Tokens ${totalTokens} | Total Revenue ${totalRevenue} BDT | Total Cancellations ${totalCancellations}`,
+        14,
+        summaryY,
+      );
+
+      doc.save(`dining-report-${startDate}-to-${endDate}.pdf`);
+      setSuccess("Date-range dining report PDF generated successfully.");
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -157,6 +278,59 @@ export default function DiningManagement() {
           {success}
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Date-Range PDF Report</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end">
+            <div className="space-y-2">
+              <Label htmlFor="reportStartDate">Start Date</Label>
+              <Input
+                id="reportStartDate"
+                type="date"
+                value={reportRange.startDate}
+                onChange={(e) =>
+                  setReportRange((prev) => ({
+                    ...prev,
+                    startDate: e.target.value,
+                  }))
+                }
+                max={reportRange.endDate || undefined}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reportEndDate">End Date</Label>
+              <Input
+                id="reportEndDate"
+                type="date"
+                value={reportRange.endDate}
+                onChange={(e) =>
+                  setReportRange((prev) => ({
+                    ...prev,
+                    endDate: e.target.value,
+                  }))
+                }
+                min={reportRange.startDate || undefined}
+              />
+            </div>
+            <Button
+              onClick={handleGenerateDateRangePdf}
+              disabled={generatingPdf}
+            >
+              {generatingPdf && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              )}
+              Generate PDF
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Select a date range to export hall-wise dining report data in PDF
+            format.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Create Menu Form */}
       {showForm && (

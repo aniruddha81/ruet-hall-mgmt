@@ -918,6 +918,162 @@ export const getDailyReport = async (req: Request, res: Response) => {
     .json(new ApiResponse(200, report, "Daily report generated successfully"));
 };
 
+// GET /api/v1/dining/report/range - Generate date-range sales history report
+export const getDateRangeSalesReport = async (req: Request, res: Response) => {
+  const manager = requireAdminAccount(req);
+  const { startDate, endDate } = req.query as {
+    startDate: string;
+    endDate: string;
+  };
+
+  const normalizedStartDate = toDateString(new Date(startDate));
+  const normalizedEndDate = toDateString(new Date(endDate));
+
+  if (normalizedStartDate > normalizedEndDate) {
+    throw new ApiError(400, "Start date cannot be after end date");
+  }
+
+  const rangeInDays =
+    Math.floor(
+      (new Date(normalizedEndDate).getTime() -
+        new Date(normalizedStartDate).getTime()) /
+        (24 * 60 * 60 * 1000)
+    ) + 1;
+
+  if (rangeInDays > 366) {
+    throw new ApiError(400, "Date range cannot exceed 366 days");
+  }
+
+  const bookings = await db
+    .select({
+      mealDate: mealTokens.mealDate,
+      mealType: mealTokens.mealType,
+      soldTokens: sql<number>`SUM(CASE WHEN ${mealTokens.cancelledAt} IS NULL THEN ${mealTokens.quantity} ELSE 0 END)`,
+      soldRevenue: sql<number>`SUM(CASE WHEN ${mealTokens.cancelledAt} IS NULL THEN ${mealTokens.totalAmount} ELSE 0 END)`,
+      cancelledTokens: sql<number>`SUM(CASE WHEN ${mealTokens.cancelledAt} IS NOT NULL THEN ${mealTokens.quantity} ELSE 0 END)`,
+    })
+    .from(mealTokens)
+    .where(
+      and(
+        eq(mealTokens.hall, manager.hall),
+        sql`${mealTokens.mealDate} >= CAST(${normalizedStartDate} AS DATE)`,
+        sql`${mealTokens.mealDate} <= CAST(${normalizedEndDate} AS DATE)`
+      )
+    )
+    .groupBy(mealTokens.mealDate, mealTokens.mealType)
+    .orderBy(mealTokens.mealDate);
+
+  const reportByDate = new Map<
+    string,
+    {
+      date: string;
+      lunchTokens: number;
+      lunchRevenue: number;
+      dinnerTokens: number;
+      dinnerRevenue: number;
+      totalTokensSold: number;
+      totalRevenue: number;
+      totalCancellations: number;
+    }
+  >();
+
+  bookings.forEach((row) => {
+    const dateKey = toDateString(new Date(row.mealDate));
+    const existing = reportByDate.get(dateKey) || {
+      date: dateKey,
+      lunchTokens: 0,
+      lunchRevenue: 0,
+      dinnerTokens: 0,
+      dinnerRevenue: 0,
+      totalTokensSold: 0,
+      totalRevenue: 0,
+      totalCancellations: 0,
+    };
+
+    const soldTokens = Number(row.soldTokens || 0);
+    const soldRevenue = Number(row.soldRevenue || 0);
+    const cancelledTokens = Number(row.cancelledTokens || 0);
+
+    if (row.mealType === "LUNCH") {
+      existing.lunchTokens += soldTokens;
+      existing.lunchRevenue += soldRevenue;
+    }
+
+    if (row.mealType === "DINNER") {
+      existing.dinnerTokens += soldTokens;
+      existing.dinnerRevenue += soldRevenue;
+    }
+
+    existing.totalTokensSold += soldTokens;
+    existing.totalRevenue += soldRevenue;
+    existing.totalCancellations += cancelledTokens;
+
+    reportByDate.set(dateKey, existing);
+  });
+
+  const days: Array<{
+    date: string;
+    lunchTokens: number;
+    lunchRevenue: number;
+    dinnerTokens: number;
+    dinnerRevenue: number;
+    totalTokensSold: number;
+    totalRevenue: number;
+    totalCancellations: number;
+  }> = [];
+
+  const cursor = new Date(normalizedStartDate);
+  const end = new Date(normalizedEndDate);
+
+  while (cursor <= end) {
+    const dateKey = toDateString(cursor);
+    days.push(
+      reportByDate.get(dateKey) || {
+        date: dateKey,
+        lunchTokens: 0,
+        lunchRevenue: 0,
+        dinnerTokens: 0,
+        dinnerRevenue: 0,
+        totalTokensSold: 0,
+        totalRevenue: 0,
+        totalCancellations: 0,
+      }
+    );
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  const summary = days.reduce(
+    (acc, day) => {
+      acc.totalTokensSold += day.totalTokensSold;
+      acc.totalRevenue += day.totalRevenue;
+      acc.totalCancellations += day.totalCancellations;
+      acc.lunchTokensSold += day.lunchTokens;
+      acc.dinnerTokensSold += day.dinnerTokens;
+      return acc;
+    },
+    {
+      totalTokensSold: 0,
+      totalRevenue: 0,
+      totalCancellations: 0,
+      lunchTokensSold: 0,
+      dinnerTokensSold: 0,
+    }
+  );
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        startDate: normalizedStartDate,
+        endDate: normalizedEndDate,
+        days,
+        summary,
+      },
+      "Date-range sales report generated successfully"
+    )
+  );
+};
+
 // GET /api/v1/dining/report/monthly - Generate monthly summary
 export const getMonthlyReport = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);

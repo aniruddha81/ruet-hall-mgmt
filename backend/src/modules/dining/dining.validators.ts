@@ -228,6 +228,23 @@ export const getDailyReportSchema = {
 };
 
 /**
+ * Validator for date-range sales report query
+ * GET /api/v1/dining/report/range
+ */
+export const getDateRangeSalesReportSchema = {
+  query: z.object({
+    startDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Start date format must be YYYY-MM-DD")
+      .describe("Start date (YYYY-MM-DD)"),
+    endDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "End date format must be YYYY-MM-DD")
+      .describe("End date (YYYY-MM-DD)"),
+  }),
+};
+
+/**
  * Validator for monthly report query
  * GET /api/v1/dining/report/monthly
  */

@@ -12,6 +12,7 @@ import {
   deleteTomorrowMenu,
   getAllBookingsForMenu,
   getDailyReport,
+  getDateRangeSalesReport,
   getMonthlyReport,
   getMyActiveTokens,
   getMyTokenById,
@@ -35,6 +36,7 @@ import {
   createMenuSchema,
   deleteMenuSchema,
   getDailyReportSchema,
+  getDateRangeSalesReportSchema,
   getMenuBookingsSchema,
   getMonthlyReportSchema,
   getPaymentDetailsSchema,
@@ -185,6 +187,15 @@ diningRouter.get(
   authorizeRoles("DINING_MANAGER"),
   validateRequest(getDailyReportSchema),
   getDailyReport
+);
+
+// Generate date-range sales history report
+diningRouter.get(
+  "/report/range",
+  authenticateToken,
+  authorizeRoles("DINING_MANAGER"),
+  validateRequest(getDateRangeSalesReportSchema),
+  getDateRangeSalesReport
 );
 
 // Generate monthly summary report

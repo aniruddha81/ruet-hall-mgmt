@@ -318,6 +318,28 @@ export interface DailyReport {
   cancelled: number;
 }
 
+export interface DiningDateRangeSalesReport {
+  startDate: string;
+  endDate: string;
+  days: Array<{
+    date: string;
+    lunchTokens: number;
+    lunchRevenue: number;
+    dinnerTokens: number;
+    dinnerRevenue: number;
+    totalTokensSold: number;
+    totalRevenue: number;
+    totalCancellations: number;
+  }>;
+  summary: {
+    totalTokensSold: number;
+    totalRevenue: number;
+    totalCancellations: number;
+    lunchTokensSold: number;
+    dinnerTokensSold: number;
+  };
+}
+
 export interface MonthlyReport {
   month: string;
   year: number;

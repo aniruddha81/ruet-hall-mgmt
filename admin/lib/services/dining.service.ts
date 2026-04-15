@@ -2,6 +2,7 @@ import api from "@/lib/api";
 import type {
   ApiResponse,
   DailyReport,
+  DiningDateRangeSalesReport,
   MealMenu,
   MealPayment,
   MealToken,
@@ -129,6 +130,19 @@ export async function getMonthlyReport(month: number, year: number) {
   const res = await api.get<ApiResponse<MonthlyReport>>(
     "/dining/report/monthly",
     { params: { month, year } },
+  );
+  return res.data;
+}
+
+export async function getDateRangeSalesReport(
+  startDate: string,
+  endDate: string,
+) {
+  const res = await api.get<ApiResponse<DiningDateRangeSalesReport>>(
+    "/dining/report/range",
+    {
+      params: { startDate, endDate },
+    },
   );
   return res.data;
 }
