@@ -1,5 +1,6 @@
 "use client";
 
+import NotificationPortal from "@/components/notification-portal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, LogOut, Menu, Moon, Settings, Shield, Sun, User } from "lucide-react";
+import { LogOut, Menu, Moon, Settings, Shield, Sun, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 
@@ -67,20 +68,13 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                {theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"}
               </TooltipContent>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative rounded-lg">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                  <span className="sr-only">Notifications</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Notifications</TooltipContent>
-            </Tooltip>
+            <NotificationPortal />
 
             {user && onMenuClick ? (
               <Button
@@ -97,15 +91,22 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 rounded-lg px-2">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-2 rounded-lg px-2"
+                  >
                     <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                       <AvatarFallback className="bg-primary text-sm font-semibold text-primary-foreground">
                         {userInitials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="hidden text-left sm:block">
-                      <p className="text-sm font-medium text-foreground">{userName}</p>
-                      <p className="text-xs text-muted-foreground">{userRole}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {userName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {userRole}
+                      </p>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
@@ -113,7 +114,9 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium">{userName}</p>
-                      <p className="text-xs text-muted-foreground">{userRole}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {userRole}
+                      </p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

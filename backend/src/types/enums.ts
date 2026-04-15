@@ -96,6 +96,7 @@ export const DAMAGE_REPORT_STATUSES = [
 export const DUE_TYPES = ["RENT", "FINE", "OTHER"] as const;
 export const DUE_STATUSES = ["UNPAID", "PAID"] as const;
 export const FINANCE_PAYMENT_METHODS = ["CASH", "BANK", "ONLINE"] as const;
+export const NOTIFICATION_AUDIENCES = ["STUDENT", "ADMIN"] as const;
 
 // =================== TYPE GROUP ===================
 export type Role = (typeof ROLES)[number];
@@ -113,3 +114,4 @@ export type FinancePaymentMethod = (typeof FINANCE_PAYMENT_METHODS)[number];
 export type MealType = (typeof MEAL_TYPES)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export type HallAdminStatus = (typeof HALL_ADMIN_STATUSES)[number];
+export type NotificationAudience = (typeof NOTIFICATION_AUDIENCES)[number];

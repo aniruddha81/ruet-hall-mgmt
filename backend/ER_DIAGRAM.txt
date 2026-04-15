@@ -202,6 +202,26 @@ damage_reports [icon: alert-triangle, color: red] {
   updated_at datetime
 }
 
+// --- Notifications ---
+notifications [icon: bell, color: violet] {
+  id varchar [pk]
+  title varchar
+  message text
+  target_audience enum
+  created_by_admin_id varchar
+  created_at datetime
+  updated_at datetime
+}
+
+notification_reads [icon: check-circle, color: violet] {
+  id varchar [pk]
+  notification_id varchar
+  reader_id varchar
+  reader_role enum
+  read_at datetime
+  created_at datetime
+}
+
 // ---------------------------------------------------------
 // RELATIONSHIPS
 // ---------------------------------------------------------
@@ -247,3 +267,7 @@ payments.receipt_verified_by > hall_admins.id
 halls.name < damage_reports.hall
 hall_admins.id < damage_reports.verified_by
 hall_admins.id < damage_reports.fixed_by
+
+// Notification Connections
+hall_admins.id < notifications.created_by_admin_id
+notifications.id < notification_reads.notification_id

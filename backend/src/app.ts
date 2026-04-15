@@ -37,6 +37,7 @@ import authRouter from "./modules/auth/auth.routes.ts";
 import diningRouter from "./modules/dining/dining.routes.ts";
 import financeRouter from "./modules/finance/finance.routes.ts";
 import inventoryRouter from "./modules/inventory/inventory.routes.ts";
+import notificationsRouter from "./modules/notifications/notifications.routes.ts";
 import profileRouter from "./modules/profile/profile.route.ts";
 import ApiResponse from "./utils/ApiResponse.ts";
 
@@ -47,6 +48,7 @@ app.use("/api/dining", diningRouter);
 app.use("/api/admission", admissionRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/finance", financeRouter);
+app.use("/api/notifications", notificationsRouter);
 
 app.get("/", (req, res) => {
   res

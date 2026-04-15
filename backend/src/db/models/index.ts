@@ -4,3 +4,4 @@ export * from "./dining.models.ts";
 export * from "./finance.models.ts";
 export * from "./halls.models.ts";
 export * from "./inventory.models.ts";
+export * from "./notifications.models.ts";

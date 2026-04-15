@@ -44,6 +44,7 @@ export const PAYMENT_METHODS = [
   "CASH",
 ] as const;
 export const FINANCE_PAYMENT_METHODS = ["CASH", "BANK", "ONLINE"] as const;
+export const NOTIFICATION_AUDIENCES = ["STUDENT", "ADMIN"] as const;
 export const SEAT_APPLICATION_STATUSES = [
   "PENDING",
   "APPROVED",
@@ -60,6 +61,7 @@ export type MealType = (typeof MEAL_TYPES)[number];
 export type TokenStatus = (typeof TOKEN_STATUSES)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export type FinancePaymentMethod = (typeof FINANCE_PAYMENT_METHODS)[number];
+export type NotificationAudience = (typeof NOTIFICATION_AUDIENCES)[number];
 export type SeatApplicationStatus = (typeof SEAT_APPLICATION_STATUSES)[number];
 export type DueType = (typeof DUE_TYPES)[number];
 export type DueStatus = (typeof DUE_STATUSES)[number];
@@ -311,6 +313,23 @@ export interface PaymentSuccessData {
 export interface PaymentSuccessProps {
   data: PaymentSuccessData | null;
   onClose: () => void;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  targetAudience: NotificationAudience;
+  createdByAdminId: string;
+  createdByName: string;
+  createdAt: string;
+  readAt: string | null;
+  isRead: boolean;
+}
+
+export interface NotificationListData {
+  notifications: NotificationItem[];
+  unreadCount: number;
 }
 
 export interface Expense {

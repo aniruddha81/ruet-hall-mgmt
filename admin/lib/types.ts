@@ -68,6 +68,7 @@ export const DAMAGE_REPORT_STATUSES = [
 export const DUE_TYPES = ["RENT", "FINE", "OTHER"] as const;
 export const DUE_STATUSES = ["UNPAID", "PAID"] as const;
 export const FINANCE_PAYMENT_METHODS = ["CASH", "BANK", "ONLINE"] as const;
+export const NOTIFICATION_AUDIENCES = ["STUDENT", "ADMIN"] as const;
 export const ROOM_STATUSES = [
   "AVAILABLE",
   "OCCUPIED",
@@ -89,6 +90,7 @@ export type DamageReportStatus = (typeof DAMAGE_REPORT_STATUSES)[number];
 export type DueType = (typeof DUE_TYPES)[number];
 export type DueStatus = (typeof DUE_STATUSES)[number];
 export type FinancePaymentMethod = (typeof FINANCE_PAYMENT_METHODS)[number];
+export type NotificationAudience = (typeof NOTIFICATION_AUDIENCES)[number];
 export type RoomStatus = (typeof ROOM_STATUSES)[number];
 
 // =================== API RESPONSE TYPES ===================
@@ -134,6 +136,23 @@ export interface AdminRegisterResponse {
     name: string;
     role: StaffRole;
   };
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  targetAudience: NotificationAudience;
+  createdByAdminId: string;
+  createdByName: string;
+  createdAt: string;
+  readAt: string | null;
+  isRead: boolean;
+}
+
+export interface NotificationListData {
+  notifications: NotificationItem[];
+  unreadCount: number;
 }
 
 // =================== DINING TYPES ===================

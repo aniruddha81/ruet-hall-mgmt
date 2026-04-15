@@ -1,5 +1,6 @@
 "use client";
 
+import NotificationPortal from "@/components/notification-portal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +19,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Bell,
   GraduationCap,
   LogOut,
   Menu,
@@ -55,7 +55,9 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
               <GraduationCap className="h-5 w-5" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-foreground">RUET Student</h1>
+              <h1 className="text-xl font-bold text-foreground">
+                RUET Student
+              </h1>
               <p className="text-xs text-muted-foreground">Hall Management</p>
             </div>
           </Link>
@@ -75,20 +77,13 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                {theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"}
               </TooltipContent>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative rounded-lg">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                  <span className="sr-only">Notifications</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Notifications</TooltipContent>
-            </Tooltip>
+            <NotificationPortal />
 
             {user && onMenuClick ? (
               <Button
@@ -105,14 +100,19 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 rounded-lg px-2">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-2 rounded-lg px-2"
+                  >
                     <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                       <AvatarFallback className="bg-primary text-sm font-semibold text-primary-foreground">
                         {userInitials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="hidden text-left sm:block">
-                      <p className="text-sm font-medium text-foreground">{userName}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {userName}
+                      </p>
                       <p className="text-xs text-muted-foreground">Student</p>
                     </div>
                   </Button>

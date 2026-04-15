@@ -6,6 +6,7 @@ import { useLayout } from "@/contexts/LayoutContext";
 import type { StaffRole } from "@/lib/types";
 import type { LucideIcon } from "lucide-react";
 import {
+  BellRing,
   Building,
   ClipboardList,
   CreditCard,
@@ -33,6 +34,12 @@ const allNavLinks: NavLink[] = [
     label: "Dashboard",
     href: "/dashboard",
     icon: Home,
+    roles: "all",
+  },
+  {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: BellRing,
     roles: "all",
   },
   {
