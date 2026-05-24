@@ -15,19 +15,20 @@ Use this skill for `backend` service security-sensitive changes.
 
 ## Workflow
 
-1. Read `PROJECT_DOCS.txt` for module and route conventions.
+1. Read `backend/PROJECT_DOCS.txt` for module and route conventions. Check `src/types/enums.ts` for valid role/status enums.
 2. Define trust boundaries for body/query/params/cookies/headers.
 3. Add or update route with:
-   - `validateRequest(...)`
+   - `validateRequest(schema)` — Zod schema defined in `<feature>.validators.ts`
    - `authenticateToken` and `authorizeRoles(...)` where applicable
-4. Keep controller logic fail-closed with consistent `ApiError` and `ApiResponse` use.
+4. Keep controller logic fail-closed: use `throw new ApiError(status, message)` and wrap responses in `ApiResponse`.
 5. Verify hall/resource ownership checks for protected resources.
-6. Review CORS and cookie security behavior for target environment.
-7. Validate with running server (`npm run dev`) and postman collection checks.
+6. Review CORS and cookie security behavior for the target environment.
+7. Validate with `npm run dev` inside `backend/` and postman collection checks.
 
 ## Completion Checks
 
 - New/changed routes have explicit validation and auth decisions.
 - No permissive auth fallback paths.
 - Error responses are controlled and non-leaky.
+- Enum values match `src/types/enums.ts` definitions.
 - Success and abuse-path tests are both covered.

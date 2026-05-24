@@ -1,85 +1,67 @@
 ---
 name: project-context
-description: Proper, in-depth architectural breakdown of the RUET Hall Management System, describing the web, admin, backend, and pay modules.
+description: >-
+  Architectural reference for the RUET Hall Management System monorepo. Use
+  when working on any part of the system to understand module boundaries, tech
+  stacks, database structure, coding conventions, and critical agent rules.
+  Covers web, admin, backend, and pay services.
 ---
 
-# RUET Hall Management System - In-Depth Project Context
+# RUET Hall Management System — Project Context
 
-This skill file provides a deep, project-wise architectural map for the RUET Hall Management System monorepo. It details conventions, technologies, database schemas, and folder structures to strictly adhere to during AI coding tasks.
+Full reference lives in `LLM_CONTEXT.md` at the repo root. Read it first for detailed architecture. This skill summarizes the most critical conventions and quick-reference info.
 
-## 🏢 Monorepo Breakdown
+## Monorepo Services
 
-The repository handles both front-office applications (Student Web Portal) and back-office management (Admin Portal) via a centralized backend API and an isolated payment microservice.
+| Service | Role | Port | Stack |
+|---------|------|------|-------|
+| `web/` | Student portal | 3001 | Next.js (App Router), React 19, HeroUI, Tailwind v4 |
+| `admin/` | Admin back-office | 4001 | Next.js (App Router), React 19, Radix UI, Tailwind v4 |
+| `backend/` | Main API server | 8000 | Express 5.2+, Drizzle ORM, MySQL 8, Zod, TypeScript/tsx |
+| `pay/` | Payment microservice | 8080 | Express 5.2+, TypeScript/tsx |
 
-### 1. `web/` (Student Web Portal)
+## Backend Module Layout
 
-- **Role:** The primary application for students to apply for seats, book meals, check dues, and manage their profiles.
-- **Framework:** Next.js (App Router), React 19, TypeScript.
-- **Styling & UI:**
-  - **Tailwind CSS v4** (`@tailwindcss/postcss`).
-  - **HeroUI (`@heroui/react`)** is the predominant component library for layout, data display, and input elements.
-  - Radix UI (`@radix-ui/react-*`) serves as an underlying primitive for certain interactive components.
-  - Visuals rely on dynamic and smooth styling (often using HeroUI's Framer Motion integration). Always build for a modern aesthetic here.
-- **State & Data:** Uses `axios` for external fetching, `sonner` for rich toasts, and `recharts` for statistical graphs.
-- **Run/Port:** Custom dev starts on Port `3001`.
+```
+src/modules/<feature>/
+  <feature>.routes.ts      # HTTP method → controller + middlewares
+  <feature>.controller.ts  # Business logic (Drizzle queries only, no raw SQL)
+  <feature>.validators.ts  # Zod schemas for body/params/query
+  <feature>.service.ts     # (optional) extracted service logic
+src/db/models/             # Drizzle table definitions (source of truth for schema)
+src/utils/ApiError.ts      # throw new ApiError(status, message)
+src/utils/ApiResponse.ts   # Wrap all responses in ApiResponse
+src/types/enums.ts         # Enum values for roles, statuses, halls
+```
 
-### 2. `admin/` (Administrative Portal)
+Active modules: `auth`, `halls`, `dining`, `admission`, `inventory`, `finance`, `notifications`, `profile`.
 
-- **Role:** The back-office system for hall administrators (Provost, Section Officers, Dining Managers, etc.) to manage students, approve applications, resolve asset damage, and oversee finances.
-- **Framework:** Next.js (App Router), React 19, TypeScript.
-- **Styling & UI:**
-  - **Tailwind CSS v4**.
-  - **Radix UI Primitive Focused**: Relies heavily on `@radix-ui/react-*` components for building highly functional and robust data-management interfaces, alongside `lucide-react` forms.
-  - Less visual flair than the student web app, but highly functional.
-- **Run/Port:** Custom dev starts on Port `4001`.
+## Auth Roles (from enums.ts)
 
-### 3. `backend/` (Main API Server)
+`PROVOST`, `STUDENT`, `ASST_FINANCE`, `FINANCE_SECTION_OFFICER`, `ASST_DINING`, `DINING_MANAGER`, `ASST_INVENTORY`, `INVENTORY_SECTION_OFFICER`
 
-The absolute core of the application. All major data logic occurs here.
+## Backend Key Rules
 
-- **Architecture:** Strict MVC-inspired separation organized by feature module (`auth`, `halls`, `dining`, `admission`, `inventory`, `finance`).
-- **Stack:** Node.js, Express 5.2+ (native async error support), TypeScript execution via `tsx`.
-- **Database:** MySQL 8, manipulated via **Drizzle ORM** (`drizzle-orm`).
-  if there is any change in the schema of db, then the ER_DIAGRAM must be updated accordingly. The ER_DIAGRAM is present in the root of the backend folder.
-- **Data Validation:** Zod schema validation managed strictly in middleware.
-- **File Structure & Conventions:**
-  - `src/modules/<feature>/<feature>.routes.ts`: Maps HTTP methods to controllers and binds middlewares.
-  - `src/modules/<feature>/<feature>.controller.ts`: Main logic block (DO NOT write logic in pure SQL; strictly use Drizzle).
-  - `src/modules/<feature>/<feature>.validators.ts`: Zod schemas for `body`, `params`, `query`. Validated with a custom `validateRequest` middleware.
-  - `src/db/models/*.ts`: Central definition for DB tables and schemas.
-  - `src/utils/ApiError.ts` and `src/utils/ApiResponse.ts`: Strictly wrap outgoing data in `ApiResponse` and throw HTTP errors using `new ApiError(status, message)`.
-- **DB Modules Overview:**
-  - **Auth**: `users`, `refreshTokens`, `hallStudents`, `hallAdmins`. (Multiple role enums: PROVOST, STUDENT, ASST_FINANCE, etc.)
-  - **Dining**: `mealMenus`, `mealTokens`, `mealPayments`.
-  - **Inventory**: `rooms`, `assets`, `damageReports`.
-  - **Finance**: `studentDues`, `payments`, `expenses`.
-  - **Admission**: `seatApplications`, `seatAllocations`.
-- **Run/Port:** Exposed internally/externally on Port `8000`.
+1. **No raw SQL ever.** Schema changes go in `src/db/models/*.ts`, then run `npx drizzle-kit generate && npx drizzle-kit push` inside `backend/`.
+2. **No try/catch.** Express 5 handles async errors; throw `new ApiError(status, message)` directly.
+3. **Validation first.** Define Zod schema in `validators.ts` → bind with `validateRequest(schema)` on the route → controller receives fully validated `req.body`.
+4. **Enum safety.** Always check `src/types/enums.ts` or model definitions before using role/status/hall enum strings.
+5. **ER Diagram.** After any schema change, update `backend/ER_DIAGRAM.txt` to reflect the new state.
 
-### 4. `pay/` (Payment Microservice)
+## UI Library Boundaries
 
-- **Role:** A lightweight, isolated Node.js/Express server used exclusively to handle payment verifications securely.
-- **Stack:** Express 5.2+, TypeScript (`tsx`).
-- **Security:** Checks token validity with the main backend.
-- **Run/Port:** Listens internally on Port `8080`.
+- `web/` → **HeroUI** (`@heroui/react`) as primary; Radix UI only for primitives not covered by HeroUI.
+- `admin/` → **Radix UI** (`@radix-ui/react-*`) + `lucide-react` + Tailwind CSS v4; no HeroUI.
 
-## 🗄️ Infrastructure Details & Docker Compose
+## Infrastructure
 
-The system is heavily containerized.
+- Containerized via Docker Compose (`docker-compose.local.yml` for local dev).
+- Nginx reverse proxy for production (`docker-compose.yml`).
+- Internal network `hallnet`: frontends → `backend:8000`, backend → `pay:8080`.
+- Local DB: MySQL on `3307` externally, `3306` internally.
 
-- **`docker-compose.local.yml`**: Uses a local MySQL database mapped to `3307` externally, but internally services call `3306`.
-- **Reverse Proxy**: Nginx combines traffic across services.
-- **Communication Pattern**: Frontends communicate with the `backend` via REST. The `backend` and `pay` sub-services communicate on the internal docker network (`hallnet`).
+## Key Reference Files
 
-## ⚠️ Critical Agent Rules
-
-When making edits as an AI against this repository, follow these precise rules:
-
-1. **Never write raw SQL files**: All schema modifications MUST occur within `backend/src/db/models/*.ts` and be deployed using `npx drizzle-kit generate` and `push` inside the `backend` folder.
-2. **Respect the UI Library Boundaries**:
-   - While generating components for `web/`, bias toward `HeroUI`.
-   - While generating components for `admin/`, use `Radix UI` primitives combined carefully with Tailwind CSS v4.
-3. **API Logic Formatting**: In the backend, do not use `try/catch` internally if not explicitly necessary; rely on Express 5's async error handling mechanism. Just throw `throw new ApiError(StatusCode, Message)`.
-4. **Validation Pipeline**: In backend feature creation, define the Zod schema first in `validators.ts`, bind the schema to the route using `validateRequest(schema)`, and finally implement the Controller relying on the fact that `req.body` is fully validated.
-
-_This project context acts as your singular point of truth for maintaining the codebase without polluting it with disjointed patterns or anti-patterns._
+- `LLM_CONTEXT.md` — full project architecture and all agent rules
+- `backend/PROJECT_DOCS.txt` — detailed backend conventions, schema overview, API structure
+- `backend/ER_DIAGRAM.txt` — live entity-relationship diagram (keep in sync with models)
