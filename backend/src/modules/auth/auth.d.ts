@@ -1,5 +1,5 @@
-import type { Role } from "../../types/enums.ts";
 import type { Request, Response } from "express";
+import type { Role } from "../../types/enums.ts";
 
 type AccessTokenPayload = {
   userId: string;
@@ -9,7 +9,16 @@ type AccessTokenPayload = {
   rollNumber?: string;
 };
 
-type RefreshTokenPayload = AccessTokenPayload & {
+/**
+ * Refresh tokens deliberately carry only the minimum needed to look the
+ * user up again at renewal time. Email/name/etc. live on the access token
+ * (and are re-derived from the live DB row on every renewal), so role or
+ * profile changes take effect on the very next refresh — no stale data
+ * survives in a long-lived JWT.
+ */
+type RefreshTokenPayload = {
+  userId: string;
+  role: Role;
   jti: string;
 };
 
@@ -18,6 +27,10 @@ type IssueAuthOptions = {
   res: Response;
   tokenPayload: AccessTokenPayload;
   cookiePath?: string;
-  accessMaxAge?: number;
-  refreshMaxAge?: number;
+};
+
+export type {
+  AccessTokenPayload,
+  IssueAuthOptions,
+  RefreshTokenPayload,
 };

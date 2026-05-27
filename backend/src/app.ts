@@ -6,6 +6,14 @@ import { handleError } from "./middlewares/errorHandling.middleware.ts";
 
 const app = express();
 
+// We sit behind Nginx + a Next.js rewrite proxy in every environment, so
+// the immediate "client" is a known reverse proxy. `trust proxy = 1` makes
+// Express honor the first X-Forwarded-For hop, which is what `req.ip` and
+// the registration rate-limiter actually want — without this `req.ip` is
+// the proxy container's address and rate limiting / audit logging are
+// effectively per-deployment, not per-client.
+app.set("trust proxy", 1);
+
 const allowedOrigins = [
   process.env.STUDENT_URL,
   process.env.ADMIN_URL,

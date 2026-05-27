@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
-import { getApiErrorMessage } from "@/lib/api";
+import { getApiErrorMessage, isMaxSessionsError } from "@/lib/api";
 import { Eye, EyeOff, Shield } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -26,19 +26,40 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionLimitReached, setSessionLimitReached] = useState(false);
   const searchParams = useSearchParams();
   const showMessage = searchParams.get("signup") === "success";
   const { login } = useAuth();
+
+  const handleForceLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await login(email, password, { force: true });
+      setSessionLimitReached(false);
+    } catch (err) {
+      setSessionLimitReached(isMaxSessionsError(err));
+      setError(getApiErrorMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setSessionLimitReached(false);
 
     try {
       await login(email, password);
     } catch (err) {
-      setError(getApiErrorMessage(err));
+      if (isMaxSessionsError(err)) {
+        setSessionLimitReached(true);
+        setError(null);
+      } else {
+        setError(getApiErrorMessage(err));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -99,6 +120,27 @@ export default function LoginPage() {
                   {error && (
                     <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                       {error}
+                    </div>
+                  )}
+
+                  {sessionLimitReached && (
+                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-950 dark:text-amber-100">
+                      <p className="font-medium">Two devices already signed in</p>
+                      <p className="mt-1 text-muted-foreground">
+                        This account is active on two browsers or devices. Log out
+                        there first, or end all other sessions and continue here.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-3 h-10 w-full"
+                        disabled={isLoading}
+                        onClick={handleForceLogin}
+                      >
+                        {isLoading
+                          ? "Signing in..."
+                          : "Sign out everywhere and continue"}
+                      </Button>
                     </div>
                   )}
 

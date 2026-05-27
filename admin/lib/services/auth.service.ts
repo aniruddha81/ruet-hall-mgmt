@@ -29,7 +29,11 @@ export async function adminRegister(data: {
   return res.data;
 }
 
-export async function adminLogin(data: { email: string; password: string }) {
+export async function adminLogin(data: {
+  email: string;
+  password: string;
+  force?: boolean;
+}) {
   const res = await api.post<ApiResponse<AdminLoginResponse>>(
     "/auth/admin/login",
     data,

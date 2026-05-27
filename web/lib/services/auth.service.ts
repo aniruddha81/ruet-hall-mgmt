@@ -26,7 +26,11 @@ export async function studentRegister(data: {
   return res.data;
 }
 
-export async function studentLogin(data: { email: string; password: string }) {
+export async function studentLogin(data: {
+  email: string;
+  password: string;
+  force?: boolean;
+}) {
   const res = await api.post<ApiResponse<LoginResponse>>("/auth/login", data);
   return res.data;
 }

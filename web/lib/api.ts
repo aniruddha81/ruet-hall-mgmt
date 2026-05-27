@@ -83,12 +83,25 @@ api.interceptors.response.use(
         // Retry the original request
         return api(originalRequest);
       } catch (refreshError) {
-        // Token refresh failed - refreshToken is invalid/expired
+        // Token refresh failed - refreshToken is invalid/expired.
         processQueue(refreshError as AxiosError);
 
-        // Redirect to login page
         if (typeof window !== "undefined") {
           clearAuthData();
+
+          // Defensively ask the Next.js domain to clear both auth cookies.
+          // The backend's renew endpoint already clears cookies on a 401,
+          // but a network failure or 5xx leaves them intact — without this
+          // step the `refreshToken` cookie would still trip `proxy.ts`
+          // into bouncing /login → /dashboard in an infinite loop.
+          try {
+            await fetch("/api/auth/clear-cookies", {
+              method: "POST",
+              credentials: "include",
+            });
+          } catch {
+            // Best-effort — proceed with redirect regardless.
+          }
 
           const isAuthRoute = ["/login", "/signup"].some(
             (route) =>
@@ -127,4 +140,13 @@ export function getApiErrorMessage(error: unknown): string {
     return error.message;
   }
   return "An unexpected error occurred";
+}
+
+/** True when login was rejected because the account already has 2 active sessions. */
+export function isMaxSessionsError(error: unknown): boolean {
+  if (!axios.isAxiosError(error) || error.response?.status !== 403) {
+    return false;
+  }
+  const message = String(error.response?.data?.message ?? "").toLowerCase();
+  return message.includes("maximum active sessions");
 }

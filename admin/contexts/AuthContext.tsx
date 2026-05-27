@@ -16,11 +16,15 @@ import {
   type ReactNode,
 } from "react";
 
+interface LoginOptions {
+  force?: boolean;
+}
+
 interface AuthContextType {
   user: AdminData | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, options?: LoginOptions) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: AdminData | null) => void;
 }
@@ -76,8 +80,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const login = async (email: string, password: string) => {
-    const res = await adminLogin({ email, password });
+  const login = async (
+    email: string,
+    password: string,
+    options?: LoginOptions,
+  ) => {
+    const res = await adminLogin({
+      email,
+      password,
+      force: options?.force,
+    });
     const adminData = res.data.user;
     setUser(adminData);
     router.push("/dashboard");

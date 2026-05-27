@@ -53,6 +53,13 @@ const studentLoginSchema = {
   body: z.object({
     email: z.email("Invalid email address"),
     password: z.string().min(1, "Password is required"),
+    /**
+     * When true, revoke every existing refresh session for this account
+     * and proceed with login. Used when the user hit the 2-device limit
+     * (e.g. after clearing cookies on other browsers — those slots are
+     * still counted server-side until they expire or are revoked).
+     */
+    force: z.boolean().optional(),
   }),
 };
 
@@ -89,6 +96,7 @@ const adminLoginSchema = {
   body: z.object({
     email: z.email("Invalid email address"),
     password: z.string().min(1, "Password is required"),
+    force: z.boolean().optional(),
   }),
 };
 

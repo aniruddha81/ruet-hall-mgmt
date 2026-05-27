@@ -1,5 +1,8 @@
+import { lt } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
+import { db } from "../../db/index.ts";
+import { refreshTokens } from "../../db/models/index.ts";
 import {
   authenticateToken,
   authorizeRoles,
@@ -62,7 +65,7 @@ const registerRateLimiter = (
   next();
 };
 
-// Periodic cleanup of expired entries (every 30 minutes)
+// Periodic cleanup of expired rate-limit entries (every 30 minutes)
 setInterval(
   () => {
     const now = Date.now();
@@ -72,6 +75,20 @@ setInterval(
   },
   30 * 60 * 1000
 );
+
+// Periodic cleanup of expired refresh-token rows so the table doesn't grow
+// forever. Runs hourly; failures are swallowed (don't crash the process
+// over a transient DB hiccup).
+const REFRESH_TOKEN_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+const refreshTokenCleanupTimer = setInterval(() => {
+  void db
+    .delete(refreshTokens)
+    .where(lt(refreshTokens.expiresAt, new Date()))
+    .catch((err) => {
+      console.error("Expired refresh-token cleanup failed:", err);
+    });
+}, REFRESH_TOKEN_CLEANUP_INTERVAL_MS);
+refreshTokenCleanupTimer.unref?.();
 
 // public routes
 // student routes

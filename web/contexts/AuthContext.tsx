@@ -16,11 +16,16 @@ import {
   type ReactNode,
 } from "react";
 
+interface LoginOptions {
+  /** Revoke all other refresh sessions, then sign in (2-device limit recovery). */
+  force?: boolean;
+}
+
 interface AuthContextType {
   user: StudentData | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, options?: LoginOptions) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: StudentData | null) => void;
 }
@@ -76,8 +81,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const login = async (email: string, password: string) => {
-    const res = await studentLogin({ email, password });
+  const login = async (
+    email: string,
+    password: string,
+    options?: LoginOptions,
+  ) => {
+    const res = await studentLogin({
+      email,
+      password,
+      force: options?.force,
+    });
     const studentData = res.data.student_data;
     setUser(studentData);
     router.push("/dashboard");
