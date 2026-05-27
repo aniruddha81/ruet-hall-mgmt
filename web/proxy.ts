@@ -27,9 +27,7 @@ export function proxy(request: NextRequest) {
     pathname.startsWith(route),
   );
 
-  if (refreshToken && pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
+  // `/` is always the public welcome page — do not auto-redirect to dashboard.
 
   // Authenticated users should not access login/signup pages
   if (refreshToken && isPublicOnlyRoute) {

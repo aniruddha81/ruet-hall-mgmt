@@ -103,13 +103,14 @@ api.interceptors.response.use(
             // Best-effort — proceed with redirect regardless.
           }
 
-          const isAuthRoute = ["/login", "/signup"].some(
+          const isPublicRoute = ["/", "/login", "/signup"].some(
             (route) =>
               window.location.pathname === route ||
-              window.location.pathname.startsWith(`${route}/`),
+              (route !== "/" &&
+                window.location.pathname.startsWith(`${route}/`)),
           );
 
-          if (!isAuthRoute) {
+          if (!isPublicRoute) {
             window.location.href = "/login";
           }
         }

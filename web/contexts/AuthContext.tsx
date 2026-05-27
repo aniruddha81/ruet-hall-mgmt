@@ -7,7 +7,7 @@ import {
   studentLogin,
 } from "@/lib/services/auth.service";
 import type { StudentData } from "@/lib/types";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   useContext,
@@ -36,23 +36,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<StudentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Hydrate user from localStorage on mount, then validate against backend.
-  // If the access token is expired, the axios 401 interceptor will
-  // transparently renew it using the refresh-token cookie before the
-  // getMyProfile request completes — no manual renewal call needed.
+  // Skip API validation on the public welcome page (`/`) so a stale session
+  // does not trigger refresh failures and a redirect to `/login`.
   useEffect(() => {
     (async () => {
       try {
         const storedUser = getStoredUser();
         if (!storedUser) return;
 
-        // Show cached user immediately while we validate
         setUser(storedUser);
 
-        // Fetch the latest profile from backend.
-        // If accessToken is expired, the axios interceptor will
-        // automatically renew it via refreshToken and retry this request.
+        if (pathname === "/") {
+          return;
+        }
+
         const profileRes = await getMyProfile().catch(() => null);
 
         if (profileRes?.data.profile) {
@@ -60,7 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Profile fetch failed even after interceptor retry — session invalid
         clearAuthData();
         setUser(null);
       } catch {
@@ -70,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [pathname]);
 
   // Sync user to localStorage
   useEffect(() => {
