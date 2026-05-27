@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
-import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 import { db } from "../db/index.ts";
 import { hallAdmins, uniStudents } from "../db/models/auth.models.ts";
 import {
@@ -36,12 +35,13 @@ export const authenticateToken = async (
   try {
     decoded = verifyAccessToken(token);
   } catch (err) {
-    if (err instanceof TokenExpiredError) {
+    // jsonwebtoken is CJS — use `name` instead of named ESM imports for errors.
+    if (err instanceof Error && err.name === "TokenExpiredError") {
       // Don't clear cookies here — the frontend interceptor relies on a 401
       // (with the refreshToken cookie still set) to trigger a silent renew.
       throw new ApiError(401, "Access token has expired");
     }
-    if (err instanceof JsonWebTokenError) {
+    if (err instanceof Error && err.name === "JsonWebTokenError") {
       // Bad signature / malformed token = abandon the session entirely.
       clearAuthCookies(res);
       throw new ApiError(401, "Invalid access token");
