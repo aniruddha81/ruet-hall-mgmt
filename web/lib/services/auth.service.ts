@@ -29,7 +29,6 @@ export async function studentRegister(data: {
 export async function studentLogin(data: {
   email: string;
   password: string;
-  force?: boolean;
 }) {
   const res = await api.post<ApiResponse<LoginResponse>>("/auth/login", data);
   return res.data;

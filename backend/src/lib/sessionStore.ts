@@ -67,22 +67,16 @@ export async function countActiveSessions(userId: string): Promise<number> {
 }
 
 export async function enforceSessionLimitOrThrow(
-  userId: string,
-  force?: boolean
+  userId: string
 ): Promise<void> {
   const activeCount = await countActiveSessions(userId);
   if (activeCount < MAX_ACTIVE_SESSIONS_PER_USER) {
     return;
   }
 
-  if (force) {
-    await revokeAllUserSessions(userId);
-    return;
-  }
-
   throw new ApiError(
     403,
-    "Maximum active sessions reached (2 devices). Log out on another device, wait for sessions to expire, or sign in again and choose to end all other sessions."
+    "Maximum active sessions reached (2 devices). Log out on another device, or wait for sessions to expire."
   );
 }
 

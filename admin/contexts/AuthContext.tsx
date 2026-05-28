@@ -16,15 +16,11 @@ import {
   type ReactNode,
 } from "react";
 
-interface LoginOptions {
-  force?: boolean;
-}
-
 interface AuthContextType {
   user: AdminData | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, options?: LoginOptions) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: AdminData | null) => void;
 }
@@ -75,12 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (
     email: string,
     password: string,
-    options?: LoginOptions,
   ) => {
     const res = await adminLogin({
       email,
       password,
-      force: options?.force,
     });
     const adminData = res.data.user;
     setUser(adminData);

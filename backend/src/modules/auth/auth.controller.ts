@@ -294,7 +294,7 @@ export const updateAcademicSession = async (req: Request, res: Response) => {
  * Login a student with email and password
  */
 export const studentLogin = async (req: Request, res: Response) => {
-  const { email, password, force } = req.body;
+  const { email, password } = req.body;
 
   const [user] = await db
     .select()
@@ -325,7 +325,7 @@ export const studentLogin = async (req: Request, res: Response) => {
     role: "STUDENT",
   };
 
-  await enforceSessionLimitOrThrow(user.id, force);
+  await enforceSessionLimitOrThrow(user.id);
   await createSessionAndSetCookie({ req, res, payload: sessionPayload });
 
   return res.status(200).json(
@@ -543,7 +543,7 @@ export const adminApplications = async (req: Request, res: Response) => {
  * Login an approved admin account
  */
 export const adminLogin = async (req: Request, res: Response) => {
-  const { email, password, force } = req.body;
+  const { email, password } = req.body;
 
   const [user] = await db
     .select()
@@ -578,7 +578,7 @@ export const adminLogin = async (req: Request, res: Response) => {
     role: user.designation,
   };
 
-  await enforceSessionLimitOrThrow(user.id, force);
+  await enforceSessionLimitOrThrow(user.id);
   await createSessionAndSetCookie({ req, res, payload: sessionPayload });
 
   return res.status(200).json(

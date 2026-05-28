@@ -53,11 +53,6 @@ const studentLoginSchema = {
   body: z.object({
     email: z.email("Invalid email address"),
     password: z.string().min(1, "Password is required"),
-    /**
-     * When true, revoke every existing live session for this account
-     * and proceed with login (2-device limit recovery).
-     */
-    force: z.boolean().optional(),
   }),
 };
 
@@ -94,7 +89,6 @@ const adminLoginSchema = {
   body: z.object({
     email: z.email("Invalid email address"),
     password: z.string().min(1, "Password is required"),
-    force: z.boolean().optional(),
   }),
 };
 
