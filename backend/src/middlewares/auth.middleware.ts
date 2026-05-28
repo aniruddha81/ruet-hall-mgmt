@@ -114,7 +114,7 @@ export const authenticateToken = async (
       rollNumber: student.rollNumber,
       hall: student.hall,
     };
-    req.authAccount = { kind: "STUDENT", student };
+    req.authAccount = { type: "STUDENT", student };
   } else {
     const admin = await loadAdminAccount(liveSession.userId);
     if (!admin) {
@@ -145,7 +145,7 @@ export const authenticateToken = async (
       role: admin.designation,
       hall: admin.hall,
     };
-    req.authAccount = { kind: "ADMIN", admin };
+    req.authAccount = { type: "ADMIN", admin };
   }
 
   req.sessionId = sessionId;

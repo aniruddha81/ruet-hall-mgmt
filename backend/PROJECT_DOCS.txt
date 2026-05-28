@@ -30,7 +30,7 @@ Serves two independent frontends:
   • Admin Panel        - for hall admins to manage seeds, inventory, finances
 
 Core Modules:
-  ✓ Authentication (Auth) - JWT-based login/registration
+  ✓ Authentication (Auth) - Redis-backed session cookies (login/registration)
   ✓ Dining - Meal menu creation, meal token booking, payment tracking
   ✓ Admission - Seat applications, allocations, status tracking
   ✓ Inventory - Room/asset management, damage reporting
@@ -52,7 +52,7 @@ Framework & Libraries:
   • Drizzle ORM 0.45+ - TypeScript ORM with MySQL support
   • MySQL 2 - Database driver
   • Zod 4.3+ - Schema validation
-  • JWT (jsonwebtoken) - Token-based authentication
+  • Redis 5.x - Live session store (opaque session ids)
   • bcrypt 6.0+ - Password hashing
   • Cloudinary - Image/file upload service
   • Morgan - HTTP request logging
@@ -112,7 +112,7 @@ Request Processing Order:
   3. Cookie Parser
   4. Express JSON body parser
   5. Route-specific:
-     a. authenticateToken (JWT verification, extract user)
+     a. authenticateToken (Redis session lookup, hydrate account)
      b. authorizeRoles (role-based access control)
      c. validateRequest (Zod schema validation)
   6. Controller handler
@@ -134,7 +134,7 @@ src/
 │   ├── seed.ts                        # Database seeding script
 │   └── models/
 │       ├── index.ts                   # Export all models
-│       ├── auth.models.ts             # Users, refreshTokens, hallStudents, hallAdmins
+│       ├── auth.models.ts             # uni_students, hall_admins, academic_sessions
 │       ├── halls.models.ts            # Halls, rooms
 │       ├── dining.models.ts           # MealMenus, mealTokens, mealPayments
 │       ├── admission.models.ts        # SeatApplications, seatAllocations
@@ -142,10 +142,15 @@ src/
 │       └── finance.models.ts          # StudentDues, payments, expenses
 │
 ├── middlewares/
-│   ├── auth.middleware.ts             # JWT authentication & role authorization
+│   ├── auth.middleware.ts             # Session authentication & role authorization
 │   ├── errorHandling.middleware.ts    # Global error handler
 │   ├── multer.middleware.ts           # File upload configuration
 │   └── validateRequest.middleware.ts  # Zod schema validation
+│
+├── lib/
+│   ├── redis.ts                       # Shared Redis client (optional if REDIS_URL unset)
+│   ├── sessionStore.ts                # Live sessions (create, revoke, 2-device limit)
+│   └── cache.ts                       # Short-TTL Redis cache helpers
 │
 ├── modules/                           # Feature modules (MVC structure)
 │   ├── auth/
@@ -220,25 +225,24 @@ Configuration Files:
 ## Core Tables
 
 AUTH Module:
-  • users
-    - id (PK, varchar 36)
-    - email, passwordHash, name, phone
-    - role (enum: PROVOST, ASST_FINANCE, FINANCE_SECTION_OFFICER, ASST_DINING,
-            DINING_MANAGER, ASST_INVENTORY, INVENTORY_SECTION_OFFICER, STUDENT)
-    - academicDepartment, isActive, avatarUrl
+  • academic_sessions
+    - id (PK), label (unique), isActive, createdByAdminId (FK → hall_admins)
     - createdAt, updatedAt
 
-  • refreshTokens
-    - id (PK), userId (FK → users), tokenHash, jti, ip, userAgent
-    - expiresAt, createdAt
+  • uni_students
+    - id (PK), email, passwordHash, name, phone, rollNumber (unique)
+    - academicDepartment, session, hall, roomId, status, isActive, isAllocated
+    - avatarUrl, createdAt, updatedAt
 
-  • hallStudents
-    - id (PK), userId (FK → users, unique), rollNumber, session
-    - hall, roomNumber, status, createdAt, updatedAt
+  • hall_admins
+    - id (PK), email, passwordHash, name, phone, hall, designation
+    - operationalUnit, reportingToId, hallAdminStatus, isActive, avatarUrl
+    - createdAt, updatedAt
 
-  • hallAdmins
-    - id (PK), userId (FK → users, unique), hall, designation
-    - operationalUnit, reportingToId, isActive, createdAt, updatedAt
+  Live sessions (Redis, not MySQL):
+    - Key: hallmgmt:session:<sessionId> — JSON payload + TTL (SESSION_TTL, default 10d)
+    - Set: hallmgmt:sessions:user:<userId> — active session ids per account
+    - Max 2 concurrent live sessions per user (enforced at login)
 
 HALLS Module:
   • halls
@@ -365,19 +369,26 @@ FINANCE Module:
 
 ## Base URL
 ────────────────────────────────────────────────────────────────────────────────
-  http://localhost:<PORT>/api/v1
+  http://localhost:<PORT>/api
 
 ## Route Organization
 ────────────────────────────────────────────────────────────────────────────────
 
   /auth
-    POST   /register                      - Student registration (returns accessToken)
-    POST   /login                         - Student login (returns accessToken)
-    POST   /admin/register                - Admin registration (returns accessToken)
-    POST   /admin/login                   - Admin login (returns accessToken)
-    POST   /renew-access-token            - Renew access token via refresh cookie
-    POST   /logout                        - Invalidate current session [auth required]
-    POST   /logout-all                    - Invalidate all sessions [auth required]
+    POST   /register                      - Student registration
+    POST   /login                         - Student login (sets sessionId cookie)
+    GET    /sessions                      - Active academic sessions (signup dropdown; cached)
+    POST   /admin/register                - Admin registration (pending approval)
+    POST   /admin/login                   - Admin login (sets sessionId cookie)
+    PATCH  /admin/approve                 - Approve/reject admin application [provost]
+    GET    /admin/approve                 - List pending admin applications [provost]
+    GET    /sessions/manage               - All academic sessions [admin]
+    POST   /sessions                      - Create academic session [admin]
+    PATCH  /sessions/:sessionId           - Update academic session [admin]
+    POST   /logout                        - Revoke current device session [auth]
+    POST   /logout-all                    - Revoke all device sessions [auth]
+    GET    /devices                       - List live sessions for current user [auth]
+    DELETE /devices/:sessionId            - Revoke one device session [auth]
 
   /dining
     --- STUDENT ---
@@ -439,26 +450,38 @@ FINANCE Module:
 8. AUTHENTICATION & AUTHORIZATION
 ================================================================================
 
-## JWT Flow
+## Session flow (Redis + httpOnly cookie)
 ────────────────────────────────────────────────────────────────────────────────
 
-  Registration → Login → Issue JWT/Refresh Token → Include in requests
+  Registration → Login → Create live session in Redis → Set sessionId cookie
 
-  • Access Token: Short-lived (15 min typically)
-  • Refresh Token: Long-lived (7 days), stored in HTTP-only cookie
+  • Cookie name: sessionId (see Constants.ts SESSION_COOKIE_NAME)
+  • Cookie flags: httpOnly, sameSite=strict, secure in production
+  • TTL: SESSION_TTL env (default 10d), sliding refresh on each authenticated request
+  • Max 2 live sessions per account; extra logins return 403 until another device logs out
 
-  Response on successful login/register:
+  Response on successful student login:
     {
       "statusCode": 200,
       "data": {
-        "accessToken": "eyJhbGc...",   // ← Use this as Bearer token
-        "student_data": { ... }         // or "user" for admin endpoints
+        "student_data": { "id", "email", "name", ... }
       },
       "message": "User logged in successfully"
     }
 
-  NOTE: accessToken is also set as an httpOnly cookie with path "/"
-  so it is automatically sent with all subsequent requests from browsers.
+  Response on successful admin login:
+    {
+      "statusCode": 200,
+      "data": {
+        "user": { "id", "email", "name", "designation", ... }
+      },
+      "message": "Admin logged in successfully"
+    }
+
+  Browsers: send sessionId automatically on /api/* (cookie path "/").
+  API clients: Authorization: Bearer <sessionId> (same opaque id).
+
+  Logout: revoke session in Redis + clearSessionCookie (sessionId only).
 
 ## Authorization Levels
 ────────────────────────────────────────────────────────────────────────────────
@@ -472,7 +495,7 @@ FINANCE Module:
 
   Authorization Pattern:
     router.post("/endpoint",
-      authenticateToken,                    // ← Verify JWT, extract user
+      authenticateToken,                    // ← Resolve Redis session, attach user
       authorizeRoles("ROLE1", "ROLE2"),    // ← Check if user has role
       validateRequest(schema),              // ← Validate input
       controller                             // ← Execute handler
@@ -482,10 +505,11 @@ FINANCE Module:
 ────────────────────────────────────────────────────────────────────────────────
 
   authenticateToken(req, res, next)
-    • Extracts JWT from Authorization header (Bearer token)
-    • Verifies token signature
-    • Attaches user object to req.user
-    • Throws 401 if token invalid/expired
+    • Reads sessionId from cookie (sessionId) or Authorization: Bearer <sessionId>
+    • Loads live session from Redis; touches TTL (sliding window)
+    • Hydrates uni_students or hall_admins from MySQL (short Redis account cache)
+    • Sets req.user, req.authAccount, req.sessionId
+    • Clears sessionId cookie and throws 401/403 if session or account is invalid
 
   authorizeRoles(...roles)
     • Checks if req.user.role is in allowed roles
@@ -732,7 +756,7 @@ FINANCE Module:
     6. Start development server:
       $ npm run dev
 
-  7. Server runs on: http://localhost:8000/api/v1
+  7. Server runs on: http://localhost:8000/api
 
 ## Database Commands
 ────────────────────────────────────────────────────────────────────────────────
@@ -843,7 +867,7 @@ FINANCE Module:
 ## Security Practices
 ────────────────────────────────────────────────────────────────────────────────
 
-  ✓ JWT stored in HTTP-only cookies
+  ✓ Opaque session id in httpOnly sessionId cookie (Redis-backed)
   ✓ Passwords hashed with bcrypt (10 salt rounds)
   ✓ Role-based access control on every sensitive route
   ✓ Validate all user inputs with Zod
@@ -862,8 +886,8 @@ FINANCE Module:
   • SQL Enum Naming: Always use <fieldName>SQL_Enum (file-specific, not exported)
   • Model Relationships: All FKs reference correct fields (e.g., hallAdmins.id
     not users.id for admin-only actions)
-  • Frontend Requests: Include Authorization header for protected routes
-    Header format: Authorization: Bearer <accessToken>
+  • Frontend Requests: Browser apps rely on credentials: true so sessionId cookie
+    is sent to /api/*. Non-browser clients may use Authorization: Bearer <sessionId>
   • All controllers should be plain async functions (no extra wrapper)
   • All responses MUST use ApiResponse class
   • All errors MUST use ApiError class
@@ -874,8 +898,9 @@ FINANCE Module:
     will fail with a constraint error.
   • req.query / req.params are readonly in Express — validateRequest uses
     Object.defineProperty() to safely overwrite with validated Zod output.
-  • Cookie path is set to "/" so accessToken cookie is sent with ALL routes,
-    not just /api/v1/auth/* routes.
+  • Cookie path is "/" so sessionId is sent with all /api/* proxied requests.
+  • REDIS_URL must be set in production; without Redis, login/session routes fail.
+  • clearSessionCookie only clears sessionId (legacy accessToken/refreshToken removed).
   • Seeding order: db:seed (halls, rooms, assets, users)
 
 ## Enum Usage

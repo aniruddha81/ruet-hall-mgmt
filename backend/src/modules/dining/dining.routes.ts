@@ -61,7 +61,7 @@ const diningRouter = Router();
 // ==============================================================
 
 // Get tomorrow's lunch and dinner menus for student's hall
-// /api/v1/dining/tomorrow-menus?hall=HallA
+// /api/dining/tomorrow-menus?hall=HallA
 diningRouter.get(
   "/tomorrow-menus",
   authenticateToken,

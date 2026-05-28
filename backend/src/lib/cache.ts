@@ -52,10 +52,10 @@ export async function cacheDel(...keys: string[]): Promise<void> {
 
 export async function invalidateAuthAccountCache(
   userId: string,
-  kind: "STUDENT" | "ADMIN"
+  type: "STUDENT" | "ADMIN"
 ): Promise<void> {
   const key =
-    kind === "STUDENT"
+    type === "STUDENT"
       ? cacheKeys.authAccountStudent(userId)
       : cacheKeys.authAccountAdmin(userId);
   await cacheDel(key);

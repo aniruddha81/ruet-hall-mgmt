@@ -11,7 +11,7 @@ import {
 
 /**
  * Validator for booking meal tokens
- * POST /api/v1/dining/book-tokens
+ * POST /api/dining/book-tokens
  */
 export const bookMealTokensSchema = {
   body: z.object({
@@ -30,7 +30,7 @@ export const bookMealTokensSchema = {
 
 /**
  * Validator for cancelling a meal token
- * PATCH /api/v1/dining/cancel-token/:tokenId
+ * PATCH /api/dining/cancel-token/:tokenId
  */
 export const cancelMealTokenSchema = {
   params: z.object({
@@ -42,7 +42,7 @@ export const cancelMealTokenSchema = {
 
 /**
  * Validator for getting token history with pagination and filters
- * GET /api/v1/dining/token-history
+ * GET /api/dining/token-history
  */
 export const getTokenHistorySchema = {
   query: z.object({
@@ -77,7 +77,7 @@ export const getTokenHistorySchema = {
 
 /**
  * Validator for getting single token by ID
- * GET /api/v1/dining/token/:tokenId
+ * GET /api/dining/token/:tokenId
  */
 export const getTokenByIdSchema = {
   params: z.object({
@@ -93,7 +93,7 @@ export const getTokenByIdSchema = {
 
 /**
  * Validator for creating tomorrow's menu
- * POST /api/v1/dining/menu/create
+ * POST /api/dining/menu/create
  */
 export const createMenuSchema = {
   body: z.object({
@@ -120,7 +120,7 @@ export const createMenuSchema = {
 
 /**
  * Validator for updating menu details
- * PATCH /api/v1/dining/menu/:menuId/update
+ * PATCH /api/dining/menu/:menuId/update
  */
 export const updateMenuSchema = {
   params: z.object({
@@ -191,7 +191,7 @@ export const deleteMealItemSchema = {
 
 /**
  * Validator for deleting a menu
- * DELETE /api/v1/dining/menu/:menuId
+ * DELETE /api/dining/menu/:menuId
  */
 export const deleteMenuSchema = {
   params: z.object({
@@ -203,7 +203,7 @@ export const deleteMenuSchema = {
 
 /**
  * Validator for getting all bookings for a menu
- * GET /api/v1/dining/bookings/menu/:menuId
+ * GET /api/dining/bookings/menu/:menuId
  */
 export const getMenuBookingsSchema = {
   params: z.object({
@@ -231,7 +231,7 @@ export const getMenuBookingsSchema = {
 
 /**
  * Validator for marking tokens as consumed
- * PATCH /api/v1/dining/tokens/mark-consumed
+ * PATCH /api/dining/tokens/mark-consumed
  */
 export const markTokensConsumedSchema = {
   body: z.object({
@@ -244,7 +244,7 @@ export const markTokensConsumedSchema = {
 
 /**
  * Validator for daily report query
- * GET /api/v1/dining/report/daily
+ * GET /api/dining/report/daily
  */
 export const getDailyReportSchema = {
   query: z.object({
@@ -258,7 +258,7 @@ export const getDailyReportSchema = {
 
 /**
  * Validator for date-range sales report query
- * GET /api/v1/dining/report/range
+ * GET /api/dining/report/range
  */
 export const getDateRangeSalesReportSchema = {
   query: z.object({
@@ -275,7 +275,7 @@ export const getDateRangeSalesReportSchema = {
 
 /**
  * Validator for monthly report query
- * GET /api/v1/dining/report/monthly
+ * GET /api/dining/report/monthly
  */
 export const getMonthlyReportSchema = {
   query: z.object({
@@ -298,7 +298,7 @@ export const getMonthlyReportSchema = {
 
 /**
  * Validator for processing payment
- * POST /api/v1/dining/payment/process
+ * POST /api/dining/payment/process
  */
 export const processPaymentSchema = {
   body: z.object({
@@ -324,7 +324,7 @@ export const processPaymentSchema = {
 
 /**
  * Validator for getting payment details
- * GET /api/v1/dining/payment/:paymentId
+ * GET /api/dining/payment/:paymentId
  */
 export const getPaymentDetailsSchema = {
   params: z.object({
@@ -336,7 +336,7 @@ export const getPaymentDetailsSchema = {
 
 /**
  * Validator for processing refund
- * POST /api/v1/dining/payment/:paymentId/refund
+ * POST /api/dining/payment/:paymentId/refund
  */
 export const processRefundSchema = {
   params: z.object({

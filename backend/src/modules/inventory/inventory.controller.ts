@@ -27,7 +27,7 @@ type VerifyDamagePayload = {
 // ========================
 
 /**
- * GET /api/v1/inventory/rooms
+ * GET /api/inventory/rooms
  * List rooms with optional hall/status filters
  */
 export const getRooms = async (req: Request, res: Response) => {
@@ -61,7 +61,7 @@ export const getRooms = async (req: Request, res: Response) => {
 // ========================
 
 /**
- * POST /api/v1/inventory/damage
+ * POST /api/inventory/damage
  * Student submits a complaint with location + asset details
  */
 export const reportDamage = async (req: Request, res: Response) => {
@@ -122,7 +122,7 @@ export const reportDamage = async (req: Request, res: Response) => {
 export const getDamageReports = async (req: Request, res: Response) => {
   const { status } = req.query as { status?: DamageReportStatus };
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) throw new ApiError(403, "Hall admin record not found");
 
@@ -170,7 +170,7 @@ export const getDamageReports = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/v1/inventory/damage/verify/:id
+ * PATCH /api/inventory/damage/verify/:id
  * Admin verifies complaint and decides whether student fine or manager-side cost
  */
 export const verifyDamage = async (req: Request, res: Response) => {
@@ -178,7 +178,7 @@ export const verifyDamage = async (req: Request, res: Response) => {
   const { isStudentResponsible, fineAmount, damageCost, managerNote } =
     req.body as VerifyDamagePayload;
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) throw new ApiError(403, "Hall admin record not found");
 
@@ -257,7 +257,7 @@ export const verifyDamage = async (req: Request, res: Response) => {
 export const markDamageFixed = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) throw new ApiError(403, "Hall admin record not found");
 

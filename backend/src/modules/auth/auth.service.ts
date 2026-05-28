@@ -40,10 +40,7 @@ export const clearSessionCookie = (
   cookiePath: string = "/"
 ): Response => {
   const opts = { ...cookieOptions, path: cookiePath };
-  return res
-    .clearCookie(SESSION_COOKIE_NAME, opts)
-    .clearCookie("accessToken", opts)
-    .clearCookie("refreshToken", opts);
+  return res.clearCookie(SESSION_COOKIE_NAME, opts);
 };
 
 /**

@@ -62,9 +62,9 @@ export const getMyNotifications = async (req: Request, res: Response) => {
   const authAccount = requireAuthenticatedAccount(req);
   const { limit = 20 } = req.query as { limit?: number };
 
-  const viewerRole = authAccount.kind === "STUDENT" ? "STUDENT" : "ADMIN";
+  const viewerRole = authAccount.type === "STUDENT" ? "STUDENT" : "ADMIN";
   const readerId =
-    authAccount.kind === "STUDENT"
+    authAccount.type === "STUDENT"
       ? authAccount.student.id
       : authAccount.admin.id;
 
@@ -141,9 +141,9 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
   const authAccount = requireAuthenticatedAccount(req);
   const { notificationId } = req.params as { notificationId: string };
 
-  const viewerRole = authAccount.kind === "STUDENT" ? "STUDENT" : "ADMIN";
+  const viewerRole = authAccount.type === "STUDENT" ? "STUDENT" : "ADMIN";
   const readerId =
-    authAccount.kind === "STUDENT"
+    authAccount.type === "STUDENT"
       ? authAccount.student.id
       : authAccount.admin.id;
 

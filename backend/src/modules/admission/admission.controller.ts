@@ -20,7 +20,7 @@ import { getSeatChargeForApplication } from "./admission.service.ts";
 // ========================
 
 /**
- * POST /api/v1/admission/apply
+ * POST /api/admission/apply
  * Student submits a seat application for a hall
  */
 export const applyForSeat = async (req: Request, res: Response) => {
@@ -88,7 +88,7 @@ export const applyForSeat = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/admission/my-status
+ * GET /api/admission/my-status
  * Student views own application status history
  */
 export const getMyStatus = async (req: Request, res: Response) => {
@@ -137,12 +137,12 @@ export const getMyStatus = async (req: Request, res: Response) => {
 // ========================
 
 /**
- * GET /api/v1/admission/applications
+ * GET /api/admission/applications
  * Admin lists seat applications with optional hall/status filters + pagination
  */
 export const getApplications = async (req: Request, res: Response) => {
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) {
     throw new ApiError(403, "Hall admin record not found");
@@ -237,14 +237,14 @@ export const getApplications = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/v1/admission/review/:id
+ * PATCH /api/admission/review/:id
  * Provost reviews and updates application status (approve/reject)
  */
 export const reviewApplication = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const { status } = req.body;
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) throw new ApiError(403, "Hall admin record not found");
 
@@ -280,14 +280,14 @@ export const reviewApplication = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/admission/applications/:id/seat-charge
+ * POST /api/admission/applications/:id/seat-charge
  * Create the seat allocation charge for an approved application
  */
 export const createSeatCharge = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const { amount } = req.body;
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) throw new ApiError(403, "Hall admin record not found");
 
@@ -353,13 +353,13 @@ export const createSeatCharge = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/admission/allocate
+ * POST /api/admission/allocate
  * Provost allocates a room to an approved applicant
  */
 export const allocateSeat = async (req: Request, res: Response) => {
   const { applicationId, roomId } = req.body;
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin) throw new ApiError(403, "Hall admin record not found");
 

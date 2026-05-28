@@ -35,11 +35,11 @@ declare global {
 
       authAccount?:
         | {
-            kind: "STUDENT";
+            type: "STUDENT";
             student: StudentRecord;
           }
         | {
-            kind: "ADMIN";
+            type: "ADMIN";
             admin: HallAdminRecord;
           };
     }

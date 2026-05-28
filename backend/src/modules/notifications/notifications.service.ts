@@ -12,7 +12,7 @@ export const requireAuthenticatedAccount = (req: Request) => {
 export const requireAdminAccount = (req: Request) => {
   const account = requireAuthenticatedAccount(req);
 
-  if (account.kind !== "ADMIN") {
+  if (account.type !== "ADMIN") {
     throw new ApiError(403, "Only admins can perform this action");
   }
 

@@ -32,7 +32,7 @@ import {
 } from "./auth.service.ts";
 
 /**
- * POST /api/v1/auth/register
+ * POST /api/auth/register
  * Register a new student account
  */
 export const studentRegister = async (req: Request, res: Response) => {
@@ -122,7 +122,7 @@ export const studentRegister = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/auth/sessions
+ * GET /api/auth/sessions
  * Public endpoint to retrieve active sessions for student signup
  */
 export const getActiveAcademicSessions = async (
@@ -156,7 +156,7 @@ export const getActiveAcademicSessions = async (
 };
 
 /**
- * GET /api/v1/auth/sessions/manage
+ * GET /api/auth/sessions/manage
  * Admin endpoint to retrieve all sessions for management
  */
 export const getAllAcademicSessions = async (_req: Request, res: Response) => {
@@ -180,12 +180,12 @@ export const getAllAcademicSessions = async (_req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/auth/sessions
+ * POST /api/auth/sessions
  * Create a new academic session (allowed for non-dining admins)
  */
 export const createAcademicSession = async (req: Request, res: Response) => {
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
   if (!admin) {
     throw new ApiError(401, "Admin authentication required");
   }
@@ -227,7 +227,7 @@ export const createAcademicSession = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/v1/auth/sessions/:sessionId
+ * PATCH /api/auth/sessions/:sessionId
  * Update academic session label/active status (allowed for non-dining admins)
  */
 export const updateAcademicSession = async (req: Request, res: Response) => {
@@ -290,7 +290,7 @@ export const updateAcademicSession = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/auth/login
+ * POST /api/auth/login
  * Login a student with email and password
  */
 export const studentLogin = async (req: Request, res: Response) => {
@@ -353,7 +353,7 @@ export const studentLogin = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/auth/admin/register
+ * POST /api/auth/admin/register
  * Register a new admin account with hall assignment
  */
 export const adminRegister = async (req: Request, res: Response) => {
@@ -476,14 +476,14 @@ export const adminRegister = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/auth/admin/approval
+ * POST /api/auth/admin/approval
  * Update an admin application's approval status (provost only)
  */
 export const adminApproval = async (req: Request, res: Response) => {
   const { adminApplicationId, status } = req.body;
 
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin || admin.designation !== "PROVOST") {
     throw new ApiError(403, "Only provosts can approve admin applications");
@@ -506,12 +506,12 @@ export const adminApproval = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/auth/admin/applications
+ * GET /api/auth/admin/applications
  * Retrieve pending admin applications (provost only)
  */
 export const adminApplications = async (req: Request, res: Response) => {
   const admin =
-    req.authAccount?.kind === "ADMIN" ? req.authAccount.admin : null;
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
   if (!admin || admin.designation !== "PROVOST") {
     throw new ApiError(403, "Only provosts can view admin applications");
@@ -539,7 +539,7 @@ export const adminApplications = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/auth/admin/login
+ * POST /api/auth/admin/login
  * Login an approved admin account
  */
 export const adminLogin = async (req: Request, res: Response) => {
@@ -606,7 +606,7 @@ export const adminLogin = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/auth/logout
+ * POST /api/auth/logout
  * Logout from the current device (revoke this Redis session).
  */
 export const logout = async (req: Request, res: Response) => {
@@ -623,7 +623,7 @@ export const logout = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/auth/logout-all
+ * POST /api/auth/logout-all
  * Logout from all devices (revoke every Redis session for this user).
  */
 export const logoutAll = async (req: Request, res: Response) => {
@@ -643,7 +643,7 @@ export const logoutAll = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/auth/devices
+ * GET /api/auth/devices
  * List active Redis sessions for the signed-in user.
  */
 export const getActiveDeviceSessions = async (req: Request, res: Response) => {
@@ -673,7 +673,7 @@ export const getActiveDeviceSessions = async (req: Request, res: Response) => {
 };
 
 /**
- * DELETE /api/v1/auth/devices/:sessionId
+ * DELETE /api/auth/devices/:sessionId
  * Revoke a specific device session (must belong to the current user).
  */
 export const revokeDeviceSession = async (req: Request, res: Response) => {

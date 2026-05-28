@@ -26,7 +26,7 @@ const isSupportedReceiptFile = (mimetype?: string) =>
 // ========================
 
 /**
- * POST /api/v1/finance/dues
+ * POST /api/finance/dues
  * Admin creates a due for a student
  */
 export const createDue = async (req: Request, res: Response) => {
@@ -62,7 +62,7 @@ export const createDue = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/v1/finance/dues/:id/pay
+ * PATCH /api/finance/dues/:id/pay
  * Admin marks a due as paid
  */
 export const payDue = async (req: Request, res: Response) => {
@@ -140,7 +140,7 @@ export const payDue = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/finance/my-dues/pay/:id
+ * POST /api/finance/my-dues/pay/:id
  * Student pays one of their own hall dues through the payment gateway
  */
 export const payMyDue = async (req: Request, res: Response) => {
@@ -199,7 +199,7 @@ export const payMyDue = async (req: Request, res: Response) => {
 // ========================
 
 /**
- * POST /api/v1/finance/expense
+ * POST /api/finance/expense
  * Admin records an expense
  */
 export const createExpense = async (req: Request, res: Response) => {
@@ -223,7 +223,7 @@ export const createExpense = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/finance/expenses
+ * GET /api/finance/expenses
  * List expenses with optional hall filter + pagination
  */
 export const getExpenses = async (req: Request, res: Response) => {
@@ -279,7 +279,7 @@ export const getExpenses = async (req: Request, res: Response) => {
 // ========================
 
 /**
- * GET /api/v1/finance/student/:id/ledger
+ * GET /api/finance/student/:id/ledger
  * Retrieve a student's full financial ledger (dues + payments + summary)
  */
 export const getStudentLedger = async (req: Request, res: Response) => {
@@ -368,7 +368,7 @@ export const getStudentLedger = async (req: Request, res: Response) => {
 // ========================
 
 /**
- * GET /api/v1/finance/meal-payments
+ * GET /api/finance/meal-payments
  * Get all meal payments with filters (for finance officers)
  */
 export const getMealPayments = async (req: Request, res: Response) => {
@@ -442,7 +442,7 @@ export const getMealPayments = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/finance/meal-payment/:id
+ * GET /api/finance/meal-payment/:id
  * Get specific meal payment details
  */
 export const getMealPaymentById = async (req: Request, res: Response) => {
@@ -487,7 +487,7 @@ export const getMealPaymentById = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/finance/meal-payments/report
+ * GET /api/finance/meal-payments/report
  * Generate meal payment revenue report
  */
 export const getMealPaymentsReport = async (req: Request, res: Response) => {
@@ -557,7 +557,7 @@ export const getMealPaymentsReport = async (req: Request, res: Response) => {
 // ========================
 
 /**
- * GET /api/v1/finance/my-dues
+ * GET /api/finance/my-dues
  * Student views their own dues
  */
 export const getMyDues = async (req: Request, res: Response) => {
@@ -590,7 +590,7 @@ export const getMyDues = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/finance/my-ledger
+ * GET /api/finance/my-ledger
  * Student views their own financial ledger
  */
 export const getMyLedger = async (req: Request, res: Response) => {

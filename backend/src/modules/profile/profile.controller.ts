@@ -30,7 +30,7 @@ export const uploadImage = async (req: Request, res: Response) => {
     throw new ApiError(500, "Failed to upload avatar");
   }
 
-  if (authAccount.kind === "STUDENT") {
+  if (authAccount.type === "STUDENT") {
     await db
       .update(uniStudents)
       .set({ avatarUrl: avatarCloudinaryUrl.url })
@@ -47,10 +47,10 @@ export const uploadImage = async (req: Request, res: Response) => {
   }
 
   await invalidateAuthAccountCache(
-    authAccount.kind === "STUDENT"
+    authAccount.type === "STUDENT"
       ? authAccount.student.id
       : authAccount.admin.id,
-    authAccount.kind
+    authAccount.type
   );
 
   res
@@ -65,7 +65,7 @@ export const uploadImage = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/profile/me
+ * GET /api/profile/me
  * Get current user's full profile
  */
 export const getMyProfile = async (req: Request, res: Response) => {
@@ -75,7 +75,7 @@ export const getMyProfile = async (req: Request, res: Response) => {
     throw new ApiError(401, "Authentication required");
   }
 
-  if (authAccount.kind === "STUDENT") {
+  if (authAccount.type === "STUDENT") {
     const student = authAccount.student;
 
     const profile = {
@@ -121,7 +121,7 @@ export const getMyProfile = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/v1/profile/update
+ * PATCH /api/profile/update
  * Update current user's profile (name, phone)
  */
 export const updateProfile = async (req: Request, res: Response) => {
@@ -140,7 +140,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     throw new ApiError(400, "No fields to update");
   }
 
-  if (authAccount.kind === "STUDENT") {
+  if (authAccount.type === "STUDENT") {
     await db
       .update(uniStudents)
       .set(updateData)
@@ -171,17 +171,17 @@ export const updateProfile = async (req: Request, res: Response) => {
   }
 
   await invalidateAuthAccountCache(
-    authAccount.kind === "STUDENT"
+    authAccount.type === "STUDENT"
       ? authAccount.student.id
       : authAccount.admin.id,
-    authAccount.kind
+    authAccount.type
   );
 
   res.status(200).json(new ApiResponse(200, updateData, "Profile updated"));
 };
 
 /**
- * PATCH /api/v1/profile/change-password
+ * PATCH /api/profile/change-password
  * Change current user's password
  */
 export const changePassword = async (req: Request, res: Response) => {
@@ -193,7 +193,7 @@ export const changePassword = async (req: Request, res: Response) => {
     throw new ApiError(401, "Authentication required");
   }
 
-  if (authAccount.kind === "STUDENT") {
+  if (authAccount.type === "STUDENT") {
     const student = authAccount.student;
 
     const isValid = await bcrypt.compare(currentPassword, student.passwordHash);

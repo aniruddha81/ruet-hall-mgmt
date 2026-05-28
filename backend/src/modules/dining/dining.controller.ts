@@ -62,7 +62,7 @@ const getActiveMealItemsByIds = async (itemIds: string[]) => {
 // STUDENT CONTROLLERS - MEAL TOKEN BOOKING & MANAGEMENT
 
 /**
- * GET /api/v1/dining/tomorrow-menus
+ * GET /api/dining/tomorrow-menus
  * Get tomorrow's lunch and dinner menus for a hall
  */
 export const getTomorrowMenus = async (req: Request, res: Response) => {
@@ -86,7 +86,7 @@ export const getTomorrowMenus = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/dining/book-tokens
+ * POST /api/dining/book-tokens
  * Book meal tokens for tomorrow's meal
  */
 export const bookMealTokens = async (req: Request, res: Response) => {
@@ -282,7 +282,7 @@ export const bookMealTokens = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/dining/my-active-tokens
+ * GET /api/dining/my-active-tokens
  * Get student's active tokens for tomorrow's meals
  */
 export const getMyActiveTokens = async (req: Request, res: Response) => {
@@ -320,7 +320,7 @@ export const getMyActiveTokens = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/v1/dining/cancel-token/:tokenId
+ * PATCH /api/dining/cancel-token/:tokenId
  * Cancel a booked meal token before the meal date
  */
 export const cancelMealToken = async (req: Request, res: Response) => {
@@ -397,7 +397,7 @@ export const cancelMealToken = async (req: Request, res: Response) => {
   );
 };
 
-// GET /api/v1/dining/token-history - Get student's token purchase history
+// GET /api/dining/token-history - Get student's token purchase history
 export const getMyTokenHistory = async (req: Request, res: Response) => {
   const student = requireStudentAccount(req);
   const { page = 1, limit = 10, status, startDate, endDate } = req.query;
@@ -466,7 +466,7 @@ export const getMyTokenHistory = async (req: Request, res: Response) => {
   );
 };
 
-// GET /api/v1/dining/token/:tokenId - Get token details
+// GET /api/dining/token/:tokenId - Get token details
 export const getMyTokenById = async (req: Request, res: Response) => {
   const student = requireStudentAccount(req);
   const { tokenId } = req.params as { tokenId: string };
@@ -514,7 +514,7 @@ export const getMyTokenById = async (req: Request, res: Response) => {
 
 // DINING MANAGER CONTROLLERS - MENU & BOOKING MANAGEMENT
 
-// POST /api/v1/dining/menu/create - Create menu for tomorrow
+// POST /api/dining/menu/create - Create menu for tomorrow
 export const createTomorrowMenu = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
   const { mealType, mealItemIds, price, totalTokens } = req.body;
@@ -586,7 +586,7 @@ export const createTomorrowMenu = async (req: Request, res: Response) => {
   );
 };
 
-// PATCH /api/v1/dining/menu/:menuId/update - Update tomorrow's menu
+// PATCH /api/dining/menu/:menuId/update - Update tomorrow's menu
 export const updateTomorrowMenu = async (req: Request, res: Response) => {
   const { menuId } = req.params as { menuId: string };
   const { mealItemIds, price, totalTokens } = req.body;
@@ -666,7 +666,7 @@ export const updateTomorrowMenu = async (req: Request, res: Response) => {
     );
 };
 
-// DELETE /api/v1/dining/menu/:menuId - Delete tomorrow's menu (only if no bookings)
+// DELETE /api/dining/menu/:menuId - Delete tomorrow's menu (only if no bookings)
 export const deleteTomorrowMenu = async (req: Request, res: Response) => {
   const { menuId } = req.params as { menuId: string };
   const manager = requireAdminAccount(req);
@@ -696,7 +696,7 @@ export const deleteTomorrowMenu = async (req: Request, res: Response) => {
     .json(new ApiResponse(200, { menuId }, "Menu deleted successfully"));
 };
 
-// GET /api/v1/dining/menus/tomorrow - View tomorrow's menus
+// GET /api/dining/menus/tomorrow - View tomorrow's menus
 export const getTomorrowMenusList = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
 
@@ -729,7 +729,7 @@ export const getTomorrowMenusList = async (req: Request, res: Response) => {
     );
 };
 
-// GET /api/v1/dining/menus/today - View today's menus
+// GET /api/dining/menus/today - View today's menus
 export const getTodayMenus = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
 
@@ -760,7 +760,7 @@ export const getTodayMenus = async (req: Request, res: Response) => {
     .json(new ApiResponse(200, menus, "Today's menus retrieved successfully"));
 };
 
-// GET /api/v1/dining/meal-items - List meal items for dropdown composition
+// GET /api/dining/meal-items - List meal items for dropdown composition
 export const getMealItems = async (_req: Request, res: Response) => {
   const items = await db
     .select({
@@ -780,7 +780,7 @@ export const getMealItems = async (_req: Request, res: Response) => {
     .json(new ApiResponse(200, { items }, "Meal items retrieved successfully"));
 };
 
-// POST /api/v1/dining/meal-items - Create a new meal item
+// POST /api/dining/meal-items - Create a new meal item
 export const createMealItem = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
   const { name } = req.body;
@@ -819,7 +819,7 @@ export const createMealItem = async (req: Request, res: Response) => {
   );
 };
 
-// PATCH /api/v1/dining/meal-items/:itemId - Update meal item
+// PATCH /api/dining/meal-items/:itemId - Update meal item
 export const updateMealItem = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
   const { itemId } = req.params as { itemId: string };
@@ -873,7 +873,7 @@ export const updateMealItem = async (req: Request, res: Response) => {
     );
 };
 
-// DELETE /api/v1/dining/meal-items/:itemId - Delete unused meal item
+// DELETE /api/dining/meal-items/:itemId - Delete unused meal item
 export const deleteMealItem = async (req: Request, res: Response) => {
   const { itemId } = req.params as { itemId: string };
 
@@ -907,7 +907,7 @@ export const deleteMealItem = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/v1/dining/bookings/menu/:menuId
+ * GET /api/dining/bookings/menu/:menuId
  * Get all bookings for a specific menu
  */
 export const getAllBookingsForMenu = async (req: Request, res: Response) => {
@@ -988,7 +988,7 @@ export const getAllBookingsForMenu = async (req: Request, res: Response) => {
   );
 };
 
-// GET /api/v1/dining/bookings/tomorrow - Get all bookings for tomorrow
+// GET /api/dining/bookings/tomorrow - Get all bookings for tomorrow
 export const getTomorrowBookings = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
 
@@ -1035,7 +1035,7 @@ export const getTomorrowBookings = async (req: Request, res: Response) => {
 };
 
 /**
- * PATCH /api/v1/dining/tokens/mark-consumed
+ * PATCH /api/dining/tokens/mark-consumed
  * Mark tokens as consumed after meal service
  */
 export const markTokensAsConsumed = async (req: Request, res: Response) => {
@@ -1058,7 +1058,7 @@ export const markTokensAsConsumed = async (req: Request, res: Response) => {
   );
 };
 
-// GET /api/v1/dining/report/daily - Generate daily consumption report
+// GET /api/dining/report/daily - Generate daily consumption report
 export const getDailyReport = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
   const { date } = req.query;
@@ -1120,7 +1120,7 @@ export const getDailyReport = async (req: Request, res: Response) => {
     .json(new ApiResponse(200, report, "Daily report generated successfully"));
 };
 
-// GET /api/v1/dining/report/range - Generate date-range sales history report
+// GET /api/dining/report/range - Generate date-range sales history report
 export const getDateRangeSalesReport = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
   const { startDate, endDate } = req.query as {
@@ -1276,7 +1276,7 @@ export const getDateRangeSalesReport = async (req: Request, res: Response) => {
   );
 };
 
-// GET /api/v1/dining/report/monthly - Generate monthly summary
+// GET /api/dining/report/monthly - Generate monthly summary
 export const getMonthlyReport = async (req: Request, res: Response) => {
   const manager = requireAdminAccount(req);
   const { month, year } = req.query;
@@ -1337,7 +1337,7 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
 
 // PAYMENT CONTROLLERS - SHARED BY STUDENT & MANAGER
 
-// POST /api/v1/dining/payment/process - Process payment
+// POST /api/dining/payment/process - Process payment
 export const processPayment = async (req: Request, res: Response) => {
   const student = requireStudentAccount(req);
   const { amount, paymentMethod, transactionId, totalQuantity } = req.body;
@@ -1378,7 +1378,7 @@ export const processPayment = async (req: Request, res: Response) => {
   );
 };
 
-// GET /api/v1/dining/payment/:paymentId - Get payment details
+// GET /api/dining/payment/:paymentId - Get payment details
 export const getPaymentDetails = async (req: Request, res: Response) => {
   const { paymentId } = req.params as { paymentId: string };
   const userRole = req.user?.role;
@@ -1439,7 +1439,7 @@ export const getPaymentDetails = async (req: Request, res: Response) => {
     );
 };
 
-// POST /api/v1/dining/payment/:paymentId/refund - Process refund
+// POST /api/dining/payment/:paymentId/refund - Process refund
 export const processRefund = async (req: Request, res: Response) => {
   const { paymentId } = req.params as { paymentId: string };
   const { refundAmount, refundReason } = req.body;
