@@ -15,13 +15,14 @@ import {
   markNotificationAsRead,
 } from "@/lib/services/notification.service";
 import type { NotificationItem } from "@/lib/types";
-import { Bell, Loader2, X } from "lucide-react";
+import { Bell, ChevronLeft, Loader2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 export default function NotificationPortal() {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [open, setOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] =
     useState<NotificationItem | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,9 +57,7 @@ export default function NotificationPortal() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleOpenNotification = async (notification: NotificationItem) => {
-    setSelectedNotification(notification);
-
+  const handleNotificationClick = async (notification: NotificationItem) => {
     if (notification.isRead) {
       return;
     }
@@ -86,7 +85,15 @@ export default function NotificationPortal() {
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) {
+            setSelectedNotification(null);
+          }
+        }}
+      >
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative rounded-lg">
             <Bell className="h-5 w-5" />
@@ -99,95 +106,112 @@ export default function NotificationPortal() {
             <span className="sr-only">Notifications</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-85">
-          <DropdownMenuLabel className="flex items-center justify-between">
-            <span>Notifications</span>
-            {hasUnread ? (
-              <span className="text-xs text-destructive">
-                {unreadCount} new
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground">All read</span>
-            )}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {loading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-            </div>
-          ) : latestNotifications.length === 0 ? (
-            <p className="px-3 py-6 text-sm text-center text-muted-foreground">
-              No notifications yet.
-            </p>
-          ) : (
-            latestNotifications.map((notification) => (
-              <DropdownMenuItem
-                key={notification.id}
-                onSelect={(event) => {
-                  event.preventDefault();
-                  void handleOpenNotification(notification);
-                }}
-                className="flex flex-col items-start gap-1 py-2"
-              >
-                <div className="flex w-full items-start justify-between gap-2">
-                  <span className="line-clamp-1 font-medium text-foreground">
-                    {notification.title}
-                  </span>
-                  {!notification.isRead ? (
-                    <span className="mt-1 inline-block h-2 w-2 rounded-full bg-destructive" />
-                  ) : null}
-                </div>
-                <span className="line-clamp-2 text-xs text-muted-foreground">
-                  {notification.message}
-                </span>
-                <span className="text-[11px] text-muted-foreground/80">
-                  {new Date(notification.createdAt).toLocaleString("en-GB")}
-                </span>
-              </DropdownMenuItem>
-            ))
-          )}
-          {error ? (
-            <p className="px-3 pb-2 pt-1 text-xs text-destructive">{error}</p>
-          ) : null}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <DropdownMenuContent align="end" className="w-90">
+          {selectedNotification ? (
+            <div className="p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="-ml-2 gap-1 px-2"
+                  onClick={() => setSelectedNotification(null)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    setSelectedNotification(null);
+                    setOpen(false);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-      {selectedNotification ? (
-        <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-lg rounded-xl border bg-background shadow-xl">
-            <div className="flex items-start justify-between border-b p-4">
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">
                   {selectedNotification.title}
-                </h3>
-                <p className="mt-1 text-xs text-muted-foreground">
+                </p>
+                <p className="text-[11px] text-muted-foreground/80">
                   {new Date(selectedNotification.createdAt).toLocaleString(
                     "en-GB",
                   )}
                 </p>
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setSelectedNotification(null)}
-                className="h-8 w-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+
+              <div className="mt-3 max-h-64 overflow-auto rounded-md border bg-muted/20 p-3">
+                <p className="whitespace-pre-wrap text-sm text-foreground/90">
+                  {selectedNotification.message}
+                </p>
+              </div>
+
+              {error ? (
+                <p className="mt-2 text-xs text-destructive">{error}</p>
+              ) : null}
             </div>
-            <div className="p-4">
-              <p className="whitespace-pre-wrap text-sm text-foreground/90">
-                {selectedNotification.message}
-              </p>
-            </div>
-            <div className="flex justify-end border-t p-4">
-              <Button onClick={() => setSelectedNotification(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+          ) : (
+            <>
+              <DropdownMenuLabel className="flex items-center justify-between">
+                <span>Notifications</span>
+                {hasUnread ? (
+                  <span className="text-xs text-destructive">
+                    {unreadCount} new
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">All read</span>
+                )}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {loading ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              ) : latestNotifications.length === 0 ? (
+                <p className="px-3 py-6 text-sm text-center text-muted-foreground">
+                  No notifications yet.
+                </p>
+              ) : (
+                latestNotifications.map((notification) => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    onSelect={(event) => {
+                      // Keep menu open and open details view
+                      event.preventDefault();
+                      setSelectedNotification(notification);
+                      void handleNotificationClick(notification);
+                    }}
+                    className="flex flex-col items-start gap-1 py-2"
+                  >
+                    <div className="flex w-full items-start justify-between gap-2">
+                      <span className="line-clamp-1 font-medium text-foreground">
+                        {notification.title}
+                      </span>
+                      {!notification.isRead ? (
+                        <span className="mt-1 inline-block h-2 w-2 rounded-full bg-destructive" />
+                      ) : null}
+                    </div>
+                    <span className="line-clamp-2 text-xs text-muted-foreground">
+                      {notification.message}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground/80">
+                      {new Date(notification.createdAt).toLocaleString("en-GB")}
+                    </span>
+                  </DropdownMenuItem>
+                ))
+              )}
+              {error ? (
+                <p className="px-3 pb-2 pt-1 text-xs text-destructive">
+                  {error}
+                </p>
+              ) : null}
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   );
 }
