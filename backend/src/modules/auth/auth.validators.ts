@@ -54,10 +54,8 @@ const studentLoginSchema = {
     email: z.email("Invalid email address"),
     password: z.string().min(1, "Password is required"),
     /**
-     * When true, revoke every existing refresh session for this account
-     * and proceed with login. Used when the user hit the 2-device limit
-     * (e.g. after clearing cookies on other browsers — those slots are
-     * still counted server-side until they expire or are revoked).
+     * When true, revoke every existing live session for this account
+     * and proceed with login (2-device limit recovery).
      */
     force: z.boolean().optional(),
   }),
@@ -127,12 +125,9 @@ const updateAcademicSessionSchema = {
     }),
 };
 
-/**
- * Validation schema for endpoints that expect a refresh token in cookies
- */
-const refreshTokenCookieSchema = {
-  cookies: z.object({
-    refreshToken: z.string().min(1, "Refresh token is required"),
+const revokeDeviceSessionSchema = {
+  params: z.object({
+    sessionId: z.uuid("Invalid session ID"),
   }),
 };
 
@@ -141,7 +136,7 @@ export {
   adminLoginSchema,
   adminRegisterSchema,
   createAcademicSessionSchema,
-  refreshTokenCookieSchema,
+  revokeDeviceSessionSchema,
   studentLoginSchema,
   studentRegisterSchema,
   updateAcademicSessionSchema,

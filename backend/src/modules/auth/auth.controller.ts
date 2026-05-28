@@ -1,83 +1,35 @@
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
-import { and, desc, eq, gt, lt, not } from "drizzle-orm";
+import { and, desc, eq, not } from "drizzle-orm";
 import type { Request, Response } from "express";
+import { SESSION_COOKIE_NAME } from "../../Constants.ts";
 import { db } from "../../db/index.ts";
 import {
   academicSessions,
   hallAdmins,
-  refreshTokens,
   uniStudents,
 } from "../../db/models/index.ts";
+import {
+  cacheDel,
+  cacheGet,
+  cacheKeys,
+  cacheSet,
+  cacheTtlSec,
+} from "../../lib/cache.ts";
+import {
+  enforceSessionLimitOrThrow,
+  listUserSessions,
+  revokeAllUserSessions,
+  revokeSession,
+} from "../../lib/sessionStore.ts";
 import { type OperationalUnit } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
-import { hashToken } from "../../utils/helpers.ts";
-import type { AccessTokenPayload, RefreshTokenPayload } from "./auth.d.ts";
+import type { SessionUserPayload } from "./auth.d.ts";
 import {
-  clearAuthCookies,
-  issueAuthTokenAndSetCookies,
-  revokeAllUserTokens,
-  rotateRefreshTokenRecord,
-  setAuthCookies,
-  verifyRefreshToken,
+  clearSessionCookie,
+  createSessionAndSetCookie,
 } from "./auth.service.ts";
-
-const MAX_ACTIVE_SESSIONS_PER_USER = 2;
-
-/** Remove expired refresh-token rows so they never count toward the limit. */
-async function pruneExpiredRefreshTokens(userId: string): Promise<void> {
-  await db
-    .delete(refreshTokens)
-    .where(
-      and(
-        eq(refreshTokens.userId, userId),
-        lt(refreshTokens.expiresAt, new Date())
-      )
-    );
-}
-
-/** Count non-expired refresh sessions for a user. */
-async function countActiveSessions(userId: string): Promise<number> {
-  const active = await db
-    .select({ id: refreshTokens.id })
-    .from(refreshTokens)
-    .where(
-      and(
-        eq(refreshTokens.userId, userId),
-        gt(refreshTokens.expiresAt, new Date())
-      )
-    );
-  return active.length;
-}
-
-/**
- * Enforce the per-user session cap before issuing a new refresh token.
- * - At limit and `force` is false → 403 (block 3rd login).
- * - At limit and `force` is true  → revoke all sessions, then caller
- *   may issue a fresh one (recovery after cookie clears / lost devices).
- */
-async function enforceSessionLimitOrThrow(
-  userId: string,
-  force?: boolean
-): Promise<void> {
-  await pruneExpiredRefreshTokens(userId);
-
-  const activeCount = await countActiveSessions(userId);
-  if (activeCount < MAX_ACTIVE_SESSIONS_PER_USER) {
-    return;
-  }
-
-  if (force) {
-    await revokeAllUserTokens(userId);
-    return;
-  }
-
-  throw new ApiError(
-    403,
-    "Maximum active sessions reached (2 devices). Log out on another device, wait for sessions to expire, or sign in again and choose to end all other sessions."
-  );
-}
 
 /**
  * POST /api/v1/auth/register
@@ -144,20 +96,17 @@ export const studentRegister = async (req: Request, res: Response) => {
     throw new ApiError(500, "Failed to create user");
   }
 
-  const tokenPayload: AccessTokenPayload = {
+  const sessionPayload: SessionUserPayload = {
     userId: newUser.id,
     email: newUser.email,
     name: newUser.name,
     role: "STUDENT",
   };
 
-  return (
-    await issueAuthTokenAndSetCookies({
-      req,
-      res,
-      tokenPayload,
-    })
-  ).json(
+  await enforceSessionLimitOrThrow(newUser.id);
+  await createSessionAndSetCookie({ req, res, payload: sessionPayload });
+
+  return res.status(201).json(
     new ApiResponse(
       201,
       {
@@ -180,14 +129,24 @@ export const getActiveAcademicSessions = async (
   _req: Request,
   res: Response
 ) => {
-  const sessions = await db
-    .select({
-      id: academicSessions.id,
-      label: academicSessions.label,
-    })
-    .from(academicSessions)
-    .where(eq(academicSessions.isActive, true))
-    .orderBy(desc(academicSessions.createdAt));
+  const cacheKey = cacheKeys.activeAcademicSessions();
+  type ActiveSession = { id: string; label: string };
+
+  const cached = await cacheGet<ActiveSession[]>(cacheKey);
+  const sessions =
+    cached ??
+    (await db
+      .select({
+        id: academicSessions.id,
+        label: academicSessions.label,
+      })
+      .from(academicSessions)
+      .where(eq(academicSessions.isActive, true))
+      .orderBy(desc(academicSessions.createdAt)));
+
+  if (!cached) {
+    await cacheSet(cacheKey, sessions, cacheTtlSec.activeAcademicSessions);
+  }
 
   res
     .status(200)
@@ -252,6 +211,8 @@ export const createAcademicSession = async (req: Request, res: Response) => {
     isActive: true,
   });
 
+  await cacheDel(cacheKeys.activeAcademicSessions());
+
   res.status(201).json(
     new ApiResponse(
       201,
@@ -314,6 +275,8 @@ export const updateAcademicSession = async (req: Request, res: Response) => {
     .set(updateData)
     .where(eq(academicSessions.id, sessionId));
 
+  await cacheDel(cacheKeys.activeAcademicSessions());
+
   res.status(200).json(
     new ApiResponse(
       200,
@@ -355,7 +318,7 @@ export const studentLogin = async (req: Request, res: Response) => {
     );
   }
 
-  const tokenPayload: AccessTokenPayload = {
+  const sessionPayload: SessionUserPayload = {
     userId: user.id,
     email: user.email,
     name: user.name,
@@ -363,14 +326,9 @@ export const studentLogin = async (req: Request, res: Response) => {
   };
 
   await enforceSessionLimitOrThrow(user.id, force);
+  await createSessionAndSetCookie({ req, res, payload: sessionPayload });
 
-  return (
-    await issueAuthTokenAndSetCookies({
-      req,
-      res,
-      tokenPayload,
-    })
-  ).json(
+  return res.status(200).json(
     new ApiResponse(
       200,
       {
@@ -499,7 +457,7 @@ export const adminRegister = async (req: Request, res: Response) => {
     throw new ApiError(500, "Failed to create or update user");
   }
 
-  const tokenPayload: AccessTokenPayload = {
+  const sessionPayload: SessionUserPayload = {
     userId: newUser.id,
     email: newUser.email,
     name: newUser.name,
@@ -510,7 +468,7 @@ export const adminRegister = async (req: Request, res: Response) => {
     new ApiResponse(
       201,
       {
-        user: tokenPayload,
+        user: sessionPayload,
       },
       "Admin registration pending"
     )
@@ -613,7 +571,7 @@ export const adminLogin = async (req: Request, res: Response) => {
     );
   }
 
-  const tokenPayload: AccessTokenPayload = {
+  const sessionPayload: SessionUserPayload = {
     userId: user.id,
     email: user.email,
     name: user.name,
@@ -621,14 +579,9 @@ export const adminLogin = async (req: Request, res: Response) => {
   };
 
   await enforceSessionLimitOrThrow(user.id, force);
+  await createSessionAndSetCookie({ req, res, payload: sessionPayload });
 
-  return (
-    await issueAuthTokenAndSetCookies({
-      req,
-      res,
-      tokenPayload,
-    })
-  ).json(
+  return res.status(200).json(
     new ApiResponse(
       200,
       {
@@ -653,180 +606,25 @@ export const adminLogin = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/v1/auth/renew-access-token
- *
- * Validates the incoming refresh token and — on every successful renewal —
- * ROTATES it: new jti, new tokenHash, new expiry, new cookies. The old
- * refresh token is destroyed in place (same DB row, replaced contents) so
- * presenting it again triggers reuse detection.
- *
- * Failure modes always (a) clear both auth cookies on the response and
- * (b) return 401. This guarantees the frontend proxy/middleware can never
- * keep seeing a dead `refreshToken` cookie and loop the user.
- */
-export const renewAccessToken = async (req: Request, res: Response) => {
-  const incomingRefreshToken = req.cookies?.refreshToken;
-  if (!incomingRefreshToken) {
-    clearAuthCookies(res);
-    throw new ApiError(401, "Refresh token is required");
-  }
-
-  let decoded: RefreshTokenPayload;
-  try {
-    decoded = verifyRefreshToken(incomingRefreshToken);
-  } catch {
-    clearAuthCookies(res);
-    throw new ApiError(401, "Invalid or expired refresh token");
-  }
-
-  const incomingHash = hashToken(incomingRefreshToken);
-
-  // Exact-match lookup: same jti AND same tokenHash.
-  const [tokenRecord] = await db
-    .select()
-    .from(refreshTokens)
-    .where(
-      and(
-        eq(refreshTokens.jti, decoded.jti),
-        eq(refreshTokens.tokenHash, incomingHash)
-      )
-    )
-    .limit(1);
-
-  if (!tokenRecord) {
-    // Signature was valid, so this JWT was issued by us. The hash mismatch
-    // means EITHER (a) the row was rotated and the caller is replaying an
-    // older refresh token, OR (b) the row was revoked. (a) implies a
-    // potential leak of the old token — defensively revoke ALL sessions
-    // for this user so a stolen token can never be replayed silently.
-    const [conflict] = await db
-      .select({ id: refreshTokens.id })
-      .from(refreshTokens)
-      .where(eq(refreshTokens.jti, decoded.jti))
-      .limit(1);
-
-    if (conflict) {
-      await revokeAllUserTokens(decoded.userId);
-    }
-
-    clearAuthCookies(res);
-    throw new ApiError(
-      401,
-      "Refresh token is no longer valid. Please log in again."
-    );
-  }
-
-  if (tokenRecord.expiresAt < new Date()) {
-    await db.delete(refreshTokens).where(eq(refreshTokens.id, tokenRecord.id));
-    clearAuthCookies(res);
-    throw new ApiError(401, "Refresh token has expired. Please log in again.");
-  }
-
-  // Re-fetch the user from the live DB so role / isActive / status changes
-  // take effect at refresh time. The refresh payload only tells us which
-  // table to look in.
-  let tokenPayload: AccessTokenPayload;
-
-  if (decoded.role === "STUDENT") {
-    const [student] = await db
-      .select()
-      .from(uniStudents)
-      .where(eq(uniStudents.id, decoded.userId))
-      .limit(1);
-
-    if (!student) {
-      await db.delete(refreshTokens).where(eq(refreshTokens.id, tokenRecord.id));
-      clearAuthCookies(res);
-      throw new ApiError(401, "Account no longer exists.");
-    }
-
-    if (!student.isActive || student.status !== "ACTIVE") {
-      await revokeAllUserTokens(student.id);
-      clearAuthCookies(res);
-      throw new ApiError(
-        403,
-        `Account is ${student.status.toLowerCase()}. Please contact administration.`
-      );
-    }
-
-    tokenPayload = {
-      userId: student.id,
-      email: student.email,
-      name: student.name,
-      role: "STUDENT",
-      rollNumber: student.rollNumber,
-    };
-  } else {
-    const [admin] = await db
-      .select()
-      .from(hallAdmins)
-      .where(eq(hallAdmins.id, decoded.userId))
-      .limit(1);
-
-    if (!admin) {
-      await db.delete(refreshTokens).where(eq(refreshTokens.id, tokenRecord.id));
-      clearAuthCookies(res);
-      throw new ApiError(401, "Account no longer exists.");
-    }
-
-    if (!admin.isActive) {
-      await revokeAllUserTokens(admin.id);
-      clearAuthCookies(res);
-      throw new ApiError(403, "Admin account is deactivated.");
-    }
-
-    if (admin.hallAdminStatus !== "APPROVED") {
-      await revokeAllUserTokens(admin.id);
-      clearAuthCookies(res);
-      throw new ApiError(
-        403,
-        `Admin application is ${admin.hallAdminStatus.toLowerCase()}.`
-      );
-    }
-
-    tokenPayload = {
-      userId: admin.id,
-      email: admin.email,
-      name: admin.name,
-      role: admin.designation,
-    };
-  }
-
-  const { accessToken, refreshToken } = await rotateRefreshTokenRecord({
-    req,
-    rowId: tokenRecord.id,
-    tokenPayload,
-  });
-
-  return setAuthCookies(res, accessToken, refreshToken)
-    .status(200)
-    .json(new ApiResponse(200, { accessToken }, "Access token refreshed"));
-};
-
-/**
  * POST /api/v1/auth/logout
- * Logout from current device only. Always clears cookies — even when the
- * refresh-token row is already gone — so the browser can't keep replaying
- * a stale cookie.
+ * Logout from the current device (revoke this Redis session).
  */
 export const logout = async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.refreshToken;
+  const sessionId =
+    req.sessionId ?? req.cookies?.[SESSION_COOKIE_NAME];
 
-  if (refreshToken) {
-    const hashedToken = hashToken(refreshToken);
-    await db
-      .delete(refreshTokens)
-      .where(eq(refreshTokens.tokenHash, hashedToken));
+  if (sessionId) {
+    await revokeSession(sessionId);
   }
 
-  return clearAuthCookies(res)
+  return clearSessionCookie(res)
     .status(200)
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 };
 
 /**
  * POST /api/v1/auth/logout-all
- * Logout from all devices (invalidate every refresh token for this user).
+ * Logout from all devices (revoke every Redis session for this user).
  */
 export const logoutAll = async (req: Request, res: Response) => {
   const userId = req.user?.userId;
@@ -835,66 +633,71 @@ export const logoutAll = async (req: Request, res: Response) => {
     throw new ApiError(401, "User not authenticated");
   }
 
-  await revokeAllUserTokens(userId);
+  await revokeAllUserSessions(userId);
 
-  return clearAuthCookies(res)
+  return clearSessionCookie(res)
     .status(200)
     .json(
       new ApiResponse(200, null, "Logged out from all devices successfully")
     );
 };
 
-/* 
-export const getActiveSessions = async (req: Request, res: Response) => {
-    const userId = req.user?.userId;
-
-    if (!userId) {
-      throw new ApiError(401, "User not authenticated");
-    }
-
-    const sessions = await db
-      .select({
-        id: refreshTokens.id,
-        ip: refreshTokens.ip,
-        userAgent: refreshTokens.userAgent,
-        createdAt: refreshTokens.createdAt,
-        expiresAt: refreshTokens.expiresAt,
-      })
-      .from(refreshTokens)
-      .where(eq(refreshTokens.userId, userId))
-      .orderBy(desc(refreshTokens.createdAt));
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, { sessions }, "Active sessions retrieved"));
-  }
-;
-
-export const revokeSession = async (req: Request, res: Response) => {
-    const userId = req.user?.userId;
-    const sessionId = req.params.sessionId as string;
-
-    if (!userId) {
-      throw new ApiError(401, "User not authenticated");
-    }
-
-    const [session] = await db
-      .select()
-      .from(refreshTokens)
-      .where(
-        and(eq(refreshTokens.id, sessionId), eq(refreshTokens.userId, userId))
-      )
-      .limit(1);
-
-    if (!session) {
-      throw new ApiError(404, "Session not found");
-    }
-
-    await db.delete(refreshTokens).where(eq(refreshTokens.id, sessionId));
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, null, "Session revoked successfully"));
-  }
-;
+/**
+ * GET /api/v1/auth/devices
+ * List active Redis sessions for the signed-in user.
  */
+export const getActiveDeviceSessions = async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    throw new ApiError(401, "User not authenticated");
+  }
+
+  const sessions = await listUserSessions(userId);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        sessions: sessions.map((s) => ({
+          id: s.sessionId,
+          ip: s.ip,
+          userAgent: s.userAgent,
+          createdAt: s.createdAt,
+          isCurrent: s.sessionId === req.sessionId,
+        })),
+      },
+      "Active sessions retrieved"
+    )
+  );
+};
+
+/**
+ * DELETE /api/v1/auth/devices/:sessionId
+ * Revoke a specific device session (must belong to the current user).
+ */
+export const revokeDeviceSession = async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+  const { sessionId } = req.params as { sessionId: string };
+
+  if (!userId) {
+    throw new ApiError(401, "User not authenticated");
+  }
+
+  const sessions = await listUserSessions(userId);
+  const target = sessions.find((s) => s.sessionId === sessionId);
+
+  if (!target) {
+    throw new ApiError(404, "Session not found");
+  }
+
+  await revokeSession(sessionId);
+
+  const resBody = new ApiResponse(200, null, "Session revoked successfully");
+
+  if (sessionId === req.sessionId) {
+    return clearSessionCookie(res).status(200).json(resBody);
+  }
+
+  return res.status(200).json(resBody);
+};

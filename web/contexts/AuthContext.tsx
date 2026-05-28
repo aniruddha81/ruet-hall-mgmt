@@ -17,7 +17,7 @@ import {
 } from "react";
 
 interface LoginOptions {
-  /** Revoke all other refresh sessions, then sign in (2-device limit recovery). */
+  /** Revoke all other live sessions, then sign in (2-device limit recovery). */
   force?: boolean;
 }
 
@@ -39,8 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   // Hydrate user from localStorage on mount, then validate against backend.
-  // Skip API validation on the public welcome page (`/`) so a stale session
-  // does not trigger refresh failures and a redirect to `/login`.
+  // Skip API validation on `/` so a stale cookie does not redirect to login.
   useEffect(() => {
     (async () => {
       try {

@@ -1,13 +1,3 @@
-import crypto from "crypto";
-
-export function hashToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
-
-export function createJti() {
-  return crypto.randomBytes(16).toString("hex");
-}
-
 export const toDateString = (d: Date) => {
   // en-CA format is YYYY-MM-DD, ideal for mysql
   return new Intl.DateTimeFormat("en-CA", {
@@ -21,7 +11,7 @@ export const toDateString = (d: Date) => {
 /**
  * Parse a duration spec into milliseconds.
  *
- * Accepts the same units jsonwebtoken/`ms` supports:
+ * Accepts duration units: ms, s, m, h, d, w.
  *   "30s", "15m", "2h", "10d", "1w" (case-insensitive)
  * A pure number is treated as milliseconds.
  *

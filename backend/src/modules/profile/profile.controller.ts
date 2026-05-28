@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
 import { hallAdmins, uniStudents } from "../../db/models/index.ts";
+import { invalidateAuthAccountCache } from "../../lib/cache.ts";
+import { revokeAllUserSessions } from "../../lib/sessionStore.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
@@ -43,6 +45,13 @@ export const uploadImage = async (req: Request, res: Response) => {
 
     authAccount.admin.avatarUrl = avatarCloudinaryUrl.url;
   }
+
+  await invalidateAuthAccountCache(
+    authAccount.kind === "STUDENT"
+      ? authAccount.student.id
+      : authAccount.admin.id,
+    authAccount.kind
+  );
 
   res
     .status(200)
@@ -161,6 +170,13 @@ export const updateProfile = async (req: Request, res: Response) => {
     req.user.name = name;
   }
 
+  await invalidateAuthAccountCache(
+    authAccount.kind === "STUDENT"
+      ? authAccount.student.id
+      : authAccount.admin.id,
+    authAccount.kind
+  );
+
   res.status(200).json(new ApiResponse(200, updateData, "Profile updated"));
 };
 
@@ -188,6 +204,7 @@ export const changePassword = async (req: Request, res: Response) => {
       .update(uniStudents)
       .set({ passwordHash: newHash })
       .where(eq(uniStudents.id, userId!));
+    await revokeAllUserSessions(userId!);
   } else {
     const admin = authAccount.admin;
 
@@ -199,6 +216,7 @@ export const changePassword = async (req: Request, res: Response) => {
       .update(hallAdmins)
       .set({ passwordHash: newHash })
       .where(eq(hallAdmins.id, userId!));
+    await revokeAllUserSessions(userId!);
   }
 
   res.status(200).json(new ApiResponse(200, null, "Password changed"));

@@ -31,6 +31,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: AuthenticatedUser;
+      sessionId?: string;
 
       authAccount?:
         | {

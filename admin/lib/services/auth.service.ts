@@ -41,13 +41,6 @@ export async function adminLogin(data: {
   return res.data;
 }
 
-export async function renewAccessToken() {
-  const res = await api.post<ApiResponse<{ accessToken: string }>>(
-    "/auth/renew-access-token",
-  );
-  return res.data;
-}
-
 export async function logout() {
   const res = await api.post<ApiResponse<object>>("/auth/logout");
   return res.data;

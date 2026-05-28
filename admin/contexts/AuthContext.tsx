@@ -37,21 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   // Hydrate user from localStorage on mount, then validate against backend.
-  // If the access token is expired, the axios 401 interceptor will
-  // transparently renew it using the refresh-token cookie before the
-  // getMyProfile request completes — no manual renewal call needed.
   useEffect(() => {
     (async () => {
       try {
         const storedUser = getStoredUser();
         if (!storedUser) return;
 
-        // Show cached user immediately while we validate
         setUser(storedUser);
 
-        // Fetch the latest profile from backend.
-        // If accessToken is expired, the axios interceptor will
-        // automatically renew it via refreshToken and retry this request.
         const profileRes = await getMyProfile().catch(() => null);
 
         if (profileRes?.data.profile) {
@@ -59,7 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Profile fetch failed even after interceptor retry — session invalid
         clearAuthData();
         setUser(null);
       } catch {

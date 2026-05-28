@@ -24,7 +24,6 @@ import {
   notificationReads,
   notifications,
   payments,
-  refreshTokens,
   rooms,
   seatAllocations,
   seatApplications,
@@ -108,7 +107,6 @@ const pickDepartment = (index: number): AcademicDepartment =>
 async function clearDatabase() {
   await db.delete(notificationReads);
   await db.delete(notifications);
-  await db.delete(refreshTokens);
   await db.delete(mealMenuItems);
   await db.delete(mealTokens);
   await db.delete(mealPayments);
@@ -719,33 +717,6 @@ async function seed() {
     },
   ]);
 
-  const adminUser = must(adminsData[0], "Missing admin user for refresh token");
-  const studentUser = must(
-    studentsData[0],
-    "Missing student user for refresh token"
-  );
-
-  await db.insert(refreshTokens).values([
-    {
-      id: randomUUID(),
-      userId: adminUser.id,
-      tokenHash: "seed-admin-token-hash",
-      jti: "seed-admin-jti",
-      ip: "127.0.0.1",
-      userAgent: "Seed Script Admin Session",
-      expiresAt: addDays(today, 7),
-    },
-    {
-      id: randomUUID(),
-      userId: studentUser.id,
-      tokenHash: "seed-student-token-hash",
-      jti: "seed-student-jti",
-      ip: "127.0.0.1",
-      userAgent: "Seed Script Student Session",
-      expiresAt: addDays(today, 7),
-    },
-  ]);
-
   const firstAdmin = must(
     adminsData[0],
     "Missing first admin for notifications"
@@ -790,7 +761,7 @@ async function seed() {
     {
       id: randomUUID(),
       notificationId: firstNotification.id,
-      readerId: studentUser.id,
+      readerId: must(studentsData[0], "Missing student for notification read").id,
       readerRole: "STUDENT",
       readAt: today,
     },

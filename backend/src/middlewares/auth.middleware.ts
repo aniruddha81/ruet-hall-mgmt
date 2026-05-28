@@ -1,68 +1,105 @@
 import { eq } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
+import { SESSION_COOKIE_NAME } from "../Constants.ts";
 import { db } from "../db/index.ts";
 import { hallAdmins, uniStudents } from "../db/models/auth.models.ts";
+import { cacheGet, cacheKeys, cacheSet, cacheTtlSec } from "../lib/cache.ts";
 import {
-  clearAuthCookies,
-  verifyAccessToken,
-} from "../modules/auth/auth.service.ts";
+  getSession,
+  revokeAllUserSessions,
+  touchSession,
+} from "../lib/sessionStore.ts";
+import { clearSessionCookie } from "../modules/auth/auth.service.ts";
 import type { Role } from "../types/enums.ts";
 import ApiError from "../utils/ApiError.ts";
 
+type StudentRow = typeof uniStudents.$inferSelect;
+type AdminRow = typeof hallAdmins.$inferSelect;
+
+async function loadStudentAccount(
+  userId: string
+): Promise<StudentRow | undefined> {
+  const key = cacheKeys.authAccountStudent(userId);
+  const cached = await cacheGet<StudentRow>(key);
+  if (cached) {
+    return cached;
+  }
+
+  const [student] = await db
+    .select()
+    .from(uniStudents)
+    .where(eq(uniStudents.id, userId))
+    .limit(1);
+
+  if (student) {
+    await cacheSet(key, student, cacheTtlSec.authAccount);
+  }
+
+  return student;
+}
+
+async function loadAdminAccount(userId: string): Promise<AdminRow | undefined> {
+  const key = cacheKeys.authAccountAdmin(userId);
+  const cached = await cacheGet<AdminRow>(key);
+  if (cached) {
+    return cached;
+  }
+
+  const [admin] = await db
+    .select()
+    .from(hallAdmins)
+    .where(eq(hallAdmins.id, userId))
+    .limit(1);
+
+  if (admin) {
+    await cacheSet(key, admin, cacheTtlSec.authAccount);
+  }
+
+  return admin;
+}
+
+function readSessionId(req: Request): string | undefined {
+  const bearer = req.headers.authorization?.split(" ")[1];
+  if (bearer) {
+    return bearer;
+  }
+  return req.cookies?.[SESSION_COOKIE_NAME];
+}
+
 /**
- * Verify the access token, hydrate the live account from the DB, and reject
- * the request if the account is deactivated / rejected / deleted. Anything
- * that should make the frontend stop replaying its cookies (account gone,
- * suspended, rejected) responds with 401 *and* a Set-Cookie clearing both
- * auth cookies, so the proxy/middleware never loops on a dead cookie.
+ * Resolve the live Redis session, hydrate the account from MySQL, and reject
+ * deactivated / missing accounts. Invalid sessions clear the cookie so
+ * frontends do not loop on a dead session id.
  */
 export const authenticateToken = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  // Prefer Authorization header (Bearer), fall back to the httpOnly cookie.
-  let token = req.headers["authorization"]?.split(" ")[1];
-  if (!token) {
-    token = req.cookies?.accessToken;
+  const sessionId = readSessionId(req);
+  if (!sessionId) {
+    throw new ApiError(401, "Session is required");
   }
 
-  if (!token) {
-    throw new ApiError(401, "Access token is required");
+  const liveSession = await getSession(sessionId);
+  if (!liveSession) {
+    clearSessionCookie(res);
+    throw new ApiError(401, "Session is invalid or has expired");
   }
 
-  let decoded: ReturnType<typeof verifyAccessToken>;
-  try {
-    decoded = verifyAccessToken(token);
-  } catch (err) {
-    // jsonwebtoken is CJS — use `name` instead of named ESM imports for errors.
-    if (err instanceof Error && err.name === "TokenExpiredError") {
-      // Don't clear cookies here — the frontend interceptor relies on a 401
-      // (with the refreshToken cookie still set) to trigger a silent renew.
-      throw new ApiError(401, "Access token has expired");
-    }
-    if (err instanceof Error && err.name === "JsonWebTokenError") {
-      // Bad signature / malformed token = abandon the session entirely.
-      clearAuthCookies(res);
-      throw new ApiError(401, "Invalid access token");
-    }
-    throw new ApiError(401, "Could not authenticate access token");
-  }
+  await touchSession(sessionId);
 
-  if (decoded.role === "STUDENT") {
-    const [student] = await db
-      .select()
-      .from(uniStudents)
-      .where(eq(uniStudents.id, decoded.userId))
-      .limit(1);
-
+  if (liveSession.role === "STUDENT") {
+    const student = await loadStudentAccount(liveSession.userId);
     if (!student) {
-      clearAuthCookies(res);
+      await revokeAllUserSessions(liveSession.userId);
+      clearSessionCookie(res);
       throw new ApiError(401, "Account no longer exists.");
     }
 
     if (!student.isActive || student.status !== "ACTIVE") {
-      clearAuthCookies(res);
+      await revokeAllUserSessions(student.id);
+      clearSessionCookie(res);
       throw new ApiError(
         403,
         `Account is ${student.status.toLowerCase()}. Please contact administration.`
@@ -77,27 +114,24 @@ export const authenticateToken = async (
       rollNumber: student.rollNumber,
       hall: student.hall,
     };
-
     req.authAccount = { kind: "STUDENT", student };
   } else {
-    const [admin] = await db
-      .select()
-      .from(hallAdmins)
-      .where(eq(hallAdmins.id, decoded.userId))
-      .limit(1);
-
+    const admin = await loadAdminAccount(liveSession.userId);
     if (!admin) {
-      clearAuthCookies(res);
+      await revokeAllUserSessions(liveSession.userId);
+      clearSessionCookie(res);
       throw new ApiError(401, "Account no longer exists.");
     }
 
     if (!admin.isActive) {
-      clearAuthCookies(res);
+      await revokeAllUserSessions(admin.id);
+      clearSessionCookie(res);
       throw new ApiError(403, "Admin account is deactivated.");
     }
 
     if (admin.hallAdminStatus !== "APPROVED") {
-      clearAuthCookies(res);
+      await revokeAllUserSessions(admin.id);
+      clearSessionCookie(res);
       throw new ApiError(
         403,
         `Admin application is ${admin.hallAdminStatus.toLowerCase()}.`
@@ -111,10 +145,10 @@ export const authenticateToken = async (
       role: admin.designation,
       hall: admin.hall,
     };
-
     req.authAccount = { kind: "ADMIN", admin };
   }
 
+  req.sessionId = sessionId;
   next();
 };
 
@@ -125,7 +159,6 @@ export const authorizeRoles = (...allowedRoles: Role[]) => {
       throw new ApiError(401, "Authentication required");
     }
 
-    // Provost bypasses all role checks, or user must be in allowed roles
     if (req.user.role === "PROVOST" || allowedRoles.includes(req.user.role)) {
       return next();
     }

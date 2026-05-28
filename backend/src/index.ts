@@ -3,6 +3,7 @@ import type { Server } from "http";
 import { app } from "./app.ts";
 import { PORT } from "./Constants.ts";
 import { db } from "./db/index.ts";
+import { closeRedis } from "./lib/redis.ts";
 
 let server: Server | undefined;
 let isShuttingDown = false;
@@ -20,16 +21,19 @@ function gracefulShutdown(reason: string, code: number = 0): void {
   }, 10000).unref();
 
   // Close HTTP server to stop accepting new connections
-  if (server) {
-    server.close(() => {
-      console.log("HTTP server closed.");
-      // drizzle + neon-http are stateless; no explicit close needed
-      if (shutdownTimer) clearTimeout(shutdownTimer);
-      process.exit(code);
-    });
-  } else {
+  const finishShutdown = () => {
     if (shutdownTimer) clearTimeout(shutdownTimer);
     process.exit(code);
+  };
+
+  if (server) {
+    server.close(async () => {
+      console.log("HTTP server closed.");
+      await closeRedis();
+      finishShutdown();
+    });
+  } else {
+    void closeRedis().then(finishShutdown);
   }
 }
 

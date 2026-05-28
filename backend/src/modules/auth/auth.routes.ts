@@ -1,8 +1,5 @@
-import { lt } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
-import { db } from "../../db/index.ts";
-import { refreshTokens } from "../../db/models/index.ts";
 import {
   authenticateToken,
   authorizeRoles,
@@ -15,10 +12,11 @@ import {
   adminRegister,
   createAcademicSession,
   getActiveAcademicSessions,
+  getActiveDeviceSessions,
   getAllAcademicSessions,
   logout,
   logoutAll,
-  renewAccessToken,
+  revokeDeviceSession,
   studentLogin,
   studentRegister,
   updateAcademicSession,
@@ -28,7 +26,7 @@ import {
   adminLoginSchema,
   adminRegisterSchema,
   createAcademicSessionSchema,
-  refreshTokenCookieSchema,
+  revokeDeviceSessionSchema,
   studentLoginSchema,
   studentRegisterSchema,
   updateAcademicSessionSchema,
@@ -75,20 +73,6 @@ setInterval(
   },
   30 * 60 * 1000
 );
-
-// Periodic cleanup of expired refresh-token rows so the table doesn't grow
-// forever. Runs hourly; failures are swallowed (don't crash the process
-// over a transient DB hiccup).
-const REFRESH_TOKEN_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
-const refreshTokenCleanupTimer = setInterval(() => {
-  void db
-    .delete(refreshTokens)
-    .where(lt(refreshTokens.expiresAt, new Date()))
-    .catch((err) => {
-      console.error("Expired refresh-token cleanup failed:", err);
-    });
-}, REFRESH_TOKEN_CLEANUP_INTERVAL_MS);
-refreshTokenCleanupTimer.unref?.();
 
 // public routes
 // student routes
@@ -167,15 +151,16 @@ authRouter.patch(
 
 authRouter.post("/admin/login", validateRequest(adminLoginSchema), adminLogin);
 
-// common routes
-authRouter.post(
-  "/renew-access-token",
-  validateRequest(refreshTokenCookieSchema),
-  renewAccessToken
-);
-
 // Protected routes
 authRouter.post("/logout", authenticateToken, logout);
 authRouter.post("/logout-all", authenticateToken, logoutAll);
+authRouter.get("/devices", authenticateToken, getActiveDeviceSessions);
+
+authRouter.delete(
+  "/devices/:sessionId",
+  authenticateToken,
+  validateRequest(revokeDeviceSessionSchema),
+  revokeDeviceSession
+);
 
 export default authRouter;

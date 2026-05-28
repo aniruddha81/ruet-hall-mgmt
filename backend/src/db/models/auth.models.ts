@@ -58,33 +58,6 @@ export const academicSessions = mysqlTable(
   ]
 );
 
-export const refreshTokens = mysqlTable(
-  "refresh_tokens",
-  {
-    id: varchar("id", { length: 36 }).primaryKey(),
-
-    userId: varchar("user_id", { length: 36 }).notNull(),
-
-    tokenHash: varchar("token_hash", { length: 512 }).notNull().unique(),
-
-    jti: varchar("jti", { length: 255 }).notNull().unique(),
-
-    ip: varchar("ip", { length: 45 }),
-
-    userAgent: varchar("user_agent", { length: 512 }),
-
-    expiresAt: datetime("expires_at", { mode: "date" }).notNull(),
-
-    createdAt: datetime("created_at", { mode: "date" })
-      .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
-  },
-  (table) => [
-    index("refresh_tokens_user_idx").on(table.userId),
-    index("refresh_tokens_expires_idx").on(table.expiresAt),
-  ]
-);
-
 export const uniStudents = mysqlTable(
   "uni_students",
   {

@@ -1,7 +1,6 @@
 /**
- * Authentication utility functions for managing auth tokens
- * Handles client-side user session state only.
- * Access and refresh tokens are managed by backend HttpOnly cookies.
+ * Client-side user session state (profile cache).
+ * The live session is an httpOnly `sessionId` cookie backed by Redis.
  */
 
 import type { StudentData } from "./types";

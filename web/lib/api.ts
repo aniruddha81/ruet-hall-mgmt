@@ -1,133 +1,52 @@
-import axios, {
-  AxiosError,
-  type AxiosInstance,
-  type InternalAxiosRequestConfig,
-} from "axios";
+import axios, { AxiosError, type AxiosInstance } from "axios";
 import { clearAuthData } from "@/lib/auth";
-
 const API_BASE_URL = "/api";
-
-// Flag to prevent multiple simultaneous token refreshes
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (value: unknown) => void;
-  reject: (reason?: unknown) => void;
-  config: InternalAxiosRequestConfig;
-}> = [];
-
-const processQueue = (error: AxiosError | null) => {
-  failedQueue.forEach(({ resolve, reject, config }) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(api(config));
-    }
-  });
-  failedQueue = [];
-};
-
 /**
- * Axios instance configured for the RUET Hall Management backend.
- * - Sends cookies with every request (withCredentials: true)
- * - Automatically retries failed requests when accessToken expires
- *   by calling /auth/renew-access-token endpoint
+ * Axios instance for the student portal.
+ * Auth is an httpOnly `sessionId` cookie backed by Redis on the backend.
  */
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Send cookies (accessToken, refreshToken) with every request
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
-
-// Response interceptor to handle 401 errors and token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean;
-    };
-
-    // If the error is 401 and we haven't already retried
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      // Don't retry the renew-access-token endpoint itself
-      !originalRequest.url?.includes("/auth/renew-access-token") &&
-      // Don't retry login/register endpoints
-      !originalRequest.url?.includes("/auth/login") &&
-      !originalRequest.url?.includes("/auth/register")
-    ) {
-      if (isRefreshing) {
-        // If a refresh is already in progress, queue this request
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject, config: originalRequest });
-        });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        // Call the renew-access-token endpoint
-        // The refreshToken cookie is automatically sent via withCredentials
-        await axios.post(
-          `${API_BASE_URL}/auth/renew-access-token`,
-          {},
-          { withCredentials: true },
-        );
-
-        // Token refresh successful, retry all queued requests
-        processQueue(null);
-
-        // Retry the original request
-        return api(originalRequest);
-      } catch (refreshError) {
-        // Token refresh failed - refreshToken is invalid/expired.
-        processQueue(refreshError as AxiosError);
-
-        if (typeof window !== "undefined") {
-          clearAuthData();
-
-          // Defensively ask the Next.js domain to clear both auth cookies.
-          // The backend's renew endpoint already clears cookies on a 401,
-          // but a network failure or 5xx leaves them intact — without this
-          // step the `refreshToken` cookie would still trip `proxy.ts`
-          // into bouncing /login → /dashboard in an infinite loop.
-          try {
-            await fetch("/api/auth/clear-cookies", {
-              method: "POST",
-              credentials: "include",
-            });
-          } catch {
-            // Best-effort — proceed with redirect regardless.
-          }
-
-          const isPublicRoute = ["/", "/login", "/signup"].some(
-            (route) =>
-              window.location.pathname === route ||
-              (route !== "/" &&
-                window.location.pathname.startsWith(`${route}/`)),
-          );
-
-          if (!isPublicRoute) {
-            window.location.href = "/login";
-          }
-        }
-
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
+    if (error.response?.status !== 401 || typeof window === "undefined") {
+      return Promise.reject(error);
     }
-
+    const url = error.config?.url ?? "";
+    const isAuthEndpoint =
+      url.includes("/auth/login") ||
+      url.includes("/auth/register") ||
+      url.includes("/auth/renew-access-token");
+    if (isAuthEndpoint) {
+      return Promise.reject(error);
+    }
+    clearAuthData();
+    try {
+      await fetch("/api/auth/clear-cookies", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Best-effort
+    }
+    const isPublicRoute = ["/", "/login", "/signup"].some(
+      (route) =>
+        window.location.pathname === route ||
+        (route !== "/" && window.location.pathname.startsWith(`${route}/`)),
+    );
+    if (!isPublicRoute) {
+      window.location.href = "/login";
+    }
     return Promise.reject(error);
   },
 );
-
 export default api;
-
-// Helper to extract error message from API responses
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     return (
@@ -142,7 +61,6 @@ export function getApiErrorMessage(error: unknown): string {
   }
   return "An unexpected error occurred";
 }
-
 /** True when login was rejected because the account already has 2 active sessions. */
 export function isMaxSessionsError(error: unknown): boolean {
   if (!axios.isAxiosError(error) || error.response?.status !== 403) {

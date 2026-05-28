@@ -62,17 +62,6 @@ hall_admins [icon: user-check, color: green] {
   updated_at datetime
 }
 
-refresh_tokens [icon: key, color: green] {
-  id varchar [pk]
-  user_id varchar
-  token_hash varchar
-  jti varchar
-  ip varchar
-  user_agent varchar
-  expires_at datetime
-  created_at datetime
-}
-
 academic_sessions [icon: calendar, color: green] {
   id varchar [pk]
   label varchar
