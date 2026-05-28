@@ -54,7 +54,7 @@ export async function getRedis(): Promise<RedisClient | null> {
 
 export async function closeRedis(): Promise<void> {
   if (client?.isOpen) {
-    await client.quit();
+    await client.close();
   }
   client = undefined;
   connectPromise = undefined;
