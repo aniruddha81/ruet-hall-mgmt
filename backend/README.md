@@ -25,4 +25,8 @@ docker compose up --build
 
 ## Deployment
 
-For single-VM deployment, use the root-level [`DEPLOYMENT.md`](../DEPLOYMENT.md) and `docker-compose.prod.yml`.
+For single-VM deployment, use the root-level runbook:
+
+- [`VM_DEPLOYMENT_FROM_SCRATCH.md`](../VM_DEPLOYMENT_FROM_SCRATCH.md)
+
+This repo deploys with the root-level `docker-compose.yml`.

@@ -128,9 +128,9 @@ High-level process:
 2. Clone repo and configure root `.env`
 3. Build and start Compose services
 4. Verify HTTP routing for all domains
-5. Issue SSL certificate with Certbot standalone
-6. Enable SSL Nginx config and restart nginx service
-7. Add certbot renew cron with pre/post hooks for nginx stop/start
+5. Issue SSL certificate with certbot **webroot** (nginx stays up)
+6. Switch to SSL nginx config and restart nginx
+7. Auto-renew is handled by the snap `certbot` timer; add a `renew_hook` to restart nginx
 8. Verify HTTPS externally and from VM
 
 Detailed command reference:
