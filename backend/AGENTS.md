@@ -8,16 +8,16 @@ Human docs live in **`docs/`** (Markdown). There is no other backend architectur
 
 | Change type | Update |
 |-------------|--------|
-| New/changed/removed route | Matching `docs/api/<module>.md` + run `npm run docs:manifest` |
+| New/changed/removed route | Matching `docs/api/<module>.md` |
 | Auth, sessions, roles, cookies | `docs/authentication.md` |
 | New env variable | `docs/getting-started.md`, `docs/integrations.md` if external service |
 | Schema / tables / enums | `docs/database.md`, `ER_DIAGRAM.txt` — use skill `db-schema-workflow` |
 | Middleware, folder layout, app bootstrap | `docs/architecture.md` |
 | New feature module | `docs/overview.md`, `docs/api/README.md`, mount in `src/app.ts` |
 
-**After any backend PR-sized change:** run `npm run docs:check`. Fix all reported gaps before finishing.
+**After any backend PR-sized change:** ensure `docs/api/*.md` matches the routes you changed.
 
-**Skill:** `.agents/skills/docs-sync-workflow/SKILL.md` — full checklist and manifest workflow.
+**Skill:** `.agents/skills/docs-sync-workflow/SKILL.md` — full checklist.
 
 ## Code rules (short)
 
@@ -40,6 +40,5 @@ Human docs live in **`docs/`** (Markdown). There is no other backend architectur
 | Concern | Location |
 |---------|----------|
 | HTTP routes | `src/modules/**/*.routes.ts`, `src/modules/**/*.route.ts`, `src/app.ts` |
-| API manifest (generated) | `docs/.generated/api-manifest.json` |
 | DB schema | `src/db/models/*.ts` |
 | Enums | `src/types/enums.ts` |

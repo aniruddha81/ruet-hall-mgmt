@@ -34,8 +34,6 @@ npm run db:generate   # migrations from schema
 npm run db:migrate    # apply migrations
 npm run db            # push schema (local)
 npm run db-all        # local: push + seed
-npm run docs:manifest # refresh route manifest for docs
-npm run docs:check    # verify api/*.md lists all routes
 ```
 
 ## Docker

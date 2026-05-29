@@ -4,8 +4,7 @@ description: >-
   Keep backend Markdown documentation in sync with the codebase. Use after
   adding, changing, or removing API routes, auth behavior, environment variables,
   middleware, feature modules, integrations, or any change an LLM would need
-  to discover from docs/. Run docs:manifest and docs:check. Replaces legacy
-  PROJECT_DOCS.txt maintenance.
+  to discover from docs/. Replaces legacy PROJECT_DOCS.txt maintenance.
 argument-hint: "What changed in the backend (routes, auth, schema, env, …)?"
 ---
 
@@ -27,8 +26,6 @@ backend/docs/
   integrations.md        # Redis, Cloudinary, SMTP, pay service
   api/README.md          # API index
   api/<module>.md        # Per-module route tables
-  .generated/            # Machine output — do not hand-edit
-    api-manifest.json
 ```
 
 Also update when relevant:
@@ -41,17 +38,7 @@ Also update when relevant:
 
 ## Workflow
 
-### 1. Regenerate the API manifest
-
-From `backend/`:
-
-```bash
-npm run docs:manifest
-```
-
-This writes `docs/.generated/api-manifest.json` from `src/app.ts` and all `*.routes.ts` / `*.route.ts` files. Treat it as the route inventory.
-
-### 2. Map your change → doc files
+### 1. Map your change → doc files
 
 | Code change | Doc file(s) |
 |-------------|-------------|
@@ -70,7 +57,7 @@ This writes `docs/.generated/api-manifest.json` from `src/app.ts` and all `*.rou
 | New model file or table | `docs/database.md` + `ER_DIAGRAM.txt` |
 | Middleware order in `app.ts` | `docs/architecture.md` |
 
-### 3. Update Markdown
+### 2. Update Markdown
 
 For **API routes**, each `docs/api/<module>.md` should have a table row per route:
 
@@ -80,23 +67,13 @@ For **API routes**, each `docs/api/<module>.md` should have a table row per rout
 - Short description
 - Note `multipart` fields when `upload.single(...)` is used
 
-Match the style of existing tables in that file. Remove rows for deleted routes.
+Match the style of existing tables in that file. Remove rows for deleted routes. Cross-check against `src/modules/**/*.routes.ts` and `src/app.ts`.
 
 For **behavioral** changes (not just new paths), update prose in `authentication.md`, `architecture.md`, etc.
 
-### 4. Verify
+### 3. Completion checks
 
-```bash
-npm run docs:check
-```
-
-- Exit code `0` — every manifest route appears in the module’s API doc.
-- Exit code `1` — fix missing paths or wrong module doc, then re-run.
-
-### 5. Completion checks
-
-- [ ] `npm run docs:manifest` run (if routes changed)
-- [ ] `npm run docs:check` passes
+- [ ] Every added/changed/removed route reflected in the matching `docs/api/<module>.md`
 - [ ] No references to `PROJECT_DOCS.txt` introduced
 - [ ] Postman collection updated if the team relies on it (optional, same change set)
 
@@ -114,7 +91,7 @@ npm run docs:check
 
 ## When the user only asks for code
 
-Still run steps 1–4 if you touched routes, auth, env, or schema. Mention in the reply which doc files were updated.
+Still update matching `docs/` files if you touched routes, auth, env, or schema. Mention in the reply which doc files were updated.
 
 ## Related skills
 

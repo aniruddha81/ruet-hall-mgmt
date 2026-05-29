@@ -9,9 +9,7 @@
     "db:migrate": "npx drizzle-kit migrate --config=drizzle.config.ts",
     "db": "npx drizzle-kit push --config=drizzle.config.ts",
     "db-all": "npx drizzle-kit push --config=drizzle.config.ts --force && npx tsx src/db/seed.ts",
-    "docs:manifest": "tsx --tsconfig scripts/tsconfig.json scripts/generate-docs-manifest.ts",
-    "docs:check": "tsx --tsconfig scripts/tsconfig.json scripts/check-docs-sync.ts",
-    "//": "scripts guide: dev=local hot-reload (tsx watch). start=run server in prod mode (NODE_ENV=production). db:generate=create migration files from schema changes (commit these). db:migrate=apply committed migrations (CI/prod deploys). db=push current schema to DB without migrations (local/dev quick sync). db-all=FOR LOCAL DEV ONLY: force-push schema then seed sample data (resets/overwrites). docs:manifest=scan routes into docs/.generated/api-manifest.json. docs:check=fail if api/*.md missing manifest routes."
+    "//": "scripts guide: dev=local hot-reload (tsx watch). start=run server in prod mode (NODE_ENV=production). db:generate=create migration files from schema changes (commit these). db:migrate=apply committed migrations (CI/prod deploys). db=push current schema to DB without migrations (local/dev quick sync). db-all=FOR LOCAL DEV ONLY: force-push schema then seed sample data (resets/overwrites)."
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

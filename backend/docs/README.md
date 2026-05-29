@@ -13,7 +13,7 @@ Express + TypeScript API for **RUET Hall Management**. It powers the student web
 | [Database](./database.md) | Drizzle ORM, migrations, schema summary |
 | [Conventions](./conventions.md) | Naming, validation, errors, response format |
 | [Integrations](./integrations.md) | Redis, PostgreSQL, Cloudinary, email, payment service |
-| [Doc sync](./DOC_SYNC.md) | Manifest + `docs:check` workflow for humans and LLMs |
+| [Doc sync](./DOC_SYNC.md) | Keeping API docs aligned with code |
 
 ## API reference
 
@@ -36,4 +36,3 @@ Base path: `/api` (e.g. `http://localhost:8000/api/auth/login`).
 - [VM deployment runbook](../../VM_DEPLOYMENT_FROM_SCRATCH.md) — full-stack Docker deploy
 - [Doc sync process](./DOC_SYNC.md) — how humans and agents keep docs current
 - [Agent rules](../AGENTS.md) — mandatory LLM instructions for `backend/`
-- Generated route list: [`.generated/api-manifest.json`](./.generated/api-manifest.json) (`npm run docs:manifest`)

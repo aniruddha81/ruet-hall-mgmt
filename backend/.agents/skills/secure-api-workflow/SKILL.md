@@ -32,4 +32,4 @@ Use this skill for `backend` service security-sensitive changes.
 - Error responses are controlled and non-leaky.
 - Enum values match `src/types/enums.ts` definitions.
 - Success and abuse-path tests are both covered.
-- Run `docs-sync-workflow`: update `docs/api/*.md`, then `npm run docs:manifest` and `npm run docs:check`.
+- Run `docs-sync-workflow`: update `docs/api/*.md` to match route changes.
