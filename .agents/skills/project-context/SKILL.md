@@ -46,7 +46,7 @@ Active modules: `auth`, `halls`, `dining`, `admission`, `inventory`, `finance`, 
 2. **No try/catch.** Express 5 handles async errors; throw `new ApiError(status, message)` directly.
 3. **Validation first.** Define Zod schema in `validators.ts` → bind with `validateRequest(schema)` on the route → controller receives fully validated `req.body`.
 4. **Enum safety.** Always check `src/types/enums.ts` or model definitions before using role/status/hall enum strings.
-5. **ER Diagram.** After any schema change, update `backend/ER_DIAGRAM.txt` to reflect the new state.
+5. **ER Diagram & docs.** After schema change, update `backend/ER_DIAGRAM.txt` and `backend/docs/database.md` (`db-schema-workflow` skill). After route/auth/env changes, run `docs-sync-workflow` in `backend/` (`npm run docs:manifest` + `npm run docs:check`).
 
 ## UI Library Boundaries
 
@@ -63,5 +63,6 @@ Active modules: `auth`, `halls`, `dining`, `admission`, `inventory`, `finance`, 
 ## Key Reference Files
 
 - `LLM_CONTEXT.md` — full project architecture and all agent rules
-- `backend/PROJECT_DOCS.txt` — detailed backend conventions, schema overview, API structure
+- `backend/AGENTS.md` — backend agent rules (docs sync required)
+- `backend/docs/README.md` — backend documentation index
 - `backend/ER_DIAGRAM.txt` — live entity-relationship diagram (keep in sync with models)

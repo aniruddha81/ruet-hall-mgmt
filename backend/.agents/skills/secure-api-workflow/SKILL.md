@@ -15,7 +15,7 @@ Use this skill for `backend` service security-sensitive changes.
 
 ## Workflow
 
-1. Read `backend/PROJECT_DOCS.txt` for module and route conventions. Check `src/types/enums.ts` for valid role/status enums.
+1. Read `backend/AGENTS.md` and `backend/docs/conventions.md`. Check `src/types/enums.ts` for valid role/status enums.
 2. Define trust boundaries for body/query/params/cookies/headers.
 3. Add or update route with:
    - `validateRequest(schema)` — Zod schema defined in `<feature>.validators.ts`
@@ -32,3 +32,4 @@ Use this skill for `backend` service security-sensitive changes.
 - Error responses are controlled and non-leaky.
 - Enum values match `src/types/enums.ts` definitions.
 - Success and abuse-path tests are both covered.
+- Run `docs-sync-workflow`: update `docs/api/*.md`, then `npm run docs:manifest` and `npm run docs:check`.

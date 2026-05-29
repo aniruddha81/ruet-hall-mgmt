@@ -1,32 +1,49 @@
 # RUET Hall Management Backend
 
-Main Express + Drizzle API for the RUET Hall Management system.
+Express + Drizzle API for the RUET Hall Management system.
 
-## Start Here
+## Documentation
 
-Before making structural backend changes, read [`PROJECT_DOCS.txt`](./PROJECT_DOCS.txt).
+**Full backend docs:** [`docs/README.md`](./docs/README.md)
 
-## Development
+| Topic | Link |
+|-------|------|
+| Overview & modules | [docs/overview.md](./docs/overview.md) |
+| Setup & env | [docs/getting-started.md](./docs/getting-started.md) |
+| Architecture | [docs/architecture.md](./docs/architecture.md) |
+| Auth & sessions | [docs/authentication.md](./docs/authentication.md) |
+| Database | [docs/database.md](./docs/database.md) |
+| API reference | [docs/api/README.md](./docs/api/README.md) |
+
+Agent / LLM rules: [`AGENTS.md`](./AGENTS.md) · Doc sync: [`docs/DOC_SYNC.md`](./docs/DOC_SYNC.md)
+
+## Quick start
 
 ```bash
 npm install
+# Configure .env (DATABASE_URL, REDIS_URL, …)
 npm run dev
 ```
 
-API URL: `http://localhost:8000`
+API: `http://localhost:8000/api`
 
 ## Database
 
-Use the local backend compose file for backend + MySQL, or the root-level compose files for the full stack.
-
 ```bash
-docker compose up --build
+npm run db:generate   # migrations from schema
+npm run db:migrate    # apply migrations
+npm run db            # push schema (local)
+npm run db-all        # local: push + seed
+npm run docs:manifest # refresh route manifest for docs
+npm run docs:check    # verify api/*.md lists all routes
 ```
 
-## Deployment
+## Docker
 
-For single-VM deployment, use the root-level runbook:
+Use root compose files for backend + MySQL (+ frontends):
 
-- [`VM_DEPLOYMENT_FROM_SCRATCH.md`](../VM_DEPLOYMENT_FROM_SCRATCH.md)
+```bash
+docker compose -f docker-compose.local.yml up --build
+```
 
-This repo deploys with the root-level `docker-compose.yml`.
+Deployment: [VM_DEPLOYMENT_FROM_SCRATCH.md](../VM_DEPLOYMENT_FROM_SCRATCH.md)

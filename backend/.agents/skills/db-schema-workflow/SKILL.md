@@ -19,11 +19,11 @@ All schema lives in `backend/src/db/models/*.ts`. Never write or run raw SQL mig
 ## Workflow
 
 1. **Identify the right model file** — each domain has its own file:
-   - `auth.models.ts` — users, refreshTokens, hallStudents, hallAdmins
+   - `auth.models.ts` — uni_students, hall_admins, academic_sessions
    - `halls.models.ts` — halls, rooms
    - `dining.models.ts` — mealMenus, mealTokens, mealPayments
    - `admission.models.ts` — seatApplications, seatAllocations
-   - `inventory.models.ts` — assets, damageReports
+   - `inventory.models.ts` — damage_reports (and related inventory tables)
    - `finance.models.ts` — studentDues, payments, expenses
    - `notifications.models.ts` — notifications
 
@@ -41,6 +41,8 @@ All schema lives in `backend/src/db/models/*.ts`. Never write or run raw SQL mig
 5. **Update ER_DIAGRAM.txt** — Reflect the change in `backend/ER_DIAGRAM.txt`. Follow the existing crow's-foot notation format already used in the file.
 
 6. **Update related types** — If adding new enum values, update `src/types/enums.ts`. If adding new columns, update any TypeScript types in `src/types/` that reference the table.
+
+7. **Update docs** — Edit `backend/docs/database.md` for table/column summaries. Run `docs-sync-workflow` if enums affect API docs.
 
 ## Enum Safety
 

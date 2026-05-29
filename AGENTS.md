@@ -1,0 +1,25 @@
+# Monorepo — agent instructions
+
+## Backend API (`backend/`)
+
+When editing the main API server:
+
+1. Follow **`backend/AGENTS.md`**.
+2. After route, auth, env, or schema changes, run **`docs-sync-workflow`** (`backend/.agents/skills/docs-sync-workflow/SKILL.md`):
+   - Update `backend/docs/`
+   - `cd backend && npm run docs:manifest && npm run docs:check`
+
+Cursor rule: `.cursor/rules/backend-docs-sync.mdc` (applies to `backend/**`).
+
+## Other services
+
+| Path | Notes |
+|------|--------|
+| `web/` | Student Next.js app — HeroUI |
+| `admin/` | Admin Next.js app — Radix UI |
+| `pay/` | Payment microservice |
+
+## Project-wide context
+
+- `LLM_CONTEXT.md` — architecture overview
+- `.agents/skills/project-context/SKILL.md` — quick reference skill

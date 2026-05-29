@@ -42,12 +42,8 @@ The absolute core of the application. All major data logic occurs here.
   - `src/modules/<feature>/<feature>.validators.ts`: Zod schemas for `body`, `params`, `query`. Validated with a custom `validateRequest` middleware.
   - `src/db/models/*.ts`: Central definition for DB tables and schemas.
   - `src/utils/ApiError.ts` and `src/utils/ApiResponse.ts`: Strictly wrap outgoing data in `ApiResponse` and throw HTTP errors using `new ApiError(status, message)`.
-- **DB Modules Overview:**
-  - **Auth**: `users`, `refreshTokens`, `hallStudents`, `hallAdmins`. (Roles include: PROVOST, STUDENT, ASST_FINANCE, FINANCE_SECTION_OFFICER, ASST_DINING, DINING_MANAGER, ASST_INVENTORY, INVENTORY_SECTION_OFFICER).
-  - **Dining**: `mealMenus`, `mealTokens`, `mealPayments`.
-  - **Inventory**: `rooms`, `assets`, `damageReports`.
-  - **Finance**: `studentDues`, `payments`, `expenses`.
-  - **Admission**: `seatApplications`, `seatAllocations`.
+- **DB Modules Overview:** See `backend/docs/database.md` and `backend/ER_DIAGRAM.txt`. Auth uses `uni_students`, `hall_admins`, `academic_sessions`; live sessions in Redis (not MySQL).
+- **Documentation:** `backend/docs/` (Markdown). Agents must follow `backend/AGENTS.md` and run `npm run docs:manifest` + `npm run docs:check` after route/auth/env changes.
 - **Run/Port:** Exposed internally/externally on port `8000`.
 
 ### 4. `pay/` (Payment Microservice)
@@ -76,5 +72,6 @@ When making edits as an AI against this repository, follow these precise rules:
 3. **API Logic Formatting**: In the backend, do not use `try/catch` internally if not explicitly necessary; rely on Express 5's async error handling mechanism. Instead of crashing, throw custom errors: `throw new ApiError(StatusCode, Message)`.
 4. **Validation Pipeline**: In backend feature creation, define the Zod schema first in `validators.ts`, bind the schema to the route using `validateRequest(schema)`, and finally implement the Controller relying on the fact that `req.body` is fully and safely validated.
 5. **Enums**: Note that Enums in `halls`, `roles`, and `statuses` must match the SQL enums declared in the models (e.g. `PROVOST`, `PENDING`, `APPROVED`). Always check `src/types/enums.ts` or `src/db/models` before pushing data.
+6. **Backend docs sync**: After backend API or schema changes, update `backend/docs/` using skill `docs-sync-workflow`; run `npm run docs:manifest` and `npm run docs:check` inside `backend/`. Do not recreate `PROJECT_DOCS.txt`.
 
 *This project context acts as your singular point of truth for maintaining the codebase without polluting it with disjointed patterns or anti-patterns.*

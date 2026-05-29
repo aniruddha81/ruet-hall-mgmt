@@ -1,0 +1,15 @@
+---
+description: Keep backend Markdown docs in sync when changing the API, auth, schema, or env
+globs: backend/**/*
+alwaysApply: false
+---
+
+# Backend documentation sync
+
+When you change anything under `backend/` that affects behavior, endpoints, auth, environment variables, or database schema:
+
+1. Read `backend/AGENTS.md` and apply skill `backend/.agents/skills/docs-sync-workflow/SKILL.md`.
+2. Update the relevant files in `backend/docs/` (especially `docs/api/<module>.md` for routes).
+3. From `backend/`, run `npm run docs:manifest` then `npm run docs:check` and fix failures before finishing.
+
+Do not recreate `PROJECT_DOCS.txt`. Canonical docs are only in `backend/docs/`.
