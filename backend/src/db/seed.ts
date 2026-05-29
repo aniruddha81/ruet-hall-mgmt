@@ -9,6 +9,7 @@ import {
   type Hall,
   type StaffRole,
 } from "../types/enums.ts";
+import { toDateString } from "../utils/helpers.ts";
 import { db } from "./index.ts";
 import {
   academicSessions,
@@ -91,6 +92,25 @@ const addDays = (date: Date, days: number) => {
   return next;
 };
 
+/** Date-only value for PostgreSQL — UTC noon avoids timezone off-by-one on insert. */
+const pgDateFromString = (dateStr: string) => {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+};
+
+/**
+ * Dining token coverage (intentional):
+ * - ZIA_HALL / SELIM_HALL — active tomorrow tokens (student1, student2)
+ * - HAMID_HALL — cancelled tomorrow token only (student3)
+ * - SHAHIDUL_HALL, TIN_SHED_HALL, FAZLUL_HUQ_HALL — no tokens today or tomorrow
+ *   (student4–student6 — use for fresh meal booking tests)
+ */
+const HALLS_WITH_NO_MEAL_TOKENS = [
+  "SHAHIDUL_HALL",
+  "TIN_SHED_HALL",
+  "FAZLUL_HUQ_HALL",
+] as const satisfies readonly Hall[];
+
 const must = <T>(value: T | undefined | null, message: string): T => {
   if (value == null) {
     throw new Error(message);
@@ -131,10 +151,16 @@ async function seed() {
 
   const adminPasswordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
   const studentPasswordHash = await bcrypt.hash(STUDENT_PASSWORD, 10);
-  const today = new Date();
-  const yesterday = addDays(today, -1);
-  const twoDaysAgo = addDays(today, -2);
-  const tomorrow = addDays(today, 1);
+  const now = new Date();
+  const todayMealDateStr = toDateString(now);
+  const tomorrowMealDateStr = toDateString(
+    new Date(now.getTime() + 24 * 60 * 60 * 1000)
+  );
+  const todayMealDate = pgDateFromString(todayMealDateStr);
+  const tomorrowMealDate = pgDateFromString(tomorrowMealDateStr);
+  const yesterday = addDays(now, -1);
+  const twoDaysAgo = addDays(now, -2);
+  const today = now;
 
   const hallsData = HALLS.map((hall) => ({
     name: hall,
@@ -511,6 +537,18 @@ async function seed() {
     }));
   await db.insert(payments).values(paymentsData);
 
+  const bookedTomorrowTokensByHall: Record<
+    Hall,
+    { lunch: number; dinner: number }
+  > = {
+    ZIA_HALL: { lunch: 2, dinner: 0 },
+    SELIM_HALL: { lunch: 0, dinner: 1 },
+    HAMID_HALL: { lunch: 0, dinner: 0 },
+    SHAHIDUL_HALL: { lunch: 0, dinner: 0 },
+    TIN_SHED_HALL: { lunch: 0, dinner: 0 },
+    FAZLUL_HUQ_HALL: { lunch: 0, dinner: 0 },
+  };
+
   const menusData = HALLS.flatMap((hall) => {
     const diningManagerId = must(
       adminsData.find(
@@ -518,28 +556,51 @@ async function seed() {
       )?.id,
       `Missing dining manager for ${hall}`
     );
+    const tomorrowBooked = bookedTomorrowTokensByHall[hall];
 
     return [
       {
         id: randomUUID(),
         hall,
-        mealDate: tomorrow,
+        mealDate: todayMealDate,
         mealType: "LUNCH" as const,
-        menuDescription: "Rice, Chicken Curry, Dal, Vegetable, Salad",
-        price: 50,
+        menuDescription: "Rice, Fish Curry, Dal, Vegetable",
+        price: 45,
         totalTokens: 150,
-        bookedTokens: 2,
+        bookedTokens: 0,
         createdBy: diningManagerId,
       },
       {
         id: randomUUID(),
         hall,
-        mealDate: tomorrow,
+        mealDate: todayMealDate,
+        mealType: "DINNER" as const,
+        menuDescription: "Khichuri, Egg Bhuna, Salad",
+        price: 55,
+        totalTokens: 120,
+        bookedTokens: 0,
+        createdBy: diningManagerId,
+      },
+      {
+        id: randomUUID(),
+        hall,
+        mealDate: tomorrowMealDate,
+        mealType: "LUNCH" as const,
+        menuDescription: "Rice, Chicken Curry, Dal, Vegetable, Salad",
+        price: 50,
+        totalTokens: 150,
+        bookedTokens: tomorrowBooked.lunch,
+        createdBy: diningManagerId,
+      },
+      {
+        id: randomUUID(),
+        hall,
+        mealDate: tomorrowMealDate,
         mealType: "DINNER" as const,
         menuDescription: "Polao, Beef Bhuna, Dal, Dessert",
         price: 70,
         totalTokens: 120,
-        bookedTokens: 1,
+        bookedTokens: tomorrowBooked.dinner,
         createdBy: diningManagerId,
       },
     ];
@@ -580,10 +641,16 @@ async function seed() {
   ) as Record<string, string>;
 
   const mealMenuItemsData = menusData.flatMap((menu) => {
+    const menuDateStr = toDateString(new Date(menu.mealDate));
+    const isTomorrow = menuDateStr === tomorrowMealDateStr;
     const itemNames =
       menu.mealType === "LUNCH"
-        ? ["Rice", "Chicken Curry", "Dal", "Vegetable", "Salad"]
-        : ["Polao", "Beef Bhuna", "Dal", "Dessert"];
+        ? isTomorrow
+          ? ["Rice", "Chicken Curry", "Dal", "Vegetable", "Salad"]
+          : ["Rice", "Dal", "Vegetable"]
+        : isTomorrow
+          ? ["Polao", "Beef Bhuna", "Dal", "Dessert"]
+          : ["Polao", "Dal"];
 
     return itemNames.map((itemName) => ({
       id: randomUUID(),
@@ -597,25 +664,31 @@ async function seed() {
 
   await db.insert(mealMenuItems).values(mealMenuItemsData);
 
-  const lunchMenuByHall = Object.fromEntries(
+  const tomorrowLunchMenuByHall = Object.fromEntries(
     HALLS.map((hall) => [
       hall,
       must(
         menusData.find(
-          (menu) => menu.hall === hall && menu.mealType === "LUNCH"
+          (menu) =>
+            menu.hall === hall &&
+            menu.mealType === "LUNCH" &&
+            toDateString(new Date(menu.mealDate)) === tomorrowMealDateStr
         ),
-        `Missing lunch menu for ${hall}`
+        `Missing tomorrow lunch menu for ${hall}`
       ),
     ])
   ) as Record<Hall, (typeof menusData)[number]>;
-  const dinnerMenuByHall = Object.fromEntries(
+  const tomorrowDinnerMenuByHall = Object.fromEntries(
     HALLS.map((hall) => [
       hall,
       must(
         menusData.find(
-          (menu) => menu.hall === hall && menu.mealType === "DINNER"
+          (menu) =>
+            menu.hall === hall &&
+            menu.mealType === "DINNER" &&
+            toDateString(new Date(menu.mealDate)) === tomorrowMealDateStr
         ),
-        `Missing dinner menu for ${hall}`
+        `Missing tomorrow dinner menu for ${hall}`
       ),
     ])
   ) as Record<Hall, (typeof menusData)[number]>;
@@ -679,9 +752,9 @@ async function seed() {
     {
       id: randomUUID(),
       studentId: firstAllocation.studentId,
-      menuId: lunchMenuByHall[firstAllocation.hall].id,
+      menuId: tomorrowLunchMenuByHall[firstAllocation.hall].id,
       hall: firstAllocation.hall,
-      mealDate: tomorrow,
+      mealDate: tomorrowMealDate,
       mealType: "LUNCH",
       quantity: 2,
       totalAmount: 100,
@@ -692,9 +765,9 @@ async function seed() {
     {
       id: randomUUID(),
       studentId: secondAllocation.studentId,
-      menuId: dinnerMenuByHall[secondAllocation.hall].id,
+      menuId: tomorrowDinnerMenuByHall[secondAllocation.hall].id,
       hall: secondAllocation.hall,
-      mealDate: tomorrow,
+      mealDate: tomorrowMealDate,
       mealType: "DINNER",
       quantity: 1,
       totalAmount: 70,
@@ -705,9 +778,9 @@ async function seed() {
     {
       id: randomUUID(),
       studentId: thirdAllocation.studentId,
-      menuId: lunchMenuByHall[thirdAllocation.hall].id,
+      menuId: tomorrowLunchMenuByHall[thirdAllocation.hall].id,
       hall: thirdAllocation.hall,
-      mealDate: tomorrow,
+      mealDate: tomorrowMealDate,
       mealType: "LUNCH",
       quantity: 1,
       totalAmount: 50,
@@ -768,7 +841,14 @@ async function seed() {
   ]);
 
   console.log(
-    `Seed completed successfully.\nAdmin password: ${ADMIN_PASSWORD}\nStudent password: ${STUDENT_PASSWORD}`
+    [
+      "Seed completed successfully.",
+      `Admin password: ${ADMIN_PASSWORD}`,
+      `Student password: ${STUDENT_PASSWORD}`,
+      `Meal dates (Asia/Dhaka): today=${todayMealDateStr}, tomorrow=${tomorrowMealDateStr}`,
+      `Halls with no meal tokens (today or tomorrow): ${HALLS_WITH_NO_MEAL_TOKENS.join(", ")}`,
+      "Fresh booking test accounts: student4@ruet.ac.bd (SHAHIDUL), student5@ (TIN SHED), student6@ (FAZLUL HUQ)",
+    ].join("\n")
   );
 }
 

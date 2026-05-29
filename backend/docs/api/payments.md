@@ -9,9 +9,11 @@ Hosted checkout integration with [SSLCommerz](https://sslcommerz.com/integration
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/sslcommerz/ipn` | Instant Payment Notification (server-to-server) |
-| `GET` | `/sslcommerz/success` | Browser return after successful payment; validates and redirects to student app |
-| `GET` | `/sslcommerz/fail` | Browser return on failure |
-| `GET` | `/sslcommerz/cancel` | Browser return on cancel |
+| `POST`, `GET` | `/sslcommerz/success` | Browser return after successful payment; validates and redirects to student app |
+| `POST`, `GET` | `/sslcommerz/fail` | Browser return on failure |
+| `POST`, `GET` | `/sslcommerz/cancel` | Browser return on cancel |
+
+`POST` is the primary callback method as documented by SSLCommerz. `GET` is supported as a fallback for browser-driven redirects.
 
 Success/fail/cancel handlers redirect to `STUDENT_URL/dashboard/payments?payment=success|failed|cancelled`.
 
@@ -28,7 +30,7 @@ Cash and bank-transfer flows stay synchronous on those routes.
 
 ## Persistence
 
-Pending checkouts are stored in `payment_intents` (`tran_id`, `type`, `payload`, `status`). Completion runs the same business logic as immediate cash payments after SSLCommerz validation (`val_id`).
+Pending checkouts are stored in `payment_intents` (`tran_id`, `type`, `payload`, `status`). Completion runs the same business logic as immediate cash payments after SSLCommerz validation (`val_id`). Failed, cancelled, expired and unattempted callbacks are persisted as non-completed terminal statuses to avoid stale pending intents.
 
 ## Environment
 

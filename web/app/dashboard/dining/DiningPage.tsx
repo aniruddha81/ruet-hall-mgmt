@@ -48,6 +48,10 @@ type BookingState = Record<
 
 const DEFAULT_PAYMENT_METHOD: PaymentMethod = "BKASH";
 
+function formatHallLabel(hall?: string | null) {
+  return hall ? hall.replace(/_/g, " ") : "—";
+}
+
 export default function DiningPage() {
   const [menus, setMenus] = useState<Menus>({ lunch: [], dinner: [] });
   const [activeTokens, setActiveTokens] = useState<MealToken[]>([]);
@@ -402,6 +406,7 @@ export default function DiningPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Token</TableHead>
+                      <TableHead>Hall</TableHead>
                       <TableHead>Meal</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Qty</TableHead>
@@ -415,6 +420,7 @@ export default function DiningPage() {
                         <TableCell className="font-mono text-xs">
                           #{token.id.slice(0, 8)}
                         </TableCell>
+                        <TableCell>{formatHallLabel(token.hall)}</TableCell>
                         <TableCell>
                           <div className="font-medium">
                             {token.mealType.replace(/_/g, " ")}
@@ -468,6 +474,7 @@ export default function DiningPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Token</TableHead>
+                      <TableHead>Hall</TableHead>
                       <TableHead>Meal</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Qty</TableHead>
@@ -481,6 +488,7 @@ export default function DiningPage() {
                         <TableCell className="font-mono text-xs">
                           #{token.id.slice(0, 8)}
                         </TableCell>
+                        <TableCell>{formatHallLabel(token.hall)}</TableCell>
                         <TableCell className="font-medium">
                           {token.mealType.replace(/_/g, " ")}
                         </TableCell>

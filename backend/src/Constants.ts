@@ -12,6 +12,8 @@ export const NODE_ENV = process.env.NODE_ENV || "development";
 
 /** httpOnly cookie holding the opaque Redis session id. */
 export const SESSION_COOKIE_NAME = "sessionId";
+export const SESSION_COOKIE_SAMESITE = process.env.SESSION_COOKIE_SAMESITE;
+export const SESSION_COOKIE_SECURE = process.env.SESSION_COOKIE_SECURE;
 
 /** Live session TTL in Redis (default 10 days). */
 export const SESSION_TTL = process.env.SESSION_TTL || "10d";

@@ -234,9 +234,9 @@ async function completeIntent(intent: typeof paymentIntents.$inferSelect) {
 export async function processSslCommerzNotification(body: Record<string, string>) {
   const valId = body.val_id;
   const tranId = body.tran_id;
-  const status = body.status;
+  const status = body.status?.toUpperCase();
 
-  if (!valId || !tranId) {
+  if (!tranId) {
     return;
   }
 
@@ -254,8 +254,12 @@ export async function processSslCommerzNotification(body: Record<string, string>
     return;
   }
 
-  if (status === "FAILED") {
+  if (status === "FAILED" || status === "UNATTEMPTED" || status === "EXPIRED") {
     await markIntentStatus(intent.id, "FAILED");
+    return;
+  }
+
+  if (!valId) {
     return;
   }
 
@@ -266,10 +270,11 @@ export async function processSslCommerzNotification(body: Record<string, string>
   }
 
   const validatedAmount = Number(validation.amount);
-  if (
-    !Number.isFinite(validatedAmount) ||
-    Math.round(validatedAmount) !== intent.amount
-  ) {
+  if (!Number.isFinite(validatedAmount)) {
+    throw new ApiError(400, "SSLCommerz payment amount is invalid");
+  }
+
+  if (Math.abs(validatedAmount - intent.amount) > 0.01) {
     throw new ApiError(400, "SSLCommerz payment amount mismatch");
   }
 

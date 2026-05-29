@@ -1,5 +1,10 @@
 import type { CookieOptions, Request, Response } from "express";
-import { NODE_ENV, SESSION_COOKIE_NAME } from "../../Constants.ts";
+import {
+  NODE_ENV,
+  SESSION_COOKIE_NAME,
+  SESSION_COOKIE_SAMESITE,
+  SESSION_COOKIE_SECURE,
+} from "../../Constants.ts";
 import {
   createSession,
   sessionTtlSec,
@@ -8,6 +13,33 @@ import {
 
 export const sessionCookieMaxAgeMs = sessionTtlSec * 1000;
 
+function getCookieSameSite(): CookieOptions["sameSite"] {
+  const raw = SESSION_COOKIE_SAMESITE?.trim().toLowerCase();
+  if (raw === "lax" || raw === "strict" || raw === "none") {
+    return raw;
+  }
+  return "strict";
+}
+
+function getCookieSecure(sameSite: CookieOptions["sameSite"]): boolean {
+  // SameSite=None requires Secure in modern browsers.
+  if (sameSite === "none") {
+    return true;
+  }
+
+  const raw = SESSION_COOKIE_SECURE?.trim().toLowerCase();
+  if (raw === "true") {
+    return true;
+  }
+  if (raw === "false") {
+    return false;
+  }
+
+  return NODE_ENV === "production";
+}
+
+const cookieSameSite = getCookieSameSite();
+
 /**
  * Shared cookie attributes. `httpOnly` keeps JS from reading them; `sameSite`
  * is "strict" so the cookies never travel on cross-site requests. `secure` is
@@ -15,8 +47,8 @@ export const sessionCookieMaxAgeMs = sessionTtlSec * 1000;
  */
 export const cookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: NODE_ENV === "production",
-  sameSite: "strict",
+  secure: getCookieSecure(cookieSameSite),
+  sameSite: cookieSameSite,
 };
 
 export const setSessionCookie = (

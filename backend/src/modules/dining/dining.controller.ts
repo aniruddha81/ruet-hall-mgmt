@@ -212,6 +212,7 @@ export const getMyActiveTokens = async (req: Request, res: Response) => {
     .select({
       tokenId: mealTokens.id,
       menuId: mealTokens.menuId,
+      hall: mealTokens.hall,
       quantity: mealTokens.quantity,
       totalAmount: mealTokens.totalAmount,
       mealType: mealTokens.mealType,
@@ -343,6 +344,7 @@ export const getMyTokenHistory = async (req: Request, res: Response) => {
   const tokens = await db
     .select({
       tokenId: mealTokens.id,
+      hall: mealTokens.hall,
       quantity: mealTokens.quantity,
       totalAmount: mealTokens.totalAmount,
       mealType: mealTokens.mealType,

@@ -29,25 +29,32 @@ function bodyAsRecord(body: Request["body"]): Record<string, string> {
   return result;
 }
 
+function extractSslPayload(req: Request): Record<string, string | undefined> {
+  return {
+    ...queryAsRecord(req.query),
+    ...bodyAsRecord(req.body),
+  };
+}
+
 export const sslCommerzIpn = async (req: Request, res: Response) => {
   await processSslCommerzNotification(bodyAsRecord(req.body));
   res.status(200).send("OK");
 };
 
 export const sslCommerzSuccess = async (req: Request, res: Response) => {
-  const query = queryAsRecord(req.query);
-  const result = await processSslCommerzBrowserReturn(query, "success");
+  const payload = extractSslPayload(req);
+  const result = await processSslCommerzBrowserReturn(payload, "success");
   res.redirect(302, buildStudentPaymentRedirect("success", result.tranId));
 };
 
 export const sslCommerzFail = async (req: Request, res: Response) => {
-  const query = queryAsRecord(req.query);
-  const result = await processSslCommerzBrowserReturn(query, "failed");
+  const payload = extractSslPayload(req);
+  const result = await processSslCommerzBrowserReturn(payload, "failed");
   res.redirect(302, buildStudentPaymentRedirect("failed", result.tranId));
 };
 
 export const sslCommerzCancel = async (req: Request, res: Response) => {
-  const query = queryAsRecord(req.query);
-  const result = await processSslCommerzBrowserReturn(query, "cancelled");
+  const payload = extractSslPayload(req);
+  const result = await processSslCommerzBrowserReturn(payload, "cancelled");
   res.redirect(302, buildStudentPaymentRedirect("cancelled", result.tranId));
 };

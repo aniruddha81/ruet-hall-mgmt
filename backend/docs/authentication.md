@@ -9,7 +9,13 @@ Authentication is **session-based**, not JWT-in-localStorage:
 3. Each protected request resolves that id from the cookie or `Authorization: Bearer <sessionId>`.
 4. Server loads the account from PostgreSQL (with a short Redis cache) and attaches `req.user`.
 
-Cookie settings are set in `auth.service.ts` (`httpOnly`, `sameSite=strict`, `secure` in production, path `/`).
+Cookie settings are set in `auth.service.ts` (`httpOnly`, configurable `sameSite`, configurable `secure`, path `/`).
+
+Cookie env controls:
+
+- `SESSION_COOKIE_SAMESITE`: `strict` (default), `lax`, or `none`
+- `SESSION_COOKIE_SECURE`: optional (`true`/`false` override)
+- If `SESSION_COOKIE_SAMESITE=none`, secure is forced to `true` by the server (browser requirement).
 
 Constants: `SESSION_COOKIE_NAME`, `SESSION_TTL` in `src/Constants.ts`.
 

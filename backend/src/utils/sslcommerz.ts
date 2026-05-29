@@ -39,6 +39,23 @@ export type SslCommerzValidationResult = {
   bankTranId?: string;
 };
 
+type RawSslCommerzValidationResult = {
+  status?: string;
+  tran_id?: string;
+  tranId?: string;
+  val_id?: string;
+  valId?: string;
+  amount?: string;
+  currency_amount?: string;
+  store_amount?: string;
+  storeAmount?: string;
+  currency?: string;
+  card_type?: string;
+  cardType?: string;
+  bank_tran_id?: string;
+  bankTranId?: string;
+};
+
 export function getSslCommerzConfig(): SslCommerzConfig {
   const storeId = process.env.SSLCOMMERZ_STORE_ID;
   const storePassword = process.env.SSLCOMMERZ_STORE_PASSWORD;
@@ -154,11 +171,26 @@ export async function validateSslCommerzPayment(
     throw new ApiError(502, "SSLCommerz validation service is unavailable");
   }
 
-  const data = (await response.json()) as SslCommerzValidationResult & {
-    status: string;
-  };
+  const raw = (await response.json()) as RawSslCommerzValidationResult;
+  const tranId = raw.tran_id ?? raw.tranId;
+  const normalizedValId = raw.val_id ?? raw.valId;
+  const amount = raw.amount ?? raw.currency_amount;
+  const storeAmount = raw.store_amount ?? raw.storeAmount;
 
-  return data;
+  if (!raw.status || !tranId || !normalizedValId || !amount) {
+    throw new ApiError(502, "Invalid response from SSLCommerz validation API");
+  }
+
+  return {
+    status: raw.status,
+    tranId,
+    valId: normalizedValId,
+    amount,
+    storeAmount: storeAmount ?? amount,
+    currency: raw.currency ?? "BDT",
+    cardType: raw.card_type ?? raw.cardType,
+    bankTranId: raw.bank_tran_id ?? raw.bankTranId,
+  };
 }
 
 export function isSuccessfulSslCommerzStatus(status: string): boolean {

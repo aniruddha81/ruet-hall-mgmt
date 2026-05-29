@@ -53,11 +53,18 @@ Used for transactional mail from auth/admission flows where implemented.
 | `SSLCOMMERZ_IS_SANDBOX` | No | Default `true`; set `false` for live (`securepay.sslcommerz.com`) |
 | `API_PUBLIC_URL` | Yes for IPN/callbacks | Public backend URL, e.g. `https://api.example.com` or `http://localhost:8000` locally |
 
-Flow: finance/dining initiate a session → client redirects to `GatewayPageURL` → IPN and browser callbacks validate via SSLCommerz Order Validation API → `payment_intents` row marked `COMPLETED` and due/meal booking finalized.
+Flow: finance/dining initiate a session → client redirects to `GatewayPageURL` → IPN and browser callbacks (primary `POST`, fallback `GET`) validate via SSLCommerz Order Validation API → `payment_intents` row marked `COMPLETED` and due/meal booking finalized.
 
 IPN must be reachable from the internet (use ngrok for local dev). Configure the same IPN URL in the SSLCommerz merchant panel if required.
 
-Sandbox test card (Visa): `4111111111111111`, exp `12/25`, CVV `111`.
+Official sandbox test cards:
+
+- Visa: `4111111111111111`
+- Mastercard: `5111111111111111`
+- Amex: `371111111111111`
+- Expiry: use any future month/year
+- CVV: `111`
+- 3DS / OTP (when prompted): `111111` (or any valid test OTP shown by gateway prompt)
 
 ## CORS
 
