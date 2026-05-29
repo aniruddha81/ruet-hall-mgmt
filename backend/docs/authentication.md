@@ -7,7 +7,7 @@ Authentication is **session-based**, not JWT-in-localStorage:
 1. User logs in → server creates a **live session** in Redis.
 2. Server sets an httpOnly cookie `sessionId` (opaque UUID).
 3. Each protected request resolves that id from the cookie or `Authorization: Bearer <sessionId>`.
-4. Server loads the account from MySQL (with a short Redis cache) and attaches `req.user`.
+4. Server loads the account from PostgreSQL (with a short Redis cache) and attaches `req.user`.
 
 Cookie settings are set in `auth.service.ts` (`httpOnly`, `sameSite=strict`, `secure` in production, path `/`).
 
@@ -36,7 +36,7 @@ At most **2 concurrent live sessions** per user. A third login returns `403` unt
 
 1. Read `sessionId` from cookie or Bearer header.
 2. `getSession` from Redis; `touchSession`.
-3. Load `uni_students` or `hall_admins` from MySQL.
+3. Load `uni_students` or `hall_admins` from PostgreSQL.
 4. Cache row for **30 seconds** (`cacheKeys.authAccountStudent` / `authAccountAdmin`).
 5. Reject deactivated students, non-`ACTIVE` status, inactive or unapproved admins; revoke all sessions and clear cookie.
 

@@ -1,44 +1,41 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
-  datetime,
   index,
-  int,
-  mysqlEnum,
-  mysqlTable,
+  integer,
+  pgEnum,
+  pgTable,
   smallint,
   text,
-  tinyint,
+  timestamp,
   varchar,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import { HALLS, ROOM_STATUSES } from "../../types/enums.ts";
 
-export const roomStatusSQL_Enum = () => mysqlEnum("room_status", ROOM_STATUSES);
-export const hallSQL_Enum = () => mysqlEnum("hall", HALLS);
+export const roomStatusSQL_Enum = pgEnum("room_status", ROOM_STATUSES);
+export const hallSQL_Enum = pgEnum("hall", HALLS);
 
-export const rooms = mysqlTable(
+export const rooms = pgTable(
   "rooms",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
-    roomNumber: smallint("room_number", { unsigned: true }).notNull(),
+    roomNumber: smallint("room_number").notNull(),
 
-    hall: hallSQL_Enum()
+    hall: hallSQL_Enum("hall")
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
-    capacity: tinyint("capacity", { unsigned: true }).notNull(),
+    capacity: smallint("capacity").notNull(),
 
-    currentOccupancy: smallint("current_occupancy", { unsigned: true })
-      .notNull()
-      .default(0),
+    currentOccupancy: smallint("current_occupancy").notNull().default(0),
 
-    status: roomStatusSQL_Enum().notNull().default("AVAILABLE"),
+    status: roomStatusSQL_Enum("status").notNull().default("AVAILABLE"),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
@@ -50,24 +47,24 @@ export const rooms = mysqlTable(
   ]
 );
 
-export const halls = mysqlTable("halls", {
-  name: hallSQL_Enum().primaryKey().unique(),
+export const halls = pgTable("halls", {
+  name: hallSQL_Enum("name").primaryKey(),
 
   address: text("address"),
 
   contactNumber: varchar("contact_number", { length: 20 }),
 
-  totalCapacity: int("total_capacity").notNull().default(0),
+  totalCapacity: integer("total_capacity").notNull().default(0),
 
-  totalRooms: int("total_rooms").notNull().default(0),
+  totalRooms: integer("total_rooms").notNull().default(0),
 
   isActive: boolean("is_active").notNull().default(true),
 
-  createdAt: datetime("created_at", { mode: "date" })
+  createdAt: timestamp("created_at", { mode: "date" })
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
 
-  updatedAt: datetime("updated_at", { mode: "date" })
+  updatedAt: timestamp("updated_at", { mode: "date" })
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`)
     .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),

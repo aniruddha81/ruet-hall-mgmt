@@ -567,7 +567,7 @@ async function seed() {
     return {
       id: randomUUID(),
       name,
-      isActive: index === 7 ? 0 : 1,
+      isActive: index !== 7,
       createdBy: diningAdminId,
       updatedBy: diningAdminId,
     };

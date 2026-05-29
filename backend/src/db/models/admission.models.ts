@@ -1,27 +1,21 @@
 import { sql } from "drizzle-orm";
 import {
-  datetime,
   index,
-  mysqlEnum,
-  mysqlTable,
+  pgEnum,
+  pgTable,
+  timestamp,
   varchar,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import { SEAT_APPLICATION_STATUSES } from "../../types/enums.ts";
-import {
-  academicDepartmentsSQL_Enum,
-  hallAdmins,
-  uniStudents,
-} from "./auth.models.ts";
+import { academicDepartmentsSQL_Enum, hallAdmins, uniStudents } from "./auth.models.ts";
 import { hallSQL_Enum, halls, rooms } from "./halls.models.ts";
 
-export const seatApplicationStatusSQL_Enum = () =>
-  mysqlEnum("seat_application_status", SEAT_APPLICATION_STATUSES);
+export const seatApplicationStatusSQL_Enum = pgEnum(
+  "seat_application_status",
+  SEAT_APPLICATION_STATUSES
+);
 
-// ============================================
-// SEAT APPLICATIONS
-// Students apply for a hall seat
-// ============================================
-export const seatApplications = mysqlTable(
+export const seatApplications = pgTable(
   "seat_applications",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -32,21 +26,21 @@ export const seatApplications = mysqlTable(
 
     rollNumber: varchar("roll_number", { length: 20 }).notNull(),
 
-    hall: hallSQL_Enum().references(() => halls.name, { onDelete: "cascade" }),
+    hall: hallSQL_Enum("hall").references(() => halls.name, { onDelete: "cascade" }),
 
-    academicDepartment: academicDepartmentsSQL_Enum().notNull(),
+    academicDepartment: academicDepartmentsSQL_Enum("academic_department").notNull(),
 
     session: varchar("session", { length: 10 }).notNull(),
 
-    status: seatApplicationStatusSQL_Enum().notNull().default("PENDING"),
+    status: seatApplicationStatusSQL_Enum("status").notNull().default("PENDING"),
 
     reviewedBy: varchar("reviewed_by", { length: 36 }).references(
       () => hallAdmins.id
     ),
 
-    reviewedAt: datetime("reviewed_at", { mode: "date" }),
+    reviewedAt: timestamp("reviewed_at", { mode: "date" }),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },
@@ -57,11 +51,7 @@ export const seatApplications = mysqlTable(
   ]
 );
 
-// ============================================
-// SEAT ALLOCATIONS
-// Admin allocates a room to a student
-// ============================================
-export const seatAllocations = mysqlTable(
+export const seatAllocations = pgTable(
   "seat_allocations",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -72,7 +62,7 @@ export const seatAllocations = mysqlTable(
 
     rollNumber: varchar("roll_number", { length: 20 }).notNull(),
 
-    hall: hallSQL_Enum()
+    hall: hallSQL_Enum("hall")
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
@@ -80,7 +70,7 @@ export const seatAllocations = mysqlTable(
       .notNull()
       .references(() => rooms.id),
 
-    allocatedAt: datetime("allocated_at", { mode: "date" })
+    allocatedAt: timestamp("allocated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 

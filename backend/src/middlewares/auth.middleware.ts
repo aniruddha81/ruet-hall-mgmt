@@ -67,7 +67,7 @@ function readSessionId(req: Request): string | undefined {
 }
 
 /**
- * Resolve the live Redis session, hydrate the account from MySQL, and reject
+ * Resolve the live Redis session, hydrate the account from PostgreSQL, and reject
  * deactivated / missing accounts. Invalid sessions clear the cookie so
  * frontends do not loop on a dead session id.
  */

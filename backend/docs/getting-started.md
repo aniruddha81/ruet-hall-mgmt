@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Node.js (LTS recommended)
-- MySQL 8+
+- PostgreSQL 18+ (or Docker: official `postgres:18.4-alpine` image)
 - Redis (required for login and sessions in production)
 - Optional: Docker via repo root `docker-compose.yml` / `docker-compose.local.yml`
 
@@ -16,11 +16,11 @@ npm install
 
 ## Environment variables
 
-Create `backend/.env` (not committed). Minimum for local dev:
+Create `backend/.env` from `backend/.env.example` (not committed). Minimum for local dev:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | MySQL connection string, e.g. `mysql://user:pass@localhost:3306/hall_mgmt` |
+| `DATABASE_URL` | Yes | PostgreSQL connection string, e.g. `postgresql://user:pass@localhost:5433/hall_db` (host port `5433` when using `docker-compose.local.yml`) |
 | `REDIS_URL` | Yes for auth | Redis URL, e.g. `redis://localhost:6379` |
 | `PORT` | No | Default `8000` |
 | `NODE_ENV` | No | `development` or `production` |
@@ -33,7 +33,14 @@ Create `backend/.env` (not committed). Minimum for local dev:
 | `PAYMENT_SERVER_URL` | No | External payment service (default `http://localhost:8080`) |
 | `PAY_SERVICE_SECRET` | No | Shared secret for payment callbacks |
 
-Docker Compose at the repo root wires many of these into the backend service; see root `.env` / compose files.
+Docker Compose at the repo root uses root `.env` (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) and sets `DATABASE_URL` for the backend container. Copy from root `.env.example`.
+
+| Compose file | DB image | Host port → container |
+|--------------|----------|------------------------|
+| `docker-compose.local.yml` | `postgres:18.4-alpine` | `5433` → `5432` |
+| `docker-compose.yml` (production) | `postgres:18.4-alpine` | `5432` → `5432` |
+
+The Postgres service creates `POSTGRES_DB` on first start; run migrations after the healthcheck passes.
 
 ## Database setup
 
@@ -83,7 +90,13 @@ From the repository root:
 docker compose -f docker-compose.local.yml up --build
 ```
 
-See [VM deployment runbook](../../VM_DEPLOYMENT_FROM_SCRATCH.md) for production.
+After Postgres is healthy, apply schema and seed (first time):
+
+```bash
+docker compose -f docker-compose.local.yml exec backend npm run db-all
+```
+
+See [VM deployment runbook](../../VM_DEPLOYMENT_FROM_SCRATCH.md) for production (`docker-compose.yml`, same `postgres:18.4-alpine` image).
 
 ## Next steps
 

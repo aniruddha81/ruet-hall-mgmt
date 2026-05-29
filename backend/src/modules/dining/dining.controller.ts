@@ -50,7 +50,7 @@ const getActiveMealItemsByIds = async (itemIds: string[]) => {
   const items = await db
     .select({ id: mealItems.id, name: mealItems.name })
     .from(mealItems)
-    .where(and(inArray(mealItems.id, uniqueIds), eq(mealItems.isActive, 1)));
+    .where(and(inArray(mealItems.id, uniqueIds), eq(mealItems.isActive, true)));
 
   if (items.length !== uniqueIds.length) {
     throw new ApiError(400, "One or more selected meal items are invalid");
@@ -169,15 +169,18 @@ export const bookMealTokens = async (req: Request, res: Response) => {
     const totalAmount = menu.price * quantity;
 
     // Atomic availability check + reserve: only succeeds if enough tokens exist.
-    // Two concurrent requests cannot both pass this — MySQL row lock on UPDATE.
-    const updateResult = await trx.execute(
-      sql`UPDATE meal_menus
-          SET booked_tokens = booked_tokens + ${quantity}
-          WHERE id = ${menuId}
-          AND (total_tokens - booked_tokens) >= ${quantity}`
-    );
+    const reserved = await trx
+      .update(mealMenus)
+      .set({ bookedTokens: sql`${mealMenus.bookedTokens} + ${quantity}` })
+      .where(
+        and(
+          eq(mealMenus.id, menuId),
+          sql`(${mealMenus.totalTokens} - ${mealMenus.bookedTokens}) >= ${quantity}`
+        )
+      )
+      .returning({ id: mealMenus.id });
 
-    if ((updateResult as any)[0]?.affectedRows === 0) {
+    if (reserved.length === 0) {
       throw new ApiError(
         400,
         `Not enough tokens available. Cannot book ${quantity} tokens.`
@@ -801,7 +804,7 @@ export const createMealItem = async (req: Request, res: Response) => {
   await db.insert(mealItems).values({
     id,
     name: normalizedName,
-    isActive: 1,
+    isActive: true,
     createdBy: manager.id,
     updatedBy: manager.id,
   });
@@ -812,7 +815,7 @@ export const createMealItem = async (req: Request, res: Response) => {
       {
         id,
         name: normalizedName,
-        isActive: 1,
+        isActive: true,
       },
       "Meal item created successfully"
     )
@@ -835,7 +838,7 @@ export const updateMealItem = async (req: Request, res: Response) => {
     throw new ApiError(404, "Meal item not found");
   }
 
-  const updateData: { name?: string; isActive?: number; updatedBy: string } = {
+  const updateData: { name?: string; isActive?: boolean; updatedBy: string } = {
     updatedBy: manager.id,
   };
 
@@ -857,7 +860,7 @@ export const updateMealItem = async (req: Request, res: Response) => {
   }
 
   if (isActive !== undefined) {
-    updateData.isActive = isActive ? 1 : 0;
+    updateData.isActive = isActive;
   }
 
   await db.update(mealItems).set(updateData).where(eq(mealItems.id, itemId));

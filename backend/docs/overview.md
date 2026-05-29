@@ -30,7 +30,7 @@ Two frontends consume this API (student dashboard and admin panel). They use **c
 | Runtime | Node.js, ESM (`"type": "module"`) |
 | Language | TypeScript 5.9+ |
 | HTTP | Express 5 |
-| ORM | Drizzle ORM + MySQL (`mysql2`) |
+| ORM | Drizzle ORM + PostgreSQL (`pg` / `node-postgres`) |
 | Validation | Zod 4 |
 | Sessions / cache | Redis 5 (`redis` package) |
 | Passwords | bcrypt |
@@ -44,7 +44,7 @@ Two frontends consume this API (student dashboard and admin panel). They use **c
 2. **Controllers own business logic** — most modules keep SQL and rules in controllers; services are thin.
 3. **Uniform API shape** — successes use `ApiResponse`; failures throw `ApiError`.
 4. **Validate at the edge** — Zod schemas in `*.validators.ts`, applied via `validateRequest`.
-5. **Stateful auth in Redis** — MySQL stores accounts; Redis stores live sessions and short-lived caches.
+5. **Stateful auth in Redis** — PostgreSQL stores accounts; Redis stores live sessions and short-lived caches.
 
 ## Request lifecycle (summary)
 

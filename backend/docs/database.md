@@ -2,17 +2,31 @@
 
 ## Stack
 
-- **MySQL** — primary persistence
+- **PostgreSQL 18** — primary persistence (Docker: `postgres:18.4-alpine` in root compose files)
 - **Drizzle ORM** — schema-as-code in `src/db/models/`
 - **drizzle-kit** — migrations under `backend/drizzle/`
 
-Connection: `DATABASE_URL` → `src/db/index.ts`:
+### Docker (compose)
+
+| File | Container | Image | External port |
+|------|-----------|-------|-----------------|
+| `docker-compose.local.yml` | `hallmgmt-postgres-local` | `postgres:18.4-alpine` | `127.0.0.1:5433` |
+| `docker-compose.yml` | `hallmgmt-postgres` | `postgres:18.4-alpine` | `127.0.0.1:5432` |
+
+Env: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (root `.env`). Backend receives `DATABASE_URL=postgresql://…@postgres:5432/…` on the internal network.
+
+Connection: `DATABASE_URL` → `src/db/index.ts` (`drizzle-orm/node-postgres` + `pg`):
 
 ```typescript
-export const db = drizzle(process.env.DATABASE_URL);
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import * as schema from "./models/index.ts";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool, { schema });
 ```
 
-Config: `drizzle.config.ts` (dialect `mysql`, schema `./src/db/models/index.ts`).
+Config: `drizzle.config.ts` uses `defineConfig` from `drizzle-kit` (dialect `postgresql`, schema `./src/db/models/index.ts`).
 
 ## Workflow
 
@@ -45,14 +59,14 @@ All models are re-exported from `src/db/models/index.ts`.
 
 - Primary keys: `varchar` UUIDs (`randomUUID()` in app code).
 - **TypeScript enums** live in `src/types/enums.ts` (`HALLS`, `ROLES`, …).
-- **MySQL enums** in models: `mysqlEnum("column_name", VALUES)` — local names like `mealTypeSQL_Enum`; not exported from model files.
-- **Explicit defaults on insert** — do not rely on Drizzle `.default()` alone if MySQL has no column default; pass `status`, enums, etc. in `.insert()` to avoid constraint errors.
+- **PostgreSQL enums** in models: `pgEnum("type_name", VALUES)` exported as `*SQL_Enum` (e.g. `seatApplicationStatusSQL_Enum`) to avoid clashing with `src/types/enums.ts`; use `seatApplicationStatusSQL_Enum("status")` on columns.
+- **Explicit defaults on insert** — pass `status`, enums, etc. in `.insert()` when app logic requires known values at insert time.
 
-## Redis vs MySQL
+## Redis vs PostgreSQL
 
 | Data | Store |
 |------|--------|
-| Accounts, applications, menus, dues, … | MySQL |
+| Accounts, applications, menus, dues, … | PostgreSQL |
 | Live login sessions | Redis only |
 | 30s account cache, 5min active academic sessions list | Redis (optional if down) |
 

@@ -21,7 +21,7 @@ export const bookMealTokensSchema = {
       .int("Quantity must be an integer")
       .min(1, "Quantity must be at least 1")
       .max(20, "Maximum 20 tokens per booking (for self + friends)")
-      .describe("Number of tokens to book (tinyint)"),
+      .describe("Number of tokens to book (smallint)"),
     paymentMethod: z
       .enum(PAYMENT_METHODS)
       .describe("Payment method used for booking"),
@@ -108,7 +108,7 @@ export const createMenuSchema = {
       .min(1, "Price must be at least 1")
       .max(255, "Price cannot exceed 255")
       .default(40)
-      .describe("Price per token (tinyint, max 255)"),
+      .describe("Price per token (smallint, max 255)"),
     totalTokens: z
       .number()
       .int("Total tokens must be an integer")
@@ -141,7 +141,7 @@ export const updateMenuSchema = {
         .min(1, "Price must be at least 1")
         .max(255, "Price cannot exceed 255")
         .optional()
-        .describe("Updated price per token (tinyint, max 255)"),
+        .describe("Updated price per token (smallint, max 255)"),
       totalTokens: z
         .number()
         .int("Total tokens must be an integer")

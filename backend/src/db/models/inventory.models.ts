@@ -1,25 +1,24 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
-  datetime,
   index,
-  int,
-  mysqlEnum,
-  mysqlTable,
+  integer,
+  pgEnum,
+  pgTable,
   text,
+  timestamp,
   varchar,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import { DAMAGE_REPORT_STATUSES } from "../../types/enums.ts";
 import { hallAdmins, uniStudents } from "./auth.models.ts";
 import { hallSQL_Enum, halls } from "./halls.models.ts";
 
-export const damageReportStatusSQL_Enum = () =>
-  mysqlEnum("damage_report_status", DAMAGE_REPORT_STATUSES);
+export const damageReportStatusSQL_Enum = pgEnum(
+  "damage_report_status",
+  DAMAGE_REPORT_STATUSES
+);
 
-// ============================================
-// DAMAGE REPORTS TABLE
-// ============================================
-export const damageReports = mysqlTable(
+export const damageReports = pgTable(
   "damage_reports",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -28,7 +27,7 @@ export const damageReports = mysqlTable(
       .notNull()
       .references(() => uniStudents.id, { onDelete: "cascade" }),
 
-    hall: hallSQL_Enum()
+    hall: hallSQL_Enum("hall")
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
@@ -40,9 +39,9 @@ export const damageReports = mysqlTable(
 
     description: text("description").notNull(),
 
-    fineAmount: int("fine_amount", { unsigned: true }),
+    fineAmount: integer("fine_amount"),
 
-    damageCost: int("damage_cost", { unsigned: true }),
+    damageCost: integer("damage_cost"),
 
     isStudentResponsible: boolean("is_student_responsible"),
 
@@ -53,26 +52,23 @@ export const damageReports = mysqlTable(
       { onDelete: "set null" }
     ),
 
-    status: damageReportStatusSQL_Enum().notNull().default("REPORTED"),
+    status: damageReportStatusSQL_Enum("status").notNull().default("REPORTED"),
 
     verifiedBy: varchar("verified_by", { length: 36 }).references(
       () => hallAdmins.id
     ),
 
-    fixedBy: varchar("fixed_by", { length: 36 }).references(
-      () => hallAdmins.id,
-      {
-        onDelete: "set null",
-      }
-    ),
+    fixedBy: varchar("fixed_by", { length: 36 }).references(() => hallAdmins.id, {
+      onDelete: "set null",
+    }),
 
-    fixedAt: datetime("fixed_at", { mode: "date" }),
+    fixedAt: timestamp("fixed_at", { mode: "date" }),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),

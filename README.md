@@ -16,7 +16,7 @@ Core modules:
 - Admin portal (Next.js): administration dashboard and management tools
 - Backend API (Node + Express + Drizzle): authentication, business logic, database access
 - Payment service (Node.js + Express): payment-related processing flow
-- MySQL: persistent data storage
+- PostgreSQL 18 (`postgres:18.4-alpine` in Docker): persistent data storage
 - Nginx: reverse proxy, SSL termination, domain routing
 
 ## 2. Repository Architecture
@@ -39,7 +39,7 @@ Runtime model in this repository:
 ## 3. Tech Stack
 
 - Frontend: Next.js 16, React 19, TypeScript
-- Backend: Node.js, Express, Drizzle ORM, MySQL
+- Backend: Node.js, Express, Drizzle ORM, PostgreSQL (`pg`)
 - Payment service: Node.js, Express
 - Infra: Docker Compose, Nginx, Certbot
 - Hosting target: Azure Ubuntu VM
@@ -50,7 +50,7 @@ Use root [.env](.env) for Docker Compose deployment.
 
 Minimum required values:
 
-- MySQL credentials: `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`
+- PostgreSQL credentials: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
 - Ports: `BACKEND_PORT`, `PAYMENT_SERVER_PORT`, `NGINX_HTTP_PORT`, `NGINX_HTTPS_PORT`
 - Frontend rewrite target in Docker network: `BACKEND_API_URL=http://backend:8000`
 - CORS URLs: `STUDENT_URL`, `ADMIN_URL`
@@ -80,24 +80,19 @@ docker compose ps
 
 ## 6. First-Time Database Setup
 
-Create DB if needed:
-
-```bash
-docker compose exec mysql \
-  sh -lc 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
-```
-
-Run migrations + seed:
+Postgres (`postgres:18.4-alpine`) creates `POSTGRES_DB` on first container start. After `docker compose ps` shows `hallmgmt-postgres` healthy, run migrations + seed:
 
 ```bash
 docker compose exec backend npm run db-all
 ```
 
-If seed already exists:
+If schema exists and you only need migrations:
 
 ```bash
-docker compose exec backend npm run db
+docker compose exec backend npm run db:migrate
 ```
+
+Local compose (`docker-compose.local.yml`) exposes Postgres on host port **5433**; production compose uses **5432**.
 
 ## 7. Development Workflow
 
@@ -173,7 +168,7 @@ docker compose up -d
 ## 11. Troubleshooting Quick List
 
 - Frontend cannot call API from browser: confirm it calls `/api`, not internal docker hostname directly
-- Backend starts before DB: confirm mysql is healthy in `docker compose ps`
+- Backend starts before DB: confirm `hallmgmt-postgres` is healthy in `docker compose ps`
 - SSL renewal fails: ensure nginx is stopped during certbot standalone challenge
 - Build fails on low memory: build services one-by-one, not all-at-once
 

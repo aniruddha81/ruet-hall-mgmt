@@ -1,14 +1,13 @@
-// schema/auth.schema.ts
 import { sql } from "drizzle-orm";
-import type { AnyMySqlColumn } from "drizzle-orm/mysql-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   boolean,
-  datetime,
   index,
-  mysqlEnum,
-  mysqlTable,
+  pgEnum,
+  pgTable,
+  timestamp,
   varchar,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import {
   ACADEMIC_DEPARTMENTS,
   HALL_ADMIN_STATUSES,
@@ -18,19 +17,19 @@ import {
 } from "../../types/enums.ts";
 import { hallSQL_Enum, halls, rooms } from "./halls.models.ts";
 
-export const studentStatusSQL_Enum = () =>
-  mysqlEnum("student_status", STUDENT_STATUSES);
-export const adminDesignationSQL_Enum = () =>
-  mysqlEnum("admin_designation", STAFF_ROLES);
-export const operationalUnitSQL_Enum = () =>
-  mysqlEnum("operational_unit", OPERATIONAL_UNITS);
-export const academicDepartmentsSQL_Enum = () =>
-  mysqlEnum("academic_department", ACADEMIC_DEPARTMENTS);
+export const studentStatusSQL_Enum = pgEnum("student_status", STUDENT_STATUSES);
+export const adminDesignationSQL_Enum = pgEnum("admin_designation", STAFF_ROLES);
+export const operationalUnitSQL_Enum = pgEnum("operational_unit", OPERATIONAL_UNITS);
+export const academicDepartmentsSQL_Enum = pgEnum(
+  "academic_department",
+  ACADEMIC_DEPARTMENTS
+);
+export const hallAdminStatusSQL_Enum = pgEnum(
+  "hall_admin_status",
+  HALL_ADMIN_STATUSES
+);
 
-export const hallAdminStatusSQL_Enum = () =>
-  mysqlEnum("hall_admin_status", HALL_ADMIN_STATUSES);
-
-export const academicSessions = mysqlTable(
+export const academicSessions = pgTable(
   "academic_sessions",
   {
     id: varchar("id", { length: 36 }).primaryKey().notNull(),
@@ -43,11 +42,11 @@ export const academicSessions = mysqlTable(
       .notNull()
       .references(() => hallAdmins.id, { onDelete: "cascade" }),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
@@ -58,7 +57,7 @@ export const academicSessions = mysqlTable(
   ]
 );
 
-export const uniStudents = mysqlTable(
+export const uniStudents = pgTable(
   "uni_students",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -73,7 +72,7 @@ export const uniStudents = mysqlTable(
 
     rollNumber: varchar("roll_number", { length: 20 }).notNull().unique(),
 
-    academicDepartment: academicDepartmentsSQL_Enum().notNull(),
+    academicDepartment: academicDepartmentsSQL_Enum("academic_department").notNull(),
 
     isActive: boolean("is_active").notNull().default(true),
 
@@ -83,17 +82,17 @@ export const uniStudents = mysqlTable(
 
     session: varchar("session", { length: 10 }),
 
-    hall: hallSQL_Enum().references(() => halls.name, { onDelete: "cascade" }),
+    hall: hallSQL_Enum("hall").references(() => halls.name, { onDelete: "cascade" }),
 
     roomId: varchar("room_id", { length: 36 }).references(() => rooms.id),
 
-    status: studentStatusSQL_Enum().notNull().default("ACTIVE"),
+    status: studentStatusSQL_Enum("status").notNull().default("ACTIVE"),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
@@ -107,7 +106,7 @@ export const uniStudents = mysqlTable(
   ]
 );
 
-export const hallAdmins = mysqlTable(
+export const hallAdmins = pgTable(
   "hall_admins",
   {
     id: varchar("id", { length: 36 }).primaryKey().notNull(),
@@ -120,31 +119,33 @@ export const hallAdmins = mysqlTable(
 
     phone: varchar("phone", { length: 20 }).notNull(),
 
-    academicDepartment: academicDepartmentsSQL_Enum(),
+    academicDepartment: academicDepartmentsSQL_Enum("academic_department"),
 
-    hall: hallSQL_Enum()
+    hall: hallSQL_Enum("hall")
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
-    designation: adminDesignationSQL_Enum().notNull(),
+    designation: adminDesignationSQL_Enum("designation").notNull(),
 
-    operationalUnit: operationalUnitSQL_Enum().notNull(),
+    operationalUnit: operationalUnitSQL_Enum("operational_unit").notNull(),
 
     reportingToId: varchar("reporting_to_id", { length: 36 }).references(
-      (): AnyMySqlColumn => hallAdmins.id
+      (): AnyPgColumn => hallAdmins.id
     ),
 
-    hallAdminStatus: hallAdminStatusSQL_Enum().notNull().default("PENDING"),
+    hallAdminStatus: hallAdminStatusSQL_Enum("hall_admin_status")
+      .notNull()
+      .default("PENDING"),
 
     isActive: boolean("is_active").notNull().default(true),
 
     avatarUrl: varchar("avatar_url", { length: 512 }),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),

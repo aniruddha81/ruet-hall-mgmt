@@ -1,13 +1,13 @@
 import { sql } from "drizzle-orm";
 import {
-  datetime,
   index,
-  int,
-  mysqlEnum,
-  mysqlTable,
+  integer,
+  pgEnum,
+  pgTable,
   text,
+  timestamp,
   varchar,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import {
   DUE_STATUSES,
   DUE_TYPES,
@@ -16,15 +16,14 @@ import {
 import { hallAdmins, uniStudents } from "./auth.models.ts";
 import { hallSQL_Enum, halls } from "./halls.models.ts";
 
-export const dueTypeSQL_Enum = () => mysqlEnum("due_type", DUE_TYPES);
-export const dueStatusSQL_Enum = () => mysqlEnum("due_status", DUE_STATUSES);
-export const financePaymentMethodSQL_Enum = () =>
-  mysqlEnum("finance_payment_method", FINANCE_PAYMENT_METHODS);
+export const dueTypeSQL_Enum = pgEnum("due_type", DUE_TYPES);
+export const dueStatusSQL_Enum = pgEnum("due_status", DUE_STATUSES);
+export const financePaymentMethodSQL_Enum = pgEnum(
+  "finance_payment_method",
+  FINANCE_PAYMENT_METHODS
+);
 
-// ============================================
-// STUDENT DUES TABLE
-// ============================================
-export const studentDues = mysqlTable(
+export const studentDues = pgTable(
   "student_dues",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -33,23 +32,23 @@ export const studentDues = mysqlTable(
       .notNull()
       .references(() => uniStudents.id, { onDelete: "cascade" }),
 
-    hall: hallSQL_Enum()
+    hall: hallSQL_Enum("hall")
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
-    type: dueTypeSQL_Enum().notNull(),
+    type: dueTypeSQL_Enum("type").notNull(),
 
-    amount: int("amount", { unsigned: true }).notNull(),
+    amount: integer("amount").notNull(),
 
-    status: dueStatusSQL_Enum().notNull().default("UNPAID"),
+    status: dueStatusSQL_Enum("status").notNull().default("UNPAID"),
 
-    paidAt: datetime("paid_at", { mode: "date" }),
+    paidAt: timestamp("paid_at", { mode: "date" }),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
@@ -62,10 +61,7 @@ export const studentDues = mysqlTable(
   ]
 );
 
-// ============================================
-// PAYMENTS TABLE
-// ============================================
-export const payments = mysqlTable(
+export const payments = pgTable(
   "payments",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -74,25 +70,25 @@ export const payments = mysqlTable(
       .notNull()
       .references(() => uniStudents.id, { onDelete: "cascade" }),
 
-    hall: hallSQL_Enum()
+    hall: hallSQL_Enum("hall")
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
     dueId: varchar("due_id", { length: 36 }).references(() => studentDues.id),
 
-    amount: int("amount", { unsigned: true }).notNull(),
+    amount: integer("amount").notNull(),
 
-    method: financePaymentMethodSQL_Enum().notNull(),
+    method: financePaymentMethodSQL_Enum("method").notNull(),
 
     bankReceiptUrl: text("bank_receipt_url"),
 
-    receiptVerifiedAt: datetime("receipt_verified_at", { mode: "date" }),
+    receiptVerifiedAt: timestamp("receipt_verified_at", { mode: "date" }),
 
     receiptVerifiedBy: varchar("receipt_verified_by", {
       length: 36,
     }).references(() => hallAdmins.id),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },
@@ -102,21 +98,18 @@ export const payments = mysqlTable(
   ]
 );
 
-// ============================================
-// EXPENSES TABLE
-// ============================================
-export const expenses = mysqlTable(
+export const expenses = pgTable(
   "expenses",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
 
-    hall: hallSQL_Enum()
+    hall: hallSQL_Enum("hall")
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
     title: varchar("title", { length: 255 }).notNull(),
 
-    amount: int("amount", { unsigned: true }).notNull(),
+    amount: integer("amount").notNull(),
 
     category: varchar("category", { length: 100 }).notNull(),
 
@@ -124,7 +117,7 @@ export const expenses = mysqlTable(
       .notNull()
       .references(() => hallAdmins.id),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },

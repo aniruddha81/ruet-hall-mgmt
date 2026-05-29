@@ -79,10 +79,8 @@ docker compose build
 docker compose up -d
 
 # 4. Init DB (only if data was lost)
-#    Wait for MySQL to fully initialize (healthcheck passes before user setup completes)
+#    Wait for PostgreSQL (postgres:18.4-alpine) to pass healthcheck
 sleep 15
-docker compose exec mysql sh -lc \
-  'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
 docker compose exec backend npm run db-all
 
 # 5. Verify all services are healthy
@@ -194,10 +192,9 @@ nano ~/ruet-hall-mgmt/.env
 Use this template and replace placeholders:
 
 ```env
-MYSQL_ROOT_PASSWORD=change-me-root-password
-MYSQL_DATABASE=hall_db
-MYSQL_USER=halladmin
-MYSQL_PASSWORD=change-me-db-password
+POSTGRES_USER=halladmin
+POSTGRES_PASSWORD=change-me-db-password
+POSTGRES_DB=hall_db
 
 BACKEND_PORT=8000
 PAYMENT_SERVER_PORT=8080
@@ -230,7 +227,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"
 
 Important:
 
-- Do not set `MYSQL_USER=root`.
+- `POSTGRES_DB` is created automatically when the `postgres:18.4-alpine` container starts for the first time.
 
 Protect secrets:
 
@@ -297,7 +294,7 @@ docker compose ps
 
 Expected pass:
 
-- `hallmgmt-mysql` is `Up (...) (healthy)`
+- `hallmgmt-postgres` is `Up (...) (healthy)`
 - `hallmgmt-backend` is `Up`
 - `hallmgmt-pay-server` is `Up`
 - `hallmgmt-student-web` is `Up`
@@ -306,14 +303,7 @@ Expected pass:
 
 ### 5.1 Initialize DB Schema and Seed Data (First time only)
 
-Wait ~15 seconds after `docker compose up -d` for MySQL to fully initialize:
-
-```bash
-docker compose exec mysql \
-  sh -lc 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"'
-```
-
-Generate migrations, migrate, and seed:
+Wait until Postgres is healthy (`postgres:18.4-alpine`, `pg_isready` healthcheck), then migrate and seed:
 
 ```bash
 docker compose exec backend npm run db-all
@@ -322,8 +312,7 @@ docker compose exec backend npm run db-all
 Verify tables:
 
 ```bash
-docker compose exec mysql \
-  sh -lc 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -D "$MYSQL_DATABASE" -e "SHOW TABLES;"'
+docker compose exec postgres psql -U halladmin -d hall_db -c '\dt'
 ```
 
 Notes:
@@ -536,7 +525,7 @@ Useful logs:
 
 ```bash
 docker compose logs -f
-docker compose logs -f mysql
+docker compose logs -f postgres
 docker compose logs -f backend
 docker compose logs -f nginx
 ```
@@ -548,7 +537,7 @@ If you disconnect SSH, stop the VM from Azure Portal, and later start it again:
 - Docker daemon starts automatically at boot (`sudo systemctl enable docker` was set in step 1).
 - All services use `restart: unless-stopped`, so Docker will auto-restart every container that was running before shutdown.
 - The `nginx.conf` in the repo is the SSL version. No manual patching is needed — `git reset --hard` preserves HTTPS.
-- `depends_on: service_healthy` ensures correct startup order: mysql → backend → admin/web → nginx.
+- `depends_on: service_healthy` ensures correct startup order: postgres → backend → admin/web → nginx.
 
 ### Quick Verification After VM Boot
 
@@ -559,7 +548,7 @@ cd ~/ruet-hall-mgmt
 docker compose ps
 ```
 
-Expected: All 6 services show `Up` and `(healthy)` for mysql, backend, admin, web.
+Expected: All 6 services show `Up` and `(healthy)` for postgres, backend, admin, web.
 
 If nginx shows `Up` but HTTPS doesn't work, check that certs still exist:
 
@@ -609,7 +598,7 @@ Expected: HTTP/1.1 200/301/307 responses for all three.
 - If you had manually run `docker compose stop ...` before shutting down the VM, those stopped containers may stay stopped after reboot. Use `docker compose up -d` to start them.
 - The health check ordering guarantees nginx won't start proxying until admin/web/backend are actually ready (no more 502s).
 
-## 12. MySQL Backup to Private GitHub Repo
+## 12. PostgreSQL Backup to Private GitHub Repo
 
 Regular backups protect your data if the VM is destroyed or the volume is lost.
 
@@ -657,10 +646,10 @@ DATE=$(date +%Y-%m-%d_%H-%M)
 FILENAME="hall_db_$DATE.sql"
 COMPOSE_DIR=~/ruet-hall-mgmt
 
-# Dump database
-docker exec hallmgmt-mysql mysqldump \
-  -u halladmin -p"$(grep MYSQL_PASSWORD $COMPOSE_DIR/.env | cut -d= -f2)" \
-  hall_db > "$BACKUP_DIR/$FILENAME"
+# Dump database (postgres:18.4-alpine)
+docker exec hallmgmt-postgres pg_dump \
+  -U "$(grep POSTGRES_USER $COMPOSE_DIR/.env | cut -d= -f2)" \
+  "$(grep POSTGRES_DB $COMPOSE_DIR/.env | cut -d= -f2)" > "$BACKUP_DIR/$FILENAME"
 
 echo "Backup created: $FILENAME"
 
@@ -715,15 +704,15 @@ git clone https://github.com/aniruddha81/ruet-hall-backups.git ~/db-backups
 cd ~/ruet-hall-mgmt
 docker compose up -d
 
-# Wait for MySQL to be healthy
+# Wait for PostgreSQL to be healthy
 sleep 20
 
 # Restore latest backup
 LATEST=$(ls -t ~/db-backups/hall_db_*.sql | head -1)
 echo "Restoring: $LATEST"
 
-docker exec -i hallmgmt-mysql mysql \
-  -u halladmin -pYOUR_PASSWORD hall_db < "$LATEST"
+docker exec -i hallmgmt-postgres psql \
+  -U halladmin -d hall_db < "$LATEST"
 
 echo "Restore complete!"
 ```

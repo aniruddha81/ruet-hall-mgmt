@@ -16,7 +16,7 @@ flowchart TB
   end
 
   subgraph data [Data stores]
-    MySQL[(MySQL)]
+    PG[(PostgreSQL)]
     Redis[(Redis)]
     Cloud[Cloudinary]
   end
@@ -24,7 +24,7 @@ flowchart TB
   Web --> App
   Admin --> App
   App --> MW --> Mod
-  Mod --> MySQL
+  Mod --> PG
   Mod --> Redis
   Mod --> Cloud
 ```

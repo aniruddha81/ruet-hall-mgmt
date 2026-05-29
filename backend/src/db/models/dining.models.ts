@@ -1,16 +1,16 @@
-// schema/dining.models.ts
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   date,
-  datetime,
   index,
-  int,
-  mysqlEnum,
-  mysqlTable,
+  integer,
+  pgEnum,
+  pgTable,
+  smallint,
   text,
-  tinyint,
+  timestamp,
   varchar,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import {
   MEAL_TYPES,
   PAYMENT_METHODS,
@@ -19,31 +19,18 @@ import {
 import { hallAdmins, uniStudents } from "./auth.models.ts";
 import { hallSQL_Enum, halls } from "./halls.models.ts";
 
-// ============================================
-// ENUMS
-// ============================================
-export const mealTypeSQL_Enum = () => mysqlEnum("meal_type", MEAL_TYPES);
-// ['LUNCH', 'DINNER']
+export const mealTypeSQL_Enum = pgEnum("meal_type", MEAL_TYPES);
+export const tokenStatusSQL_Enum = pgEnum("token_status", TOKEN_STATUSES);
+export const paymentMethodSQL_Enum = pgEnum("payment_method", PAYMENT_METHODS);
 
-export const tokenStatusSQL_Enum = () =>
-  mysqlEnum("token_status", TOKEN_STATUSES);
-// ['ACTIVE', 'CANCELLED', 'CONSUMED']
-
-export const paymentMethodSQL_Enum = () =>
-  mysqlEnum("payment_method", PAYMENT_METHODS);
-
-// ============================================
-// 0. MEAL ITEMS TABLE
-// Master list used to compose lunch/dinner menus
-// ============================================
-export const mealItems = mysqlTable(
+export const mealItems = pgTable(
   "meal_items",
   {
     id: varchar("id", { length: 36 }).primaryKey().notNull(),
 
     name: varchar("name", { length: 120 }).notNull().unique(),
 
-    isActive: tinyint("is_active", { unsigned: true }).notNull().default(1),
+    isActive: boolean("is_active").notNull().default(true),
 
     createdBy: varchar("created_by", { length: 36 })
       .notNull()
@@ -53,11 +40,11 @@ export const mealItems = mysqlTable(
       .notNull()
       .references(() => hallAdmins.id),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
@@ -67,61 +54,43 @@ export const mealItems = mysqlTable(
     index("idx_meal_items_active").on(t.isActive),
   ]
 );
-// ['BKASH', 'NAGAD', 'ROCKET', 'BANK', 'CASH']
 
-// ============================================
-// 1. MEAL MENUS TABLE
-// Dining Manager creates menu for TOMORROW only
-// ============================================
-export const mealMenus = mysqlTable(
+export const mealMenus = pgTable(
   "meal_menus",
   {
     id: varchar("id", { length: 36 }).primaryKey().notNull(),
 
-    hall: hallSQL_Enum()
+    hall: hallSQL_Enum("hall")
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
     mealDate: date("meal_date", { mode: "date" })
       .notNull()
-      .default(sql`(CURRENT_DATE + INTERVAL 1 DAY)`),
-    // Must be tomorrow's date
+      .default(sql`(CURRENT_DATE + INTERVAL '1 day')`),
 
-    mealType: mealTypeSQL_Enum().notNull(),
-    // LUNCH or DINNER
+    mealType: mealTypeSQL_Enum("meal_type").notNull(),
 
     menuDescription: text("menu_description"),
-    // e.g., "Rice, Chicken Curry, Dal, Salad"
 
-    price: tinyint("price", { unsigned: true }).notNull().default(40),
-    // Price per token (in Taka, max 255)
+    price: smallint("price").notNull().default(40),
 
-    totalTokens: int("total_tokens", { unsigned: true }).notNull(),
-    // Total tokens set by dining manager (e.g., 200)
+    totalTokens: integer("total_tokens").notNull(),
 
-    bookedTokens: int("booked_tokens", { unsigned: true }).notNull().default(0),
-    // How many tokens have been booked (updated when booking/cancelling)
+    bookedTokens: integer("booked_tokens").notNull().default(0),
 
-    // This field will be auto-calculated by MySQL
-    availableTokens: int("available_tokens", { unsigned: true })
-      .notNull()
-      .generatedAlwaysAs(sql`(\`total_tokens\` - \`booked_tokens\`)`, {
-        mode: "stored",
-      }),
-    // Automatically: totalTokens - bookedTokens
-
-    // isActive: boolean("is_active").notNull().default(true),
+    availableTokens: integer("available_tokens").generatedAlwaysAs(
+      sql`total_tokens - booked_tokens`
+    ),
 
     createdBy: varchar("created_by", { length: 36 })
       .notNull()
       .references(() => hallAdmins.id),
-    // Dining Manager who created this menu
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
@@ -129,19 +98,11 @@ export const mealMenus = mysqlTable(
   (t) => [
     index("idx_meal_menus_hall").on(t.hall),
     index("idx_meal_menus_date").on(t.mealDate),
-    // index("idx_meal_menus_active").on(t.isActive),
-    // Unique constraint: One lunch and one dinner per hall per day
     index("uq_menu_hall_date_type").on(t.hall, t.mealDate, t.mealType),
   ]
 );
 
-// ============================================
-// 2. MEAL TOKENS TABLE
-// Students book tokens for tomorrow
-// Can buy multiple tokens (for friends)
-// Can cancel until midnight tonight
-// ============================================
-export const mealTokens = mysqlTable(
+export const mealTokens = pgTable(
   "meal_tokens",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -149,45 +110,38 @@ export const mealTokens = mysqlTable(
     studentId: varchar("student_id", { length: 36 })
       .notNull()
       .references(() => uniStudents.id, { onDelete: "cascade" }),
-    // Student who booked the tokens
 
     menuId: varchar("menu_id", { length: 36 })
       .notNull()
       .references(() => mealMenus.id, { onDelete: "cascade" }),
 
-    hall: hallSQL_Enum()
+    hall: hallSQL_Enum("hall")
       .notNull()
       .references(() => halls.name, { onDelete: "cascade" }),
 
     mealDate: date("meal_date", { mode: "date" }).notNull(),
-    // Tomorrow's date (when meal will be consumed)
 
-    mealType: mealTypeSQL_Enum().notNull(),
-    // LUNCH or DINNER
+    mealType: mealTypeSQL_Enum("meal_type").notNull(),
 
-    quantity: tinyint("quantity", { unsigned: true }).notNull().default(1),
-    // Number of tokens booked (1-20 for student + friends)
+    quantity: smallint("quantity").notNull().default(1),
 
-    totalAmount: int("total_amount", { unsigned: true }).notNull(),
-    // quantity * pricePerToken
+    totalAmount: integer("total_amount").notNull(),
 
     paymentId: varchar("payment_id", { length: 36 })
       .notNull()
       .references(() => mealPayments.id),
 
-    bookingTime: datetime("booking_time", { mode: "date" })
-      .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
-    // Exact time of booking
-
-    cancelledAt: datetime("cancelled_at", { mode: "date" }),
-    // If cancelled before midnight tonight
-
-    createdAt: datetime("created_at", { mode: "date" })
+    bookingTime: timestamp("booking_time", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    cancelledAt: timestamp("cancelled_at", { mode: "date" }),
+
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
@@ -201,11 +155,7 @@ export const mealTokens = mysqlTable(
   ]
 );
 
-// ============================================
-// 3. MEAL PAYMENTS TABLE
-// Payment for meal tokens (PREPAID)
-// ============================================
-export const mealPayments = mysqlTable(
+export const mealPayments = pgTable(
   "meal_payments",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -214,41 +164,35 @@ export const mealPayments = mysqlTable(
       .notNull()
       .references(() => uniStudents.id, { onDelete: "cascade" }),
 
-    amount: int("amount", { unsigned: true }).notNull(),
-    // Total amount paid (in Taka)
+    amount: integer("amount").notNull(),
 
-    totalQuantity: tinyint("total_quantity", { unsigned: true }).notNull(),
-    // Total tokens purchased in this payment
+    totalQuantity: smallint("total_quantity").notNull(),
 
-    paymentMethod: paymentMethodSQL_Enum().notNull(),
-    // BKASH, NAGAD, ROCKET, BANK, CASH
+    paymentMethod: paymentMethodSQL_Enum("payment_method").notNull(),
 
     transactionId: varchar("transaction_id", { length: 255 }).unique(),
-    // Unique transaction ID from payment gateway
 
     bankReceiptUrl: text("bank_receipt_url"),
 
-    receiptVerifiedAt: datetime("receipt_verified_at", { mode: "date" }),
+    receiptVerifiedAt: timestamp("receipt_verified_at", { mode: "date" }),
 
     receiptVerifiedBy: varchar("receipt_verified_by", {
       length: 36,
     }).references(() => hallAdmins.id),
 
-    paymentDate: datetime("payment_date", { mode: "date" })
+    paymentDate: timestamp("payment_date", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    refundedAt: datetime("refunded_at", { mode: "date" }),
-    // When refund was processed (if cancelled)
+    refundedAt: timestamp("refunded_at", { mode: "date" }),
 
-    refundAmount: int("refund_amount", { unsigned: true }),
-    // Amount refunded (can be partial if some tokens cancelled)
+    refundAmount: integer("refund_amount"),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
@@ -259,11 +203,7 @@ export const mealPayments = mysqlTable(
   ]
 );
 
-// ============================================
-// 4. MEAL MENU ITEMS TABLE
-// Combination mapping between menus and meal items
-// ============================================
-export const mealMenuItems = mysqlTable(
+export const mealMenuItems = pgTable(
   "meal_menu_items",
   {
     id: varchar("id", { length: 36 }).primaryKey().notNull(),
@@ -276,7 +216,7 @@ export const mealMenuItems = mysqlTable(
       .notNull()
       .references(() => mealItems.id, { onDelete: "cascade" }),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },

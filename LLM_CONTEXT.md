@@ -34,7 +34,7 @@ The absolute core of the application. All major data logic occurs here.
 
 - **Architecture:** Strict MVC-inspired separation organized by feature module (`auth`, `halls`, `dining`, `admission`, `inventory`, `finance`).
 - **Stack:** Node.js, Express 5.2+ (native async error support), TypeScript execution via `tsx`.
-- **Database:** MySQL 8, manipulated via **Drizzle ORM** (`drizzle-orm`).
+- **Database:** PostgreSQL 18 (`postgres:18.4-alpine` in Docker), via **Drizzle ORM** (`drizzle-orm`) and `node-postgres` (`pg`).
 - **Data Validation:** Zod schema validation managed strictly in middleware.
 - **File Structure & Conventions:**
   - `src/modules/<feature>/<feature>.routes.ts`: Maps HTTP methods to controllers and binds middlewares.
@@ -42,7 +42,7 @@ The absolute core of the application. All major data logic occurs here.
   - `src/modules/<feature>/<feature>.validators.ts`: Zod schemas for `body`, `params`, `query`. Validated with a custom `validateRequest` middleware.
   - `src/db/models/*.ts`: Central definition for DB tables and schemas.
   - `src/utils/ApiError.ts` and `src/utils/ApiResponse.ts`: Strictly wrap outgoing data in `ApiResponse` and throw HTTP errors using `new ApiError(status, message)`.
-- **DB Modules Overview:** See `backend/docs/database.md` and `backend/ER_DIAGRAM.txt`. Auth uses `uni_students`, `hall_admins`, `academic_sessions`; live sessions in Redis (not MySQL).
+- **DB Modules Overview:** See `backend/docs/database.md` and `backend/ER_DIAGRAM.txt`. Auth uses `uni_students`, `hall_admins`, `academic_sessions`; live sessions in Redis (not PostgreSQL).
 - **Documentation:** `backend/docs/` (Markdown). Agents must follow `backend/AGENTS.md` and run `npm run docs:manifest` + `npm run docs:check` after route/auth/env changes.
 - **Run/Port:** Exposed internally/externally on port `8000`.
 
@@ -57,7 +57,7 @@ The absolute core of the application. All major data logic occurs here.
 
 The system is deeply containerized.
 
-- **`docker-compose.local.yml`**: Uses a local MySQL database mapped to `3307` externally, but internally services call `3306`.
+- **`docker-compose.local.yml`**: `postgres:18.4-alpine` on host port `5433` (container `5432`). Production `docker-compose.yml` uses the same image on host `5432`.
 - **Reverse Proxy**: Nginx combines traffic across services in production (`docker-compose.yml`).
 - **Communication Pattern**: Frontends communicate with the `backend` via REST. The `backend` and `pay` sub-services communicate on the internal docker network (`hallnet`).
 

@@ -1,5 +1,5 @@
 export const toDateString = (d: Date) => {
-  // en-CA format is YYYY-MM-DD, ideal for mysql
+  // en-CA format is YYYY-MM-DD, ideal for SQL date columns
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Dhaka",
     year: "numeric",

@@ -27,7 +27,7 @@ All schema lives in `backend/src/db/models/*.ts`. Never write or run raw SQL mig
    - `finance.models.ts` — studentDues, payments, expenses
    - `notifications.models.ts` — notifications
 
-2. **Edit the model** — Add or modify table/column definitions using Drizzle's `mysqlTable` helpers. Use enum types from `src/types/enums.ts` where applicable.
+2. **Edit the model** — Add or modify table/column definitions using Drizzle's `pgTable` / `pgEnum` helpers (`drizzle-orm/pg-core`). Export each `pgEnum` as `*SQL_Enum` (e.g. `hallSQL_Enum`) so names do not clash with `src/types/enums.ts`. Use enum values from `src/types/enums.ts` where applicable.
 
 3. **Export from index** — Ensure `src/db/models/index.ts` exports the modified table.
 
@@ -50,7 +50,7 @@ Check `src/types/enums.ts` before using any enum string. Enum values in the Driz
 
 ## Completion Checks
 
-- Model file uses `mysqlTable` (no raw SQL strings anywhere).
+- Model file uses `pgTable` / `pgEnum` exported as `*SQL_Enum` (no raw SQL strings anywhere).
 - `drizzle-kit generate` and `push` complete without errors.
 - `ER_DIAGRAM.txt` updated to reflect new tables/columns/relations.
 - Any TypeScript types or enum lists affected by the change are updated.

@@ -40,10 +40,12 @@ npm run docs:check    # verify api/*.md lists all routes
 
 ## Docker
 
-Use root compose files for backend + MySQL (+ frontends):
+Use root compose files for backend + PostgreSQL 18 (`postgres:18.4-alpine`) + frontends:
 
 ```bash
 docker compose -f docker-compose.local.yml up --build
+# First-time schema + seed (after postgres is healthy):
+docker compose -f docker-compose.local.yml exec backend npm run db-all
 ```
 
 Deployment: [VM_DEPLOYMENT_FROM_SCRATCH.md](../VM_DEPLOYMENT_FROM_SCRATCH.md)

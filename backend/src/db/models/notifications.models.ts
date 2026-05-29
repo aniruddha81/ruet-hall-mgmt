@@ -1,22 +1,25 @@
 import { sql } from "drizzle-orm";
 import {
-  datetime,
   index,
-  mysqlEnum,
-  mysqlTable,
+  pgEnum,
+  pgTable,
   text,
+  timestamp,
   varchar,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import { NOTIFICATION_AUDIENCES } from "../../types/enums.ts";
 import { hallAdmins } from "./auth.models.ts";
 
-const notificationAudienceSQL_Enum = () =>
-  mysqlEnum("notification_audience", NOTIFICATION_AUDIENCES);
+export const notificationAudienceSQL_Enum = pgEnum(
+  "notification_audience",
+  NOTIFICATION_AUDIENCES
+);
+export const notificationReaderRoleSQL_Enum = pgEnum(
+  "notification_reader_role",
+  NOTIFICATION_AUDIENCES
+);
 
-const notificationReaderRoleSQL_Enum = () =>
-  mysqlEnum("notification_reader_role", NOTIFICATION_AUDIENCES);
-
-export const notifications = mysqlTable(
+export const notifications = pgTable(
   "notifications",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -25,17 +28,17 @@ export const notifications = mysqlTable(
 
     message: text("message").notNull(),
 
-    targetAudience: notificationAudienceSQL_Enum().notNull(),
+    targetAudience: notificationAudienceSQL_Enum("target_audience").notNull(),
 
     createdByAdminId: varchar("created_by_admin_id", { length: 36 })
       .notNull()
       .references(() => hallAdmins.id, { onDelete: "cascade" }),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    updatedAt: datetime("updated_at", { mode: "date" })
+    updatedAt: timestamp("updated_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`)
       .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
@@ -47,7 +50,7 @@ export const notifications = mysqlTable(
   ]
 );
 
-export const notificationReads = mysqlTable(
+export const notificationReads = pgTable(
   "notification_reads",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -58,13 +61,13 @@ export const notificationReads = mysqlTable(
 
     readerId: varchar("reader_id", { length: 36 }).notNull(),
 
-    readerRole: notificationReaderRoleSQL_Enum().notNull(),
+    readerRole: notificationReaderRoleSQL_Enum("reader_role").notNull(),
 
-    readAt: datetime("read_at", { mode: "date" })
+    readAt: timestamp("read_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
 
-    createdAt: datetime("created_at", { mode: "date" })
+    createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },
