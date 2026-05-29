@@ -41,11 +41,23 @@ Upload flow: Multer memory/disk → Cloudinary upload in controller.
 
 Used for transactional mail from auth/admission flows where implemented.
 
-## Payment service
+## SSLCommerz (payments)
 
-**Constants:** `PAYMENT_SERVER_URL`, `PAY_SERVICE_SECRET` in `src/Constants.ts`
+**Module:** `src/utils/sslcommerz.ts`, `src/modules/payments/`  
+**Constants:** `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`, `SSLCOMMERZ_IS_SANDBOX`, `API_PUBLIC_URL` in `src/Constants.ts`
 
-External payment microservice for verifying or initiating payments (see finance/dining controllers for call sites). Default dev URL: `http://localhost:8080`.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SSLCOMMERZ_STORE_ID` | For online checkout | Sandbox store ID from [developer.sslcommerz.com](https://developer.sslcommerz.com/registration/) |
+| `SSLCOMMERZ_STORE_PASSWORD` | For online checkout | Store password |
+| `SSLCOMMERZ_IS_SANDBOX` | No | Default `true`; set `false` for live (`securepay.sslcommerz.com`) |
+| `API_PUBLIC_URL` | Yes for IPN/callbacks | Public backend URL, e.g. `https://api.example.com` or `http://localhost:8000` locally |
+
+Flow: finance/dining initiate a session → client redirects to `GatewayPageURL` → IPN and browser callbacks validate via SSLCommerz Order Validation API → `payment_intents` row marked `COMPLETED` and due/meal booking finalized.
+
+IPN must be reachable from the internet (use ngrok for local dev). Configure the same IPN URL in the SSLCommerz merchant panel if required.
+
+Sandbox test card (Visa): `4111111111111111`, exp `12/25`, CVV `111`.
 
 ## CORS
 

@@ -186,6 +186,20 @@ payments [color: red, icon: dollar-sign] {
   receipt_verified_by varchar
   created_at datetime
 }
+
+payment_intents [icon: credit-card, color: red] {
+  id varchar [pk]
+  tran_id varchar
+  type enum
+  status enum
+  student_id varchar
+  amount int
+  payload jsonb
+  val_id varchar
+  created_at datetime
+  completed_at datetime
+}
+
 expenses [icon: trending-down, color: red] {
   id varchar [pk]
   hall enum
@@ -284,6 +298,7 @@ payments.student_id > uni_students.id
 halls.name < payments.hall
 payments.due_id - student_dues.id
 payments.receipt_verified_by > hall_admins.id
+uni_students.id < payment_intents.student_id
 halls.name < damage_reports.hall
 hall_admins.id < damage_reports.verified_by
 hall_admins.id < damage_reports.fixed_by

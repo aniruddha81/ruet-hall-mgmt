@@ -4,7 +4,7 @@ description: >-
   Architectural reference for the RUET Hall Management System monorepo. Use
   when working on any part of the system to understand module boundaries, tech
   stacks, database structure, coding conventions, and critical agent rules.
-  Covers web, admin, backend, and pay services.
+  Covers web, admin, and backend services.
 ---
 
 # RUET Hall Management System — Project Context
@@ -18,7 +18,6 @@ Full reference lives in `LLM_CONTEXT.md` at the repo root. Read it first for det
 | `web/` | Student portal | 3001 | Next.js (App Router), React 19, HeroUI, Tailwind v4 |
 | `admin/` | Admin back-office | 4001 | Next.js (App Router), React 19, Radix UI, Tailwind v4 |
 | `backend/` | Main API server | 8000 | Express 5.2+, Drizzle ORM, PostgreSQL 18 (`postgres:18.4-alpine`), Zod, TypeScript/tsx |
-| `pay/` | Payment microservice | 8080 | Express 5.2+, TypeScript/tsx |
 
 ## Backend Module Layout
 
@@ -57,7 +56,7 @@ Active modules: `auth`, `halls`, `dining`, `admission`, `inventory`, `finance`, 
 
 - Containerized via Docker Compose (`docker-compose.local.yml` for local dev).
 - Nginx reverse proxy for production (`docker-compose.yml`).
-- Internal network `hallnet`: frontends → `backend:8000`, backend → `pay:8080`.
+- Internal network `hallnet`: frontends → `backend:8000`; SSLCommerz IPN/callbacks → public `API_PUBLIC_URL`.
 - Local DB: `postgres:18.4-alpine` — host `5433` (local compose), `5432` inside the Docker network.
 
 ## Key Reference Files

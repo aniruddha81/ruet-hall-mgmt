@@ -49,6 +49,7 @@ Some routes expect `multipart/form-data` (receipt or image field documented per 
 | `/api/inventory` | [inventory.md](./inventory.md) |
 | `/api/finance` | [finance.md](./finance.md) |
 | `/api/notifications` | [notifications.md](./notifications.md) |
+| `/api/payments` | [payments.md](./payments.md) |
 
 ## Health
 

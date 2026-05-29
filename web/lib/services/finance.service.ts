@@ -1,4 +1,5 @@
 ﻿import api from "@/lib/api";
+import { redirectToPaymentGateway } from "@/lib/payment-gateway";
 import type {
   ApiResponse,
   DuePaymentReceipt,
@@ -106,10 +107,22 @@ export async function payMyDue(
     return res.data;
   }
 
-  const res = await api.post<ApiResponse<DuePaymentReceipt>>(
-    `/finance/my-dues/pay/${dueId}`,
-    { method: data.method },
-  );
+  const res = await api.post<
+    ApiResponse<
+      | DuePaymentReceipt
+      | {
+          status: "PENDING";
+          gatewayUrl: string;
+          tranId: string;
+          intentId: string;
+        }
+    >
+  >(`/finance/my-dues/pay/${dueId}`, { method: data.method });
+
+  if (redirectToPaymentGateway(res.data.data)) {
+    return res.data;
+  }
+
   return res.data;
 }
 

@@ -30,6 +30,8 @@ export type CreateDuePaymentParams = {
   paymentMethod: FinancePaymentMethod;
   dueType: DueType;
   bankReceiptUrl?: string;
+  /** Set when payment was confirmed by SSLCommerz (skips gateway call). */
+  transactionId?: string;
 };
 
 export type DuePaymentResult = {

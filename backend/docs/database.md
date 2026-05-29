@@ -50,7 +50,7 @@ Keep [`ER_DIAGRAM.txt`](../ER_DIAGRAM.txt) in sync when tables or relationships 
 | `dining.models.ts` | `meal_menus`, `meal_items`, `meal_menu_items`, `meal_tokens`, `meal_payments` |
 | `admission.models.ts` | `seat_applications`, `seat_allocations` |
 | `inventory.models.ts` | `damage_reports` (room/asset damage workflow) |
-| `finance.models.ts` | `student_dues`, `payments`, `expenses` |
+| `finance.models.ts` | `student_dues`, `payments`, `expenses`, `payment_intents` |
 | `notifications.models.ts` | `notifications`, `notification_reads` |
 
 All models are re-exported from `src/db/models/index.ts`.

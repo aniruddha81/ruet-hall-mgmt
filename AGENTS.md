@@ -17,9 +17,10 @@ Cursor rule: `.cursor/rules/backend-docs-sync.mdc` (applies to `backend/**`).
 |------|--------|
 | `web/` | Student Next.js app — HeroUI |
 | `admin/` | Admin Next.js app — Radix UI |
-| `pay/` | Payment microservice |
+| `pay/` | Removed — SSLCommerz runs in `backend/` |
 
 ## Project-wide context
 
 - `LLM_CONTEXT.md` — architecture overview
+- `ENV_AND_RUN.md` — env variables and dev/production run guide
 - `.agents/skills/project-context/SKILL.md` — quick reference skill

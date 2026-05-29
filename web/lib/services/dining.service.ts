@@ -1,4 +1,5 @@
 ﻿import api from "@/lib/api";
+import { redirectToPaymentGateway } from "@/lib/payment-gateway";
 import type {
   ApiResponse,
   MealBookingReceipt,
@@ -79,14 +80,31 @@ export async function bookMealTokens(data: {
     return res.data;
   }
 
-  const res = await api.post<ApiResponse<MealBookingReceipt>>(
-    "/dining/book-tokens",
-    {
-      menuId: data.menuId,
-      quantity: data.quantity,
-      paymentMethod: data.paymentMethod,
-    },
-  );
+  const res = await api.post<
+    ApiResponse<
+      | MealBookingReceipt
+      | {
+          status: "PENDING";
+          gatewayUrl: string;
+          tranId: string;
+          intentId: string;
+          totalAmount: number;
+          mealType: string;
+          mealDate: string;
+          quantity: number;
+          paymentMethod: PaymentMethod;
+        }
+    >
+  >("/dining/book-tokens", {
+    menuId: data.menuId,
+    quantity: data.quantity,
+    paymentMethod: data.paymentMethod,
+  });
+
+  if (redirectToPaymentGateway(res.data.data)) {
+    return res.data;
+  }
+
   return res.data;
 }
 

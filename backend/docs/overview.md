@@ -19,6 +19,7 @@ Two frontends consume this API (student dashboard and admin panel). They use **c
 | Admission | `/api/admission` | `STUDENT`, `ASST_INVENTORY` |
 | Inventory | `/api/inventory` | `STUDENT`, `ASST_INVENTORY`, `INVENTORY_SECTION_OFFICER` |
 | Finance | `/api/finance` | `STUDENT`, `ASST_FINANCE`, `FINANCE_SECTION_OFFICER` |
+| Payments | `/api/payments` | Public SSLCommerz callbacks (IPN, success/fail/cancel) |
 | Notifications | `/api/notifications` | Authenticated users |
 
 `PROVOST` bypasses role checks on any route that uses `authorizeRoles(...)`.

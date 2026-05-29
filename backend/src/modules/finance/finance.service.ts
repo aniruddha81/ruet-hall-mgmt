@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
-import { PAY_SERVICE_SECRET, PAYMENT_SERVER_URL } from "../../Constants.ts";
 import { db } from "../../db/index.ts";
 import { uniStudents } from "../../db/models/auth.models.ts";
 import { mealPayments } from "../../db/models/dining.models.ts";
@@ -18,46 +17,6 @@ import type {
   DuePaymentResult,
   MealPaymentResult,
 } from "./finance.d.ts";
-
-export async function requestPayment(
-  endpoint: string,
-  payload: Record<string, unknown>
-): Promise<string> {
-  let response: globalThis.Response;
-
-  try {
-    response = await fetch(`${PAYMENT_SERVER_URL}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Pay-Secret": PAY_SERVICE_SECRET,
-      },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new ApiError(502, "Dummy payment server is unavailable");
-  }
-
-  if (!response.ok) {
-    throw new ApiError(502, "Dummy payment server rejected the payment");
-  }
-
-  const payloadData = (await response.json()) as {
-    data: {
-      transactionId: string;
-    };
-  };
-  const transactionId = payloadData.data.transactionId;
-
-  if (!transactionId) {
-    throw new ApiError(
-      502,
-      "Dummy payment server did not return a transaction ID"
-    );
-  }
-
-  return transactionId;
-}
 
 export async function getStudentInfo(studentId: string) {
   const [student] = await db
@@ -112,15 +71,14 @@ export async function createMealPayment(
     throw new ApiError(400, "Total quantity must be greater than 0");
   }
 
-  const transactionId =
-    paymentMethod !== "CASH"
-      ? await requestPayment("/pay-api/meal-payment", {
-          studentId,
-          amount,
-          totalQuantity,
-          paymentMethod,
-        })
-      : `TXN-MEAL-${studentId}-${Date.now()}`;
+  if (paymentMethod !== "CASH") {
+    throw new ApiError(
+      400,
+      "Non-cash meal payments must use the SSLCommerz checkout flow"
+    );
+  }
+
+  const transactionId = `TXN-MEAL-${studentId}-${Date.now()}`;
 
   const paymentId = randomUUID();
   const paymentDate = new Date();
@@ -182,6 +140,7 @@ export async function createDuePayment(
     paymentMethod,
     dueType,
     bankReceiptUrl,
+    transactionId: providedTransactionId,
   } = params;
 
   if (amount <= 0) {
@@ -222,30 +181,16 @@ export async function createDuePayment(
     });
   });
 
-  // Phase 2: Process payment gateway (outside transaction, lock released).
   let transactionId: string;
-  try {
-    transactionId =
-      paymentMethod !== "CASH"
-        ? await requestPayment("/pay-api/hall-charge-payment", {
-            dueId,
-            studentId,
-            hall,
-            amount,
-            paymentMethod,
-            chargeType: dueType,
-          })
-        : `TXN-DUE-${dueId}-${Date.now()}`;
-  } catch (error) {
-    // Phase 3: Compensate — revert due and delete payment on gateway failure.
-    await db.transaction(async (trx) => {
-      await trx.delete(payments).where(eq(payments.id, paymentId));
-      await trx
-        .update(studentDues)
-        .set({ status: "UNPAID", paidAt: null })
-        .where(eq(studentDues.id, dueId));
-    });
-    throw error;
+  if (providedTransactionId) {
+    transactionId = providedTransactionId;
+  } else if (paymentMethod === "CASH") {
+    transactionId = `TXN-DUE-${dueId}-${Date.now()}`;
+  } else {
+    throw new ApiError(
+      400,
+      "Online due payments must use the SSLCommerz checkout flow"
+    );
   }
 
   // Generate receipt & email

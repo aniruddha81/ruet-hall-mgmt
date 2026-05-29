@@ -10,7 +10,6 @@ on:
       - web/**
       - admin/**
       - backend/**
-      - pay/**
       - nginx.conf
       - nginx.http.conf
       - nginx.ssl.conf
@@ -71,7 +70,6 @@ jobs:
           echo "admin=$(has_changed '^admin/')" >> "$GITHUB_OUTPUT"
           echo "backend=$(has_changed '^backend/')" >> "$GITHUB_OUTPUT"
           echo "migrate=$(has_changed '^backend/(drizzle/|src/db/|drizzle\.config\.ts$)')" >> "$GITHUB_OUTPUT"
-          echo "pay=$(has_changed '^pay/')" >> "$GITHUB_OUTPUT"
           echo "nginx=$(has_changed '^nginx\.(conf|http\.conf|ssl\.conf)$')" >> "$GITHUB_OUTPUT"
           echo "compose=$(has_changed '^docker-compose\.yml$')" >> "$GITHUB_OUTPUT"
 
@@ -81,7 +79,6 @@ jobs:
           CHANGED_WEB: ${{ steps.changes.outputs.web }}
           CHANGED_ADMIN: ${{ steps.changes.outputs.admin }}
           CHANGED_BACKEND: ${{ steps.changes.outputs.backend }}
-          CHANGED_PAY: ${{ steps.changes.outputs.pay }}
           CHANGED_MIGRATE: ${{ steps.changes.outputs.migrate }}
           CHANGED_NGINX: ${{ steps.changes.outputs.nginx }}
           CHANGED_COMPOSE: ${{ steps.changes.outputs.compose }}
@@ -90,7 +87,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           command_timeout: 30m
-          envs: CHANGED_WEB,CHANGED_ADMIN,CHANGED_BACKEND,CHANGED_PAY,CHANGED_MIGRATE,CHANGED_NGINX,CHANGED_COMPOSE
+          envs: CHANGED_WEB,CHANGED_ADMIN,CHANGED_BACKEND,CHANGED_MIGRATE,CHANGED_NGINX,CHANGED_COMPOSE
           script: |
             set -euo pipefail
 
@@ -139,11 +136,6 @@ jobs:
               docker compose build backend
             fi
 
-            if [ "$CHANGED_PAY" = "true" ] || [ "$CHANGED_COMPOSE" = "true" ]; then
-              echo "Building pay..."
-              docker compose build pay
-            fi
-
             # 4) Bring up services and always recreate nginx to pick up active nginx.conf
             docker compose up -d
             echo "Recreating nginx with active config..."
@@ -164,14 +156,12 @@ jobs:
             SVC_MAP[backend]="hallmgmt-backend"
             SVC_MAP[admin]="hallmgmt-admin-web"
             SVC_MAP[web]="hallmgmt-student-web"
-            SVC_MAP[pay]="hallmgmt-pay-server"
-
             HEALTHY="false"
             for i in $(seq 1 30); do
               echo "Health check attempt $i/30..."
               HEALTHY="true"
 
-              for svc in backend admin web pay; do
+              for svc in backend admin web; do
                 CONTAINER="${SVC_MAP[$svc]}"
                 STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$CONTAINER" 2>/dev/null || echo "missing")
                 echo "  $svc ($CONTAINER): $STATUS"
@@ -190,7 +180,7 @@ jobs:
             if [ "$HEALTHY" = "false" ]; then
               echo "⚠️  Some services are not healthy yet. Checking logs..."
               docker compose ps
-              docker compose logs --tail=20 admin web backend pay
+              docker compose logs --tail=20 admin web backend
             fi
 
             echo "Deployment complete!"

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -12,6 +13,8 @@ import {
   DUE_STATUSES,
   DUE_TYPES,
   FINANCE_PAYMENT_METHODS,
+  PAYMENT_INTENT_STATUSES,
+  PAYMENT_INTENT_TYPES,
 } from "../../types/enums.ts";
 import { hallAdmins, uniStudents } from "./auth.models.ts";
 import { hallSQL_Enum, halls } from "./halls.models.ts";
@@ -21,6 +24,41 @@ export const dueStatusSQL_Enum = pgEnum("due_status", DUE_STATUSES);
 export const financePaymentMethodSQL_Enum = pgEnum(
   "finance_payment_method",
   FINANCE_PAYMENT_METHODS
+);
+export const paymentIntentTypeSQL_Enum = pgEnum(
+  "payment_intent_type",
+  PAYMENT_INTENT_TYPES
+);
+export const paymentIntentStatusSQL_Enum = pgEnum(
+  "payment_intent_status",
+  PAYMENT_INTENT_STATUSES
+);
+
+export const paymentIntents = pgTable(
+  "payment_intents",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    tranId: varchar("tran_id", { length: 30 }).notNull().unique(),
+    type: paymentIntentTypeSQL_Enum("type").notNull(),
+    status: paymentIntentStatusSQL_Enum("status")
+      .notNull()
+      .default("PENDING"),
+    studentId: varchar("student_id", { length: 36 })
+      .notNull()
+      .references(() => uniStudents.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    payload: jsonb("payload").notNull(),
+    valId: varchar("val_id", { length: 50 }),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    completedAt: timestamp("completed_at", { mode: "date" }),
+  },
+  (t) => [
+    index("idx_payment_intents_student").on(t.studentId),
+    index("idx_payment_intents_status").on(t.status),
+    index("idx_payment_intents_tran_id").on(t.tranId),
+  ]
 );
 
 export const studentDues = pgTable(

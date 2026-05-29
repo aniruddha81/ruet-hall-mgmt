@@ -19,7 +19,9 @@ export const SESSION_TTL = process.env.SESSION_TTL || "10d";
 /** Required for auth (cloud Redis connection string). */
 export const REDIS_URL = process.env.REDIS_URL;
 
-export const PAYMENT_SERVER_URL =
-  process.env.PAYMENT_SERVER_URL || "http://localhost:8080";
-export const PAY_SERVICE_SECRET =
-  process.env.PAY_SERVICE_SECRET || "dev-pay-secret-change-in-production";
+export const SSLCOMMERZ_STORE_ID = process.env.SSLCOMMERZ_STORE_ID;
+export const SSLCOMMERZ_STORE_PASSWORD = process.env.SSLCOMMERZ_STORE_PASSWORD;
+export const SSLCOMMERZ_IS_SANDBOX = process.env.SSLCOMMERZ_IS_SANDBOX !== "false";
+export const API_PUBLIC_URL = process.env.API_PUBLIC_URL;
+export const STUDENT_URL = process.env.STUDENT_URL || "http://localhost:3001";
+export const ADMIN_URL = process.env.ADMIN_URL || "http://localhost:4001";

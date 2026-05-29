@@ -13,6 +13,10 @@ import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
+import {
+  initiateDueSslPayment,
+  usesSslCommerzForFinance,
+} from "../payments/payment.service.ts";
 import { createDuePayment } from "./finance.service.ts";
 
 const isSupportedReceiptFile = (mimetype?: string) =>
@@ -181,12 +185,39 @@ export const payMyDue = async (req: Request, res: Response) => {
   if (!due) throw new ApiError(404, "Due not found");
   if (due.status === "PAID") throw new ApiError(400, "Due is already paid");
 
+  const paymentMethod = method as FinancePaymentMethod;
+
+  if (usesSslCommerzForFinance(paymentMethod)) {
+    const session = await initiateDueSslPayment({
+      studentId: due.studentId,
+      dueId: due.id,
+      hall: due.hall,
+      amount: due.amount,
+      paymentMethod,
+      dueType: due.type,
+    });
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          status: "PENDING",
+          gatewayUrl: session.gatewayUrl,
+          tranId: session.tranId,
+          intentId: session.intentId,
+        },
+        "Redirect to SSLCommerz to complete payment"
+      )
+    );
+    return;
+  }
+
   const payment = await createDuePayment({
     dueId: due.id,
     studentId: due.studentId,
     hall: due.hall,
     amount: due.amount,
-    paymentMethod: method as FinancePaymentMethod,
+    paymentMethod,
     dueType: due.type,
     bankReceiptUrl,
   });

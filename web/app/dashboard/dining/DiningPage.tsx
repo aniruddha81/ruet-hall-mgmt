@@ -22,6 +22,7 @@ import {
   getTomorrowMenus,
 } from "@/lib/services/dining.service";
 import type {
+  MealBookingReceipt,
   MealMenu,
   MealToken,
   PaymentMethod,
@@ -141,16 +142,27 @@ export default function DiningPage() {
           options.paymentMethod === "BANK" ? options.receiptImage : null,
       });
 
+      if (
+        res.data &&
+        typeof res.data === "object" &&
+        "status" in res.data &&
+        res.data.status === "PENDING"
+      ) {
+        return;
+      }
+
+      const booking = res.data as MealBookingReceipt;
+
       // Show payment success modal
       setPaymentSuccess({
         type: "MEAL",
-        amount: res.data.totalAmount,
-        transactionId: res.data.transactionId,
+        amount: booking.totalAmount,
+        transactionId: booking.transactionId,
         paymentMethod: options.paymentMethod,
         details: {
-          "Meal Type": res.data.mealType?.replace(/_/g, " ") || "N/A",
-          "Meal Date": res.data.mealDate || "Tomorrow",
-          Tokens: String(res.data.quantity),
+          "Meal Type": booking.mealType?.replace(/_/g, " ") || "N/A",
+          "Meal Date": booking.mealDate || "Tomorrow",
+          Tokens: String(booking.quantity),
           Menu: menu.menuDescription || "N/A",
         },
       });

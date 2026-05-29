@@ -4,7 +4,7 @@ This file serves as a deep, project-wise architectural map for the RUET Hall Man
 
 ## 🏢 Monorepo Breakdown
 
-The repository handles both front-office applications (Student Web Portal) and back-office management (Admin Portal) via a centralized backend API and an isolated payment microservice.
+The repository handles both front-office applications (Student Web Portal) and back-office management (Admin Portal) via a centralized backend API with integrated SSLCommerz payments.
 
 ### 1. `web/` (Student Web Portal)
 
@@ -46,12 +46,11 @@ The absolute core of the application. All major data logic occurs here.
 - **Documentation:** `backend/docs/` (Markdown). Agents must follow `backend/AGENTS.md` and update `docs/` after route/auth/env changes.
 - **Run/Port:** Exposed internally/externally on port `8000`.
 
-### 4. `pay/` (Payment Microservice)
+### 4. Payments (SSLCommerz in `backend/`)
 
-- **Role:** A lightweight, isolated Node.js/Express server used exclusively to handle payment processing and health-checks.
-- **Stack:** Node.js, Express 5.2+, TypeScript (`tsx`), `bcrypt`, `jsonwebtoken`.
-- **Security:** Checks token validity and payload hashes with the main backend.
-- **Run/Port:** Listens internally on port `8080`.
+- **Role:** Hosted checkout for hall dues (`ONLINE`) and meal tokens (`BKASH`, `NAGAD`, `ROCKET`).
+- **Module:** `src/modules/payments/`, `src/utils/sslcommerz.ts`, table `payment_intents`.
+- **Docs:** `backend/docs/api/payments.md`, `backend/docs/integrations.md`.
 
 ## 🗄️ Infrastructure Details & Docker Compose
 
@@ -59,7 +58,7 @@ The system is deeply containerized.
 
 - **`docker-compose.local.yml`**: `postgres:18.4-alpine` on host port `5433` (container `5432`). Production `docker-compose.yml` uses the same image on host `5432`.
 - **Reverse Proxy**: Nginx combines traffic across services in production (`docker-compose.yml`).
-- **Communication Pattern**: Frontends communicate with the `backend` via REST. The `backend` and `pay` sub-services communicate on the internal docker network (`hallnet`).
+- **Communication Pattern**: Frontends communicate with the `backend` via REST. SSLCommerz callbacks hit `/api/payments/sslcommerz/*` on the backend.
 
 ## ⚠️ Critical Agent Rules
 

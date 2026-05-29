@@ -12,7 +12,7 @@ Express + TypeScript API for **RUET Hall Management**. It powers the student web
 | [Authentication](./authentication.md) | Redis sessions, cookies, roles, device limits |
 | [Database](./database.md) | Drizzle ORM, migrations, schema summary |
 | [Conventions](./conventions.md) | Naming, validation, errors, response format |
-| [Integrations](./integrations.md) | Redis, PostgreSQL, Cloudinary, email, payment service |
+| [Integrations](./integrations.md) | Redis, PostgreSQL, Cloudinary, email, SSLCommerz |
 | [Doc sync](./DOC_SYNC.md) | Keeping API docs aligned with code |
 
 ## API reference

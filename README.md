@@ -15,7 +15,7 @@ Core modules:
 - Student portal (Next.js): admissions, dining, finance, profile workflows
 - Admin portal (Next.js): administration dashboard and management tools
 - Backend API (Node + Express + Drizzle): authentication, business logic, database access
-- Payment service (Node.js + Express): payment-related processing flow
+- SSLCommerz (sandbox/live): online payments via backend API
 - PostgreSQL 18 (`postgres:18.4-alpine` in Docker): persistent data storage
 - Nginx: reverse proxy, SSL termination, domain routing
 
@@ -26,35 +26,30 @@ Main folders:
 - [web](web)
 - [admin](admin)
 - [backend](backend)
-- [pay](pay)
 - [nginx](nginx)
 - [docker-compose.yml](docker-compose.yml)
 - [.env](.env)
 
 Runtime model in this repository:
 
-- web, admin, backend, pay use Node.js Docker images
+- web, admin, backend use Node.js Docker images
 - deployment entry point is root [docker-compose.yml](docker-compose.yml)
 
 ## 3. Tech Stack
 
 - Frontend: Next.js 16, React 19, TypeScript
 - Backend: Node.js, Express, Drizzle ORM, PostgreSQL (`pg`)
-- Payment service: Node.js, Express
 - Infra: Docker Compose, Nginx, Certbot
 - Hosting target: Azure Ubuntu VM
 
 ## 4. Environment Configuration
 
-Use root [.env](.env) for Docker Compose deployment.
+**Full guide:** [ENV_AND_RUN.md](ENV_AND_RUN.md) — every variable, development vs production, and run commands.
 
-Minimum required values:
+Quick start:
 
-- PostgreSQL credentials: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
-- Ports: `BACKEND_PORT`, `PAYMENT_SERVER_PORT`, `NGINX_HTTP_PORT`, `NGINX_HTTPS_PORT`
-- Frontend rewrite target in Docker network: `BACKEND_API_URL=http://backend:8000`
-- CORS URLs: `STUDENT_URL`, `ADMIN_URL`
-- Cloudinary and JWT secrets
+- **Local dev** (`npm run dev`, no Docker): [ENV_AND_RUN.md](ENV_AND_RUN.md) — `backend/.env`, `web/.env.local`, `admin/.env.local`
+- **Production server** (Docker): root [.env](.env) from [.env.example](.env.example)
 
 Security baseline:
 
@@ -73,7 +68,6 @@ cd ~/ruet-hall-mgmt
 docker compose build web
 docker compose build admin
 docker compose build backend
-docker compose build pay
 docker compose up -d
 docker compose ps
 ```
@@ -127,10 +121,11 @@ High-level process:
 6. Switch to SSL nginx config and restart nginx
 7. Auto-renew is handled by the snap `certbot` timer; add a `renew_hook` to restart nginx
 8. Verify HTTPS externally and from VM
+9. Configure SSLCommerz IPN URL to `{API_PUBLIC_URL}/api/payments/sslcommerz/ipn` in the merchant panel
 
 Detailed command reference:
 
-- [VM_DEPLOYMENT_FROM_SCRATCH.md](VM_DEPLOYMENT_FROM_SCRATCH.md)
+- [VM_DEPLOYMENT_FROM_SCRATCH.md](VM_DEPLOYMENT_FROM_SCRATCH.md) — env template, compose stack (no `pay` service), SSLCommerz IPN
 
 ## 9. Nginx and API Protection
 
@@ -150,7 +145,6 @@ git pull
 docker compose build web
 docker compose build admin
 docker compose build backend
-docker compose build pay
 docker compose up -d
 docker image prune -f
 ```

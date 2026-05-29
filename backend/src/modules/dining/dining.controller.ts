@@ -26,10 +26,10 @@ import ApiResponse from "../../utils/ApiResponse.ts";
 import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
 import { toDateString } from "../../utils/helpers.ts";
 import {
-  getStudentInfo,
-  requestPayment,
-  sendReceiptEmail,
-} from "../finance/finance.service.ts";
+  initiateMealSslPayment,
+  usesSslCommerzForDining,
+} from "../payments/payment.service.ts";
+import { completeMealBooking } from "./dining.payment.ts";
 import {
   requireAdminAccount,
   requireStudentAccount,
@@ -125,158 +125,73 @@ export const bookMealTokens = async (req: Request, res: Response) => {
   }
 
   const tomorrowDate = toDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
-  const tokenId = randomUUID();
-  const paymentId = randomUUID();
 
-  // Phase 1: Atomic reservation (lock + check + reserve in one transaction).
-  // The conditional UPDATE on booked_tokens prevents race-condition overbooking.
-  const reservation = await db.transaction(async (trx) => {
-    // NEW: Check existing tokens for this user on this menu
-    const [existingTokensResult] = await trx
-      .select({ total: sum(mealTokens.quantity) })
-      .from(mealTokens)
-      .where(
-        and(
-          eq(mealTokens.studentId, student.id),
-          eq(mealTokens.menuId, menuId),
-          isNull(mealTokens.cancelledAt)
-        )
-      );
+  const [menu] = await db
+    .select()
+    .from(mealMenus)
+    .where(eq(mealMenus.id, menuId))
+    .limit(1);
 
-    const alreadyBooked = Number(existingTokensResult?.total || 0);
-    if (alreadyBooked + quantity > 20) {
-      throw new ApiError(
-        400,
-        `You can only book up to 20 tokens per menu. You already have ${alreadyBooked} tokens booked.`
-      );
-    }
+  if (!menu) {
+    throw new ApiError(404, "Menu not found");
+  }
 
-    const [menu] = await trx
-      .select()
-      .from(mealMenus)
-      .where(eq(mealMenus.id, menuId))
-      .limit(1);
+  const menuDateStr = toDateString(new Date(menu.mealDate));
+  if (menuDateStr !== tomorrowDate) {
+    throw new ApiError(400, "Can only book tokens for tomorrow's meals");
+  }
 
-    if (!menu) {
-      throw new ApiError(404, "Menu not found");
-    }
+  const totalAmount = menu.price * quantity;
 
-    const menuDateStr = toDateString(new Date(menu.mealDate));
-    if (menuDateStr !== tomorrowDate) {
-      throw new ApiError(400, "Can only book tokens for tomorrow's meals");
-    }
-
-    const totalAmount = menu.price * quantity;
-
-    // Atomic availability check + reserve: only succeeds if enough tokens exist.
-    const reserved = await trx
-      .update(mealMenus)
-      .set({ bookedTokens: sql`${mealMenus.bookedTokens} + ${quantity}` })
-      .where(
-        and(
-          eq(mealMenus.id, menuId),
-          sql`(${mealMenus.totalTokens} - ${mealMenus.bookedTokens}) >= ${quantity}`
-        )
-      )
-      .returning({ id: mealMenus.id });
-
-    if (reserved.length === 0) {
-      throw new ApiError(
-        400,
-        `Not enough tokens available. Cannot book ${quantity} tokens.`
-      );
-    }
-
-    // Insert payment record (transactionId filled after gateway call)
-    await trx.insert(mealPayments).values({
-      id: paymentId,
+  if (usesSslCommerzForDining(paymentMethod)) {
+    const session = await initiateMealSslPayment({
       studentId: student.id,
+      menuId,
+      quantity,
       amount: totalAmount,
-      totalQuantity: quantity,
       paymentMethod,
       bankReceiptUrl,
     });
 
-    // Insert token record
-    await trx.insert(mealTokens).values({
-      id: tokenId,
-      studentId: student.id,
-      menuId: menu.id,
-      hall: menu.hall,
-      mealDate: menu.mealDate,
-      mealType: menu.mealType,
-      quantity,
-      totalAmount,
-      paymentId,
-    });
-
-    return { totalAmount, mealType: menu.mealType, mealDate: menuDateStr };
-  });
-
-  // Phase 2: Process payment gateway (outside transaction, lock released).
-  let transactionId: string;
-  try {
-    transactionId =
-      paymentMethod !== "CASH"
-        ? await requestPayment("/pay-api/meal-payment", {
-            studentId: student.id,
-            amount: reservation.totalAmount,
-            totalQuantity: quantity,
-            paymentMethod,
-          })
-        : `TXN-MEAL-${student.id}-${Date.now()}`;
-
-    await db
-      .update(mealPayments)
-      .set({ transactionId })
-      .where(eq(mealPayments.id, paymentId));
-  } catch (error) {
-    // Phase 3: Compensate — undo reservation on payment failure.
-    await db.transaction(async (trx) => {
-      await trx.delete(mealTokens).where(eq(mealTokens.id, tokenId));
-      await trx.delete(mealPayments).where(eq(mealPayments.id, paymentId));
-      await trx
-        .update(mealMenus)
-        .set({ bookedTokens: sql`${mealMenus.bookedTokens} - ${quantity}` })
-        .where(eq(mealMenus.id, menuId));
-    });
-    throw error;
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          status: "PENDING",
+          gatewayUrl: session.gatewayUrl,
+          tranId: session.tranId,
+          intentId: session.intentId,
+          totalAmount,
+          mealType: menu.mealType,
+          mealDate: menuDateStr,
+          quantity,
+          paymentMethod,
+        },
+        "Redirect to SSLCommerz to complete payment"
+      )
+    );
+    return;
   }
 
-  // Fire-and-forget receipt email
-  getStudentInfo(student.id).then((studentInfo) => {
-    if (studentInfo) {
-      sendReceiptEmail({
-        type: "MEAL",
-        studentName: studentInfo.name,
-        studentEmail: studentInfo.email,
-        rollNumber: studentInfo.rollNumber,
-        hall: studentInfo.hall || "N/A",
-        paymentId,
-        transactionId,
-        paymentMethod,
-        amount: reservation.totalAmount,
-        totalQuantity: quantity,
-        mealType: reservation.mealType,
-        mealDate: reservation.mealDate,
-        paymentDate: new Date(),
-      });
-    }
-  });
+  const booking = await completeMealBooking(
+    student.id,
+    { menuId, quantity, paymentMethod, bankReceiptUrl },
+    `TXN-MEAL-${student.id}-${Date.now()}`
+  );
 
   res.status(201).json(
     new ApiResponse(
       201,
       {
-        tokenId,
-        paymentId,
-        quantity,
-        totalAmount: reservation.totalAmount,
-        mealType: reservation.mealType,
-        mealDate: reservation.mealDate,
-        transactionId,
-        paymentMethod,
-        bankReceiptUrl,
+        tokenId: booking.tokenId,
+        paymentId: booking.paymentId,
+        quantity: booking.quantity,
+        totalAmount: booking.totalAmount,
+        mealType: booking.mealType,
+        mealDate: booking.mealDate,
+        transactionId: booking.transactionId,
+        paymentMethod: booking.paymentMethod,
+        bankReceiptUrl: booking.bankReceiptUrl,
         receiptVerifiedAt: null,
       },
       "Meal tokens booked successfully"

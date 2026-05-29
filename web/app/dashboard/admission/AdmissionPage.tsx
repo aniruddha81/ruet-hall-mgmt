@@ -103,10 +103,24 @@ export default function AdmissionPage() {
         receiptImage: paymentMethod === "BANK" ? bankReceiptImage : null,
       });
 
+      if (
+        res.data &&
+        typeof res.data === "object" &&
+        "status" in res.data &&
+        res.data.status === "PENDING"
+      ) {
+        return;
+      }
+
+      const receipt = res.data as {
+        amount: number;
+        transactionId: string;
+      };
+
       setPaymentSuccess({
         type: "DUE",
-        amount: res.data.amount,
-        transactionId: res.data.transactionId,
+        amount: receipt.amount,
+        transactionId: receipt.transactionId,
         paymentMethod,
         details: {
           "Due Type": application.seatCharge.dueType,

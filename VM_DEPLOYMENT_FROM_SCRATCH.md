@@ -197,8 +197,11 @@ POSTGRES_PASSWORD=change-me-db-password
 POSTGRES_DB=hall_db
 
 BACKEND_PORT=8000
-PAYMENT_SERVER_PORT=8080
 BACKEND_API_URL=http://backend:8000
+API_PUBLIC_URL=https://api.aniruddha81.tech
+SSLCOMMERZ_STORE_ID=your-sandbox-store-id
+SSLCOMMERZ_STORE_PASSWORD=your-sandbox-store-password
+SSLCOMMERZ_IS_SANDBOX=true
 
 NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=change-me-encryption-key
 
@@ -228,6 +231,26 @@ node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"
 Important:
 
 - `POSTGRES_DB` is created automatically when the `postgres:18.4-alpine` container starts for the first time.
+- `API_PUBLIC_URL` must be the **public** API origin (e.g. `https://api.aniruddha81.tech`), not `http://backend:8000`. SSLCommerz IPN and browser callbacks use this for `success_url`, `fail_url`, `cancel_url`, and `ipn_url`.
+- Set `SSLCOMMERZ_IS_SANDBOX=false` and live store credentials when going to production payments.
+- `REDIS_URL` is required for student/admin login (sessions). Point it at your Redis instance in production.
+
+### 3.1 SSLCommerz merchant panel (online payments)
+
+Register at [developer.sslcommerz.com](https://developer.sslcommerz.com/registration/) (sandbox) or sslcommerz.com (live).
+
+| Setting | Value |
+|---------|--------|
+| IPN URL | `{API_PUBLIC_URL}/api/payments/sslcommerz/ipn` |
+| Example (this runbook) | `https://api.aniruddha81.tech/api/payments/sslcommerz/ipn` |
+
+Nginx must route `api.*` to the backend so IPN POSTs and redirect callbacks reach Express. After deploy, test TLS from the VM:
+
+```bash
+curl -v "https://sandbox.sslcommerz.com/public/tls/"
+```
+
+Expected: `TLS is okay`.
 
 Protect secrets:
 
@@ -295,11 +318,12 @@ docker compose ps
 Expected pass:
 
 - `hallmgmt-postgres` is `Up (...) (healthy)`
-- `hallmgmt-backend` is `Up`
-- `hallmgmt-pay-server` is `Up`
-- `hallmgmt-student-web` is `Up`
-- `hallmgmt-admin-web` is `Up`
+- `hallmgmt-backend` is `Up (...) (healthy)`
+- `hallmgmt-student-web` is `Up (...) (healthy)`
+- `hallmgmt-admin-web` is `Up (...) (healthy)`
 - `hallmgmt-nginx` is `Up`
+
+There is no separate payment container — SSLCommerz runs inside the backend (`/api/payments/sslcommerz/*`).
 
 ### 5.1 Initialize DB Schema and Seed Data (First time only)
 
@@ -322,6 +346,8 @@ Notes:
 ```bash
 docker compose exec backend npm run db
 ```
+
+- After pulling schema changes (e.g. `payment_intents`), use `npm run db:migrate` or `npm run db` instead of `db-all` on an existing database.
 
 ## 6. VM-side Routing Tests
 
@@ -548,7 +574,7 @@ cd ~/ruet-hall-mgmt
 docker compose ps
 ```
 
-Expected: All 6 services show `Up` and `(healthy)` for postgres, backend, admin, web.
+Expected: All 5 services show `Up` — postgres, backend, student web, admin web, and nginx (postgres/backend/frontends healthy when healthchecks are configured).
 
 If nginx shows `Up` but HTTPS doesn't work, check that certs still exist:
 

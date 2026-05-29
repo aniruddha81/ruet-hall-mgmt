@@ -1,5 +1,7 @@
 # Getting started
 
+For **monorepo-wide** env files, Docker Compose, SSLCommerz, and production vs development run steps, see the repo root guide: [ENV_AND_RUN.md](../../ENV_AND_RUN.md).
+
 ## Prerequisites
 
 - Node.js (LTS recommended)
@@ -30,8 +32,10 @@ Create `backend/.env` from `backend/.env.example` (not committed). Minimum for l
 | `CLOUDINARY_*` | For uploads | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
 | `BREVO_SMTP_*` | For email | `BREVO_SMTP_HOST`, `BREVO_SMTP_PORT`, `BREVO_SMTP_USER`, `BREVO_SMTP_PASS` |
 | `EMAIL_FROM` | No | Default sender address |
-| `PAYMENT_SERVER_URL` | No | External payment service (default `http://localhost:8080`) |
-| `PAY_SERVICE_SECRET` | No | Shared secret for payment callbacks |
+| `SSLCOMMERZ_STORE_ID` | For online payments | Sandbox/live store ID |
+| `SSLCOMMERZ_STORE_PASSWORD` | For online payments | Store password |
+| `SSLCOMMERZ_IS_SANDBOX` | No | Default `true` (sandbox gateway) |
+| `API_PUBLIC_URL` | For online payments | Public URL of this API (callbacks/IPN), e.g. `http://localhost:8000` |
 
 Docker Compose at the repo root uses root `.env` (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) and sets `DATABASE_URL` for the backend container. Copy from root `.env.example`.
 

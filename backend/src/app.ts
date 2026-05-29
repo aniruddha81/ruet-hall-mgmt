@@ -44,6 +44,7 @@ import admissionRouter from "./modules/admission/admission.routes.ts";
 import authRouter from "./modules/auth/auth.routes.ts";
 import diningRouter from "./modules/dining/dining.routes.ts";
 import financeRouter from "./modules/finance/finance.routes.ts";
+import paymentRouter from "./modules/payments/payment.routes.ts";
 import inventoryRouter from "./modules/inventory/inventory.routes.ts";
 import notificationsRouter from "./modules/notifications/notifications.routes.ts";
 import profileRouter from "./modules/profile/profile.route.ts";
@@ -56,6 +57,7 @@ app.use("/api/dining", diningRouter);
 app.use("/api/admission", admissionRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/finance", financeRouter);
+app.use("/api/payments", paymentRouter);
 app.use("/api/notifications", notificationsRouter);
 
 app.get("/", (req, res) => {

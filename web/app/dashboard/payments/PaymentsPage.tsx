@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getApiErrorMessage } from "@/lib/api";
 import { getMyLedger, payMyDue } from "@/lib/services/finance.service";
 import type {
+  DuePaymentReceipt,
   FinancePaymentMethod,
   MealPayment,
   Payment,
@@ -31,11 +32,25 @@ import {
   UtensilsCrossed,
   Wallet,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const DEFAULT_METHOD: FinancePaymentMethod = "ONLINE";
 
+function isGatewayPending(
+  data: unknown
+): data is { gatewayUrl: string; status: "PENDING" } {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "gatewayUrl" in data &&
+    "status" in data &&
+    (data as { status?: string }).status === "PENDING"
+  );
+}
+
 export default function PaymentsPage() {
+  const searchParams = useSearchParams();
   const [dues, setDues] = useState<StudentDue[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [mealPayments, setMealPayments] = useState<MealPayment[]>([]);
@@ -72,6 +87,23 @@ export default function PaymentsPage() {
     void fetchData();
   }, []);
 
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (!payment) {
+      return;
+    }
+
+    if (payment === "success") {
+      setSuccess("Payment completed successfully.");
+    } else if (payment === "failed") {
+      setError("Payment failed. Please try again.");
+    } else if (payment === "cancelled") {
+      setError("Payment was cancelled.");
+    }
+
+    void fetchData();
+  }, [searchParams]);
+
   const handlePayDue = async (due: StudentDue) => {
     const method = dueMethods[due.id] ?? DEFAULT_METHOD;
 
@@ -85,11 +117,17 @@ export default function PaymentsPage() {
         receiptImage: method === "BANK" ? (dueReceipts[due.id] ?? null) : null,
       });
 
+      if (isGatewayPending(res.data)) {
+        return;
+      }
+
+      const receipt = res.data as DuePaymentReceipt;
+
       // Show payment success modal
       setPaymentSuccess({
         type: "DUE",
-        amount: res.data.amount,
-        transactionId: res.data.transactionId,
+        amount: receipt.amount,
+        transactionId: receipt.transactionId,
         paymentMethod: method,
         details: {
           "Due Type": due.dueType,

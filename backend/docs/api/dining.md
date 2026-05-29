@@ -11,7 +11,7 @@ Meal tokens are **prepaid**: students book for **tomorrow**, pay with receipt up
 | Method | Path | Notes |
 |--------|------|-------|
 | `GET` | `/tomorrow-menus` | Menus for student's hall |
-| `POST` | `/book-tokens` | `multipart`: `receiptImage` + validated body |
+| `POST` | `/book-tokens` | `multipart` `receiptImage` for `BANK`. `BKASH`/`NAGAD`/`ROCKET` return `{ gatewayUrl, status: PENDING }` for SSLCommerz |
 | `GET` | `/my-active-tokens` | Tokens cancellable before cutoff |
 | `PATCH` | `/cancel-token/:tokenId` | Cancel before midnight rule |
 | `GET` | `/token-history` | Paginated history; query validated |
