@@ -377,6 +377,14 @@ docker compose exec backend npm run db
 
 - After pulling schema changes (e.g. `payment_intents`), use `npm run db:migrate` or `npm run db` instead of `db-all` on an existing database.
 
+**Postgres 18 volume error** (`data in /var/lib/postgresql/data (unused mount/volume)`): the compose file mounts at `/var/lib/postgresql`. If an old volume used the pre-18 path, reset once (destroys DB data):
+
+```bash
+docker compose down -v
+git pull   # get updated docker-compose.yml
+docker compose up -d
+```
+
 ## 6. VM-side Routing Tests
 
 ```bash
