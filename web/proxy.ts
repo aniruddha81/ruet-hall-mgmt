@@ -16,6 +16,11 @@ export function proxy(request: NextRequest) {
     pathname.startsWith(route),
   );
 
+  // Logged-in students should not see the marketing landing page at `/`.
+  if (sessionId && pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   if (sessionId && isPublicOnlyRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }

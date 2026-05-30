@@ -32,8 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const pathname = usePathname();
 
-  // Hydrate user from localStorage on mount, then validate against backend.
-  // Skip API validation on `/` so a stale cookie does not redirect to login.
+  // Hydrate user from localStorage, validate session with backend, redirect home when logged in.
   useEffect(() => {
     (async () => {
       try {
@@ -42,14 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(storedUser);
 
-        if (pathname === "/") {
-          return;
-        }
-
         const profileRes = await getMyProfile().catch(() => null);
 
         if (profileRes?.data.profile) {
           setUser(profileRes.data.profile);
+          if (pathname === "/") {
+            window.location.replace("/dashboard");
+          }
           return;
         }
 
