@@ -16,7 +16,7 @@ import {
 export const bookMealTokensSchema = {
   body: z.object({
     menuId: z.uuid("Invalid menu ID format").describe("UUID of the meal menu"),
-    quantity: z
+    quantity: z.coerce
       .number()
       .int("Quantity must be an integer")
       .min(1, "Quantity must be at least 1")
