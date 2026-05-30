@@ -32,8 +32,9 @@ import {
   UtensilsCrossed,
   Wallet,
 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const DEFAULT_METHOD: FinancePaymentMethod = "ONLINE";
 
@@ -50,6 +51,7 @@ function isGatewayPending(
 }
 
 export default function PaymentsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [dues, setDues] = useState<StudentDue[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -57,7 +59,6 @@ export default function PaymentsPage() {
   const [summary, setSummary] = useState({ totalDue: 0, totalPaid: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [payingDueId, setPayingDueId] = useState<string | null>(null);
   const [dueMethods, setDueMethods] = useState<
     Record<string, FinancePaymentMethod>
@@ -94,7 +95,11 @@ export default function PaymentsPage() {
     }
 
     if (payment === "success") {
-      setSuccess("Payment completed successfully.");
+      toast.success("Payment completed successfully.", {
+        description: "Your transaction has been processed.",
+        duration: 5000,
+      });
+      router.replace("/dashboard/payments", { scroll: false });
     } else if (payment === "failed") {
       setError("Payment failed. Please try again.");
     } else if (payment === "cancelled") {
@@ -102,14 +107,13 @@ export default function PaymentsPage() {
     }
 
     void fetchData();
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const handlePayDue = async (due: StudentDue) => {
     const method = dueMethods[due.id] ?? DEFAULT_METHOD;
 
     setPayingDueId(due.id);
     setError(null);
-    setSuccess(null);
 
     try {
       const res = await payMyDue(due.id, {
@@ -171,12 +175,6 @@ export default function PaymentsPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {success && (
-        <Alert>
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
-
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-5">
