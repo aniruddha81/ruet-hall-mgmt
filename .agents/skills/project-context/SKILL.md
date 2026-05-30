@@ -4,7 +4,7 @@ description: >-
   Architectural reference for the RUET Hall Management System monorepo. Use
   when working on any part of the system to understand module boundaries, tech
   stacks, database structure, coding conventions, and critical agent rules.
-  Covers web, admin, and backend services.
+  Covers web, admin, backend, and hall-app services.
 ---
 
 # RUET Hall Management System — Project Context
@@ -16,6 +16,7 @@ Full reference lives in `LLM_CONTEXT.md` at the repo root. Read it first for det
 | Service | Role | Port | Stack |
 |---------|------|------|-------|
 | `web/` | Student portal | 3001 | Next.js (App Router), React 19, HeroUI, Tailwind v4 |
+| `hall-app/` | Student mobile app | — | Expo SDK 56, React Native 0.85, expo-router |
 | `admin/` | Admin back-office | 4001 | Next.js (App Router), React 19, Radix UI, Tailwind v4 |
 | `backend/` | Main API server | 8000 | Express 5.2+, Drizzle ORM, PostgreSQL 18 (`postgres:18.4-alpine`), Zod, TypeScript/tsx |
 
@@ -63,6 +64,8 @@ Active modules: `auth`, `halls`, `dining`, `admission`, `inventory`, `finance`, 
 ## Key Reference Files
 
 - `LLM_CONTEXT.md` — full project architecture and all agent rules
+- `hall-app/AGENTS.md` — mobile app agent rules (Expo SDK 56)
+- `.agents/skills/hall-app/SKILL.md` — hall-app quick reference
 - `backend/AGENTS.md` — backend agent rules (docs sync required)
 - `backend/docs/README.md` — backend documentation index
 - `backend/ER_DIAGRAM.txt` — live entity-relationship diagram (keep in sync with models)
