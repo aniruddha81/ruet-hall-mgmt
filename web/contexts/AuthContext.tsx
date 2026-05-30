@@ -7,7 +7,7 @@ import {
   studentLogin,
 } from "@/lib/services/auth.service";
 import type { StudentData } from "@/lib/types";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useContext,
@@ -30,7 +30,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<StudentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
   const pathname = usePathname();
 
   // Hydrate user from localStorage on mount, then validate against backend.
@@ -84,7 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     const studentData = res.data.student_data;
     setUser(studentData);
-    router.push("/dashboard");
+    // Hard redirect prevents client-side race conditions where middleware checks
+    // happen before the browser persists the newly set httpOnly session cookie.
+    window.location.href = "/dashboard";
   };
 
   const logout = async () => {

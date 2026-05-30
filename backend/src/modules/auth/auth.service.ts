@@ -18,7 +18,7 @@ function getCookieSameSite(): CookieOptions["sameSite"] {
   if (raw === "lax" || raw === "strict" || raw === "none") {
     return raw;
   }
-  return "strict";
+  return "lax";
 }
 
 function getCookieSecure(sameSite: CookieOptions["sameSite"]): boolean {
@@ -42,8 +42,9 @@ const cookieSameSite = getCookieSameSite();
 
 /**
  * Shared cookie attributes. `httpOnly` keeps JS from reading them; `sameSite`
- * is "strict" so the cookies never travel on cross-site requests. `secure` is
- * production-only so local development over HTTP keeps working.
+ * defaults to "lax" so top-level returns from payment gateways (SSLCommerz)
+ * continue carrying the session cookie. `secure` is production-only so local
+ * development over HTTP keeps working.
  */
 export const cookieOptions: CookieOptions = {
   httpOnly: true,

@@ -13,7 +13,7 @@ Cookie settings are set in `auth.service.ts` (`httpOnly`, configurable `sameSite
 
 Cookie env controls:
 
-- `SESSION_COOKIE_SAMESITE`: `strict` (default), `lax`, or `none`
+- `SESSION_COOKIE_SAMESITE`: `lax` (default), `strict`, or `none`
 - `SESSION_COOKIE_SECURE`: optional (`true`/`false` override)
 - If `SESSION_COOKIE_SAMESITE=none`, secure is forced to `true` by the server (browser requirement).
 

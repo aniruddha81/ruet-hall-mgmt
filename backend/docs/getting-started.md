@@ -27,7 +27,7 @@ Use the **repo root** `.env` only (see [`.env.example`](../../.env.example)). `b
 | `PORT` | No | Default `8000` |
 | `NODE_ENV` | No | `development` or `production` |
 | `SESSION_TTL` | No | Redis session TTL (default `10d`) |
-| `SESSION_COOKIE_SAMESITE` | No | Cookie same-site policy: `strict` (default), `lax`, `none` |
+| `SESSION_COOKIE_SAMESITE` | No | Cookie same-site policy: `lax` (default), `strict`, `none` |
 | `SESSION_COOKIE_SECURE` | No | Optional cookie secure override (`true`/`false`). `none` same-site always forces secure |
 | `STUDENT_URL` | No | CORS origin for student app (e.g. `http://localhost:3001`) |
 | `ADMIN_URL` | No | CORS origin for admin app (e.g. `http://localhost:4001`) |

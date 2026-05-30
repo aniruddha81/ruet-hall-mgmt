@@ -23,7 +23,6 @@ import { ACADEMIC_DEPARTMENTS } from "@/lib/types";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function SignupPage() {
@@ -44,7 +43,6 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
 
-  const router = useRouter();
   const { setUser } = useAuth();
 
   useEffect(() => {
@@ -112,7 +110,7 @@ export default function SignupPage() {
         isAllocated: false,
       });
 
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {

@@ -7,7 +7,6 @@ import {
   logout as logoutApi,
 } from "@/lib/services/auth.service";
 import type { AdminData } from "@/lib/types";
-import { useRouter } from "next/navigation";
 import {
   createContext,
   useContext,
@@ -30,7 +29,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   // Hydrate user from localStorage on mount, then validate against backend.
   useEffect(() => {
@@ -78,7 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     const adminData = res.data.user;
     setUser(adminData);
-    router.push("/dashboard");
+    // Hard redirect prevents client-side race conditions where middleware checks
+    // happen before the browser persists the newly set httpOnly session cookie.
+    window.location.href = "/dashboard";
   };
 
   const logout = async () => {
