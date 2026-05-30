@@ -207,9 +207,8 @@ API_PUBLIC_URL=https://api.aniruddha81.tech
 STUDENT_URL=https://app.aniruddha81.tech
 ADMIN_URL=https://admin.aniruddha81.tech
 
-# Required — Redis Cloud (sessions). Use the URL from your Redis Cloud database.
-# TLS: use rediss:// (not redis://) if your endpoint requires SSL.
-REDIS_URL=rediss://default:YOUR_PASSWORD@YOUR_HOST.redis.cloud:PORT
+# Required — Redis Cloud (sessions). Copy the exact URL from the console (redis:// or rediss://).
+REDIS_URL=redis://default:YOUR_PASSWORD@YOUR_HOST.redis.cloud:PORT
 SESSION_TTL=10d
 
 SSLCOMMERZ_STORE_ID=your-sandbox-store-id
@@ -250,8 +249,8 @@ Important:
 ### 3.1 Redis Cloud (required for login)
 
 1. Create a database at [Redis Cloud](https://redis.io/cloud/) (free tier is fine).
-2. Copy the connection URL (often `rediss://default:password@....redis.cloud:PORT`).
-3. Put it in root `.env` as `REDIS_URL=...`.
+2. Copy the connection URL exactly as shown (`redis://` or `rediss://` — if you get `ERR_SSL_PACKET_LENGTH_TOO_LONG`, switch scheme to match the endpoint).
+3. Put it in root `.env` as `REDIS_URL=...`, then `docker compose up -d --force-recreate backend`.
 
 Use a **production** database for the VM and a **separate** database (or logical DB index) for local dev if you want isolated sessions.
 
@@ -364,7 +363,8 @@ docker compose exec backend npm run db-all
 Verify tables:
 
 ```bash
-docker compose exec postgres psql -U halladmin -d hall_db -c '\dt'
+docker compose exec postgres psql -U "$POSTGRES_USER" -d hall_db -c '\dt'
+# or: psql -U postgres -d hall_db  (match POSTGRES_USER in .env)
 ```
 
 Notes:

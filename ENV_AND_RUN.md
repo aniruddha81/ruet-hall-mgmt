@@ -33,7 +33,7 @@ docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=yourpassword -e POSTGRES_DB=hall
 
 Set `DATABASE_URL` in root `.env` to match (e.g. `postgresql://postgres:yourpassword@localhost:5432/hall_db`).
 
-**Redis Cloud** — paste connection URL into `REDIS_URL` (same variable for local and production; use separate Redis Cloud databases if you want isolated sessions).
+**Redis Cloud** — paste the **exact** connection URL from the Redis Cloud console into `REDIS_URL` (`redis://` or `rediss://` — use whichever the console shows for that endpoint). Same file for local and VM; use separate Redis Cloud databases if you want isolated sessions.
 
 **Routing for local:**
 
@@ -120,6 +120,8 @@ openssl rand -base64 32
 |---------|-----|
 | Backend: `DATABASE_URL` not set | Set in root `.env`; run commands from repo with `.env` present |
 | Cannot log in | Check `REDIS_URL`; Redis Cloud reachable from host/VM |
+| Redis `ERR_SSL_PACKET_LENGTH_TOO_LONG` | Wrong scheme: try `redis://` instead of `rediss://` (or the reverse) — must match Redis Cloud for that port |
+| Postgres unhealthy (`unused mount/volume`) | Postgres 18 needs volume at `/var/lib/postgresql`; run `docker compose down -v`, pull latest compose, `docker compose up -d` |
 | API 404 from browser (local) | `BACKEND_API_URL=http://localhost:8000` in root `.env` |
 | API 404 in Docker | Rebuild web/admin after env changes; compose uses `http://backend:8000` |
 | CORS error | `STUDENT_URL` / `ADMIN_URL` match browser origin, or use localhost (allowed by default) |

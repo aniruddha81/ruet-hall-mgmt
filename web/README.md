@@ -17,4 +17,4 @@ App URL: `http://localhost:3001`
 docker compose up --build
 ```
 
-The Docker build uses `BACKEND_API_URL` at build time for Next.js rewrites. For VM deployment, use the root-level [`DEPLOYMENT.md`](../DEPLOYMENT.md) and `docker-compose.prod.yml`.
+Env and rewrites use the repo root [`.env`](../.env). For VM deployment see [ENV_AND_RUN.md](../ENV_AND_RUN.md) and [VM_DEPLOYMENT_FROM_SCRATCH.md](../VM_DEPLOYMENT_FROM_SCRATCH.md) (`docker-compose.yml` at repo root).

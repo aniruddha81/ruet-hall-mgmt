@@ -23,7 +23,7 @@ Use the **repo root** `.env` only (see [`.env.example`](../../.env.example)). `b
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes (local) | PostgreSQL on host, e.g. `postgresql://user:pass@localhost:5432/hall_db` (port `5433` if using `docker-compose.local.yml` for Postgres only) |
-| `REDIS_URL` | Yes for auth | Redis Cloud URL, e.g. `rediss://default:password@host:port` |
+| `REDIS_URL` | Yes for auth | Redis Cloud URL from console (`redis://` or `rediss://`) |
 | `PORT` | No | Default `8000` |
 | `NODE_ENV` | No | `development` or `production` |
 | `SESSION_TTL` | No | Redis session TTL (default `10d`) |
