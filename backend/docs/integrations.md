@@ -11,7 +11,7 @@
 | Account cache (30s) | `cache.ts` + `auth.middleware.ts` | No — falls back to PostgreSQL |
 | Active academic sessions list (5min) | `cache.ts` + `auth.controller.ts` | No |
 
-Env: `REDIS_URL` (e.g. `redis://localhost:6379`).
+Env: `REDIS_URL` — [Redis Cloud](https://redis.io/cloud/) connection URL (e.g. `rediss://default:password@host:port`). Use separate databases for local dev and production when possible.
 
 Shutdown: `closeRedis()` from `src/index.ts` on SIGINT/SIGTERM.
 

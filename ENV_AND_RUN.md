@@ -1,273 +1,134 @@
 # Environment variables and how to run
 
-| Environment | How you run | Env files |
-|-------------|-------------|-----------|
-| **Development (local)** | `npm run dev` on your machine — **no Docker** | `backend/.env`, `web/.env.local`, `admin/.env.local` |
-| **Production (server)** | Everything in **Docker Compose** + nginx | Root **`.env`** on the VM only |
+One file at the **repo root**: **`.env`**. Used by `backend/`, `web/`, `admin/`, and `docker compose`. No `backend/.env`, `web/.env.local`, or `admin/.env.local`.
 
-Related docs:
+Template (no secrets): [`.env.example`](.env.example)
 
-- [VM_DEPLOYMENT_FROM_SCRATCH.md](VM_DEPLOYMENT_FROM_SCRATCH.md) — full VM deploy (SSL, nginx)
-- [backend/docs/getting-started.md](backend/docs/getting-started.md) — backend API details
-- [backend/docs/integrations.md](backend/docs/integrations.md) — SSLCommerz, Redis, Cloudinary
+| How you run | Command |
+|-------------|---------|
+| **Local dev** | `npm run dev` in `backend/`, `web/`, `admin/` (three terminals) |
+| **Production** | `docker compose up` on the VM |
 
----
-
-## Development (local) — `npm run dev`, no Docker
-
-You need **PostgreSQL** and **Redis** running on your machine (install natively or run only those two in Docker — the app processes themselves stay on the host).
-
-### 1. Copy env templates
-
-```bash
-cp backend/.env.example backend/.env
-cp web/.env.example web/.env.local
-cp admin/.env.example admin/.env.local
-```
-
-You do **not** need a root `.env` for this workflow (root `.env` is for production Compose on the server).
-
-### 2. `backend/.env` (required)
-
-```env
-# Postgres on your machine (default port 5432)
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/hall_db
-
-REDIS_URL=redis://localhost:6379
-SESSION_TTL=10d
-PORT=8000
-
-STUDENT_URL=http://localhost:3001
-ADMIN_URL=http://localhost:4001
-API_PUBLIC_URL=http://localhost:8000
-
-SSLCOMMERZ_STORE_ID=your_sandbox_store_id
-SSLCOMMERZ_STORE_PASSWORD=your_sandbox_store_password
-SSLCOMMERZ_IS_SANDBOX=true
-
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-
-BREVO_SMTP_HOST=
-BREVO_SMTP_PORT=465
-BREVO_SMTP_USER=
-BREVO_SMTP_PASS=
-EMAIL_FROM=
-
-NODE_ENV=development
-```
-
-| Variable | Why you need it |
-|----------|-----------------|
-| `DATABASE_URL` | Drizzle / API data |
-| `REDIS_URL` | Login sessions (**required**) |
-| `STUDENT_URL` / `ADMIN_URL` | CORS from browser |
-| `API_PUBLIC_URL` | SSLCommerz callback URLs (use ngrok URL if testing IPN from internet) |
-| `SSLCOMMERZ_*` | ONLINE dues / BKASH-NAGAD-ROCKET meal payments |
-| `CLOUDINARY_*` | Receipt / avatar uploads |
-
-First-time database (in `backend/`):
-
-```bash
-cd backend
-npm install
-npm run db-all          # push schema + seed (local only)
-# later schema updates:
-npm run db              # or npm run db:migrate
-```
-
-Start API:
-
-```bash
-cd backend
-npm run dev
-```
-
-API: http://localhost:8000
-
-### 3. `web/.env.local` and `admin/.env.local` (required for frontends)
-
-Both only need the backend URL for Next.js rewrites (`/api/*` → backend):
-
-```env
-BACKEND_API_URL=http://localhost:8000
-```
-
-Start student app (terminal 2):
-
-```bash
-cd web
-npm install
-npm run dev
-```
-
-→ http://localhost:3001
-
-Start admin app (terminal 3):
-
-```bash
-cd admin
-npm install
-npm run dev
-```
-
-→ http://localhost:4001
-
-### 4. Prerequisites on your machine
-
-| Service | How to run (examples) |
-|---------|------------------------|
-| PostgreSQL 18+ | Local install, or `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=... postgres:18.4-alpine` |
-| Redis | Local install, or `docker run -d -p 6379:6379 redis:alpine` |
-
-If Postgres runs in Docker on port **5433**, set `DATABASE_URL=...@localhost:5433/hall_db`.
-
-### 5. SSLCommerz on local dev
-
-- Checkout redirect works with `API_PUBLIC_URL=http://localhost:8000`.
-- **IPN** (server-to-server) from SSLCommerz **cannot** reach `localhost`. For full payment completion testing, use [ngrok](https://ngrok.com/) (or similar), set `API_PUBLIC_URL=https://your-tunnel.ngrok-free.app`, and register that IPN URL in the sandbox merchant panel.
-
-Sandbox card: `4111111111111111`, exp `12/25`, CVV `111`.
+Deploy walkthrough: [VM_DEPLOYMENT_FROM_SCRATCH.md](VM_DEPLOYMENT_FROM_SCRATCH.md)
 
 ---
 
-## Production (server) — Docker Compose
-
-All services run in containers. Env lives in **one root `.env`** on the VM; Compose injects values into backend, web, and admin.
+## Setup
 
 ```bash
 cp .env.example .env
-# edit .env on the server — see template below
-chmod 600 .env
+# edit .env — see variable reference below
+chmod 600 .env   # on Linux VM
 ```
 
-You do **not** use `backend/.env` or `web/.env.local` on the server for the normal deploy (Compose sets env for containers).
+---
 
-### Root `.env` on the server
+## Local dev (`npm run dev`)
 
-```env
-POSTGRES_USER=halladmin
-POSTGRES_PASSWORD=strong-db-password
-POSTGRES_DB=hall_db
-
-BACKEND_PORT=8000
-BACKEND_API_URL=http://backend:8000
-
-API_PUBLIC_URL=https://api.yourdomain.com
-STUDENT_URL=https://app.yourdomain.com
-ADMIN_URL=https://admin.yourdomain.com
-
-REDIS_URL=redis://your-redis-host:6379
-SESSION_TTL=10d
-
-SSLCOMMERZ_STORE_ID=your_store_id
-SSLCOMMERZ_STORE_PASSWORD=your_store_password
-SSLCOMMERZ_IS_SANDBOX=false
-
-CLOUDINARY_CLOUD_NAME=...
-CLOUDINARY_API_KEY=...
-CLOUDINARY_API_SECRET=...
-
-BREVO_SMTP_HOST=...
-BREVO_SMTP_PORT=465
-BREVO_SMTP_USER=...
-BREVO_SMTP_PASS=...
-EMAIL_FROM=noreply@yourdomain.com
-
-NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=stable-production-key
-
-NGINX_HTTP_PORT=80
-NGINX_HTTPS_PORT=443
-```
-
-| Variable | Production notes |
-|----------|------------------|
-| `BACKEND_API_URL` | **Docker internal** hostname: `http://backend:8000` (Next.js rewrites inside containers) |
-| `API_PUBLIC_URL` | **Public HTTPS** API domain — SSLCommerz IPN/callbacks |
-| `STUDENT_URL` / `ADMIN_URL` | Public HTTPS app URLs — CORS + payment redirect |
-| `POSTGRES_*` | Used by Compose to build `DATABASE_URL` for the backend container |
-
-Deploy:
+**PostgreSQL** on your machine (or Docker on port 5432):
 
 ```bash
-cd ~/ruet-hall-mgmt
-git pull
+docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=yourpassword -e POSTGRES_DB=hall_db postgres:18.4-alpine
+```
+
+Set `DATABASE_URL` in root `.env` to match (e.g. `postgresql://postgres:yourpassword@localhost:5432/hall_db`).
+
+**Redis Cloud** — paste connection URL into `REDIS_URL` (same variable for local and production; use separate Redis Cloud databases if you want isolated sessions).
+
+**Routing for local:**
+
+| Variable | Typical local value |
+|----------|---------------------|
+| `BACKEND_API_URL` | `http://localhost:8000` (Next.js rewrites) |
+| `STUDENT_URL` / `ADMIN_URL` | Your public HTTPS domains, or `http://localhost:3001` / `4001` |
+| `API_PUBLIC_URL` | `http://localhost:8000`, or ngrok URL for SSLCommerz IPN testing |
+
+CORS always allows `http://localhost:3001` and `http://localhost:4001` in addition to `STUDENT_URL` / `ADMIN_URL`.
+
+First-time database:
+
+```bash
+cd backend
+npm install
+npm run db-all
+```
+
+Start (three terminals):
+
+```bash
+cd backend && npm run dev    # http://localhost:8000
+cd web && npm install && npm run dev      # http://localhost:3001
+cd admin && npm install && npm run dev    # http://localhost:4001
+```
+
+---
+
+## Production (Docker Compose)
+
+Copy the same root `.env` to the VM. `docker-compose.yml`:
+
+- Builds `DATABASE_URL` for the backend container from `POSTGRES_*`
+- Forces `BACKEND_API_URL=http://backend:8000` inside web/admin containers (ignores localhost in `.env`)
+
+Ensure these use your **public HTTPS** domains:
+
+- `API_PUBLIC_URL`
+- `STUDENT_URL`
+- `ADMIN_URL`
+
+```bash
 docker compose build
 docker compose up -d
-docker compose exec backend npm run db:migrate   # after schema changes
+docker compose exec backend npm run db-all   # first time only
 ```
 
-Full walkthrough: [VM_DEPLOYMENT_FROM_SCRATCH.md](VM_DEPLOYMENT_FROM_SCRATCH.md).
-
-Production checklist:
+Checklist:
 
 - [ ] DNS: `app`, `admin`, `api` → server
+- [ ] `REDIS_URL` → Redis Cloud (VM outbound access)
 - [ ] SSLCommerz IPN: `{API_PUBLIC_URL}/api/payments/sslcommerz/ipn`
-- [ ] Redis reachable from backend container
-- [ ] No `pay` service (removed — payments are in backend)
 
 ---
 
-## Optional: local development with Docker Compose
+## Variable reference
 
-If you prefer containers locally instead of `npm run dev`, use [docker-compose.local.yml](docker-compose.local.yml) and a **root `.env`** (see [.env.example](.env.example)). That path is separate from the host-only workflow above.
+| Variable | Purpose |
+|----------|---------|
+| `POSTGRES_*` | Postgres container + compose `DATABASE_URL` |
+| `DATABASE_URL` | Local `npm run dev` / `drizzle-kit` on host |
+| `BACKEND_API_URL` | Local Next.js → backend (`http://localhost:8000`) |
+| `API_PUBLIC_URL` | SSLCommerz callbacks / IPN (public API origin) |
+| `STUDENT_URL` / `ADMIN_URL` | CORS + payment redirects |
+| `REDIS_URL` | Redis Cloud — sessions (**required**) |
+| `SESSION_TTL` | Session lifetime (e.g. `10d`) |
+| `SSLCOMMERZ_*` | Online payments |
+| `CLOUDINARY_*` | Uploads |
+| `BREVO_*` / `EMAIL_FROM` | Optional email |
+| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Next.js builds — generate once, keep stable |
 
----
-
-## Variable reference (both environments)
-
-### Auth
-
-| Variable | Local (`backend/.env`) | Production (root `.env`) |
-|----------|------------------------|---------------------------|
-| `REDIS_URL` | `redis://localhost:6379` | your production Redis |
-| `SESSION_TTL` | `10d` | `10d` |
-
-### SSLCommerz
-
-| Variable | Local | Production |
-|----------|-------|------------|
-| `SSLCOMMERZ_STORE_ID` | sandbox | live |
-| `SSLCOMMERZ_STORE_PASSWORD` | sandbox | live |
-| `SSLCOMMERZ_IS_SANDBOX` | `true` | `false` |
-| `API_PUBLIC_URL` | `http://localhost:8000` (or ngrok) | `https://api.yourdomain.com` |
-
-### Frontends
-
-| Variable | Local | Production |
-|----------|-------|------------|
-| `BACKEND_API_URL` | `web/.env.local`, `admin/.env.local` → `http://localhost:8000` | root `.env` → `http://backend:8000` |
-| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | optional for dev | **required** in root `.env` for builds |
-
-Generate encryption key:
+Generate Next key:
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+openssl rand -base64 32
 ```
-
-### Production-only (root `.env`)
-
-`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `NGINX_HTTP_PORT`, `NGINX_HTTPS_PORT` — not used when you only run `npm run dev` locally.
 
 ---
 
 ## Troubleshooting
 
-| Problem | Local dev | Production |
-|---------|-----------|------------|
-| Cannot log in | Redis running? `REDIS_URL` in `backend/.env` | `REDIS_URL` in root `.env` |
-| API 404 from browser | `BACKEND_API_URL` in `web/.env.local` / `admin/.env.local` | `BACKEND_API_URL=http://backend:8000` |
-| CORS error | `STUDENT_URL` / `ADMIN_URL` in `backend/.env` match browser URL | Same in root `.env` with HTTPS domains |
-| Payment stuck after SSLCommerz | IPN needs public URL (ngrok locally) | `API_PUBLIC_URL` + merchant IPN setting |
-| Upload fails | Cloudinary in `backend/.env` | Cloudinary in root `.env` |
+| Problem | Fix |
+|---------|-----|
+| Backend: `DATABASE_URL` not set | Set in root `.env`; run commands from repo with `.env` present |
+| Cannot log in | Check `REDIS_URL`; Redis Cloud reachable from host/VM |
+| API 404 from browser (local) | `BACKEND_API_URL=http://localhost:8000` in root `.env` |
+| API 404 in Docker | Rebuild web/admin after env changes; compose uses `http://backend:8000` |
+| CORS error | `STUDENT_URL` / `ADMIN_URL` match browser origin, or use localhost (allowed by default) |
+| Payment IPN fails locally | Use ngrok for `API_PUBLIC_URL` and register IPN in merchant panel |
 
 ---
 
-## Removed variables
+## Removed (do not use)
 
-Do not use (old payment microservice):
-
-- `PAYMENT_SERVER_URL`
-- `PAYMENT_SERVER_PORT`
-- `PAY_SERVICE_SECRET`
+- `backend/.env`, `web/.env.local`, `admin/.env.local`
+- `PAYMENT_SERVER_URL`, `PAY_SERVICE_SECRET` (old pay service)
+- `ACCESS_TOKEN_*`, `REFRESH_TOKEN_*` (JWT removed; Redis sessions only)

@@ -16,7 +16,7 @@ It assumes Ubuntu 24.04 on Azure VM and domains:
 
 Use this path if you had a VM issue and need to redeploy **without** wiping SSL certs or the certbot snap. The certificates in `/etc/letsencrypt` and the snap certbot timer survive VM restarts and re-clones — they live on the VM filesystem, not in Docker.
 
-**Skip:** Steps 0, 8.1–8.4, and 9.
+**Skip:** Steps 0, 4 (HTTP nginx bootstrap if SSL already works), 8.1–8.4, and 9.
 
 **Run these in order:**
 
@@ -73,8 +73,7 @@ git fetch origin deploy
 git checkout deploy
 git reset --hard origin/deploy
 
-# 3. Build and start
-#    nginx.conf in the repo already contains SSL blocks — no manual patching needed.
+# 3. Build and start (use nginx.ssl.conf if certs exist on this VM; REDIS_URL in .env must be your Redis Cloud URL)
 docker compose build
 docker compose up -d
 
@@ -183,7 +182,9 @@ git clone https://github.com/aniruddha81/ruet-hall-mgmt.git
 cd ruet-hall-mgmt
 ```
 
-## 3. Create `.env`
+## 3. Create `.env` (repo root — only env file)
+
+Copy your local root `.env` to the VM, or create from template:
 
 ```bash
 nano ~/ruet-hall-mgmt/.env
@@ -197,45 +198,70 @@ POSTGRES_PASSWORD=change-me-db-password
 POSTGRES_DB=hall_db
 
 BACKEND_PORT=8000
-BACKEND_API_URL=http://backend:8000
+PORT=8000
+# Local dev value; Docker Compose hardcodes http://backend:8000 for web/admin containers
+BACKEND_API_URL=http://localhost:8000
+DATABASE_URL=postgresql://halladmin:change-me-db-password@localhost:5432/hall_db
+
 API_PUBLIC_URL=https://api.aniruddha81.tech
+STUDENT_URL=https://app.aniruddha81.tech
+ADMIN_URL=https://admin.aniruddha81.tech
+
+# Required — Redis Cloud (sessions). Use the URL from your Redis Cloud database.
+# TLS: use rediss:// (not redis://) if your endpoint requires SSL.
+REDIS_URL=rediss://default:YOUR_PASSWORD@YOUR_HOST.redis.cloud:PORT
+SESSION_TTL=10d
+
 SSLCOMMERZ_STORE_ID=your-sandbox-store-id
 SSLCOMMERZ_STORE_PASSWORD=your-sandbox-store-password
 SSLCOMMERZ_IS_SANDBOX=true
-
-NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=change-me-encryption-key
-
-NGINX_HTTP_PORT=80
-NGINX_HTTPS_PORT=443
-
-STUDENT_URL=https://app.aniruddha81.tech
-ADMIN_URL=https://admin.aniruddha81.tech
 
 CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-cloudinary-key
 CLOUDINARY_API_SECRET=your-cloudinary-secret
 
-ACCESS_TOKEN_SECRET=change-me-access-secret
-ACCESS_TOKEN_EXPIRY=15m
-REFRESH_TOKEN_SECRET=change-me-refresh-secret
-REFRESH_TOKEN_EXPIRY=10d
+BREVO_SMTP_HOST=
+BREVO_SMTP_PORT=465
+BREVO_SMTP_USER=
+BREVO_SMTP_PASS=
+EMAIL_FROM=
+
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=change-me-encryption-key
+
+NGINX_HTTP_PORT=80
+NGINX_HTTPS_PORT=443
 ```
 
-Generate secrets:
+Generate `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` (keep the same value across rebuilds):
 
 ```bash
-# Run this 3 times — once each for ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
-node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
 Important:
 
 - `POSTGRES_DB` is created automatically when the `postgres:18.4-alpine` container starts for the first time.
 - `API_PUBLIC_URL` must be the **public** API origin (e.g. `https://api.aniruddha81.tech`), not `http://backend:8000`. SSLCommerz IPN and browser callbacks use this for `success_url`, `fail_url`, `cancel_url`, and `ipn_url`.
+- `BACKEND_API_URL` in `.env` is for local `npm run dev`; production Compose always uses `http://backend:8000` inside web/admin containers.
 - Set `SSLCOMMERZ_IS_SANDBOX=false` and live store credentials when going to production payments.
-- `REDIS_URL` is required for student/admin login (sessions). Point it at your Redis instance in production.
+- Auth is **Redis-only** (see `backend/docs/authentication.md`). Do not set `ACCESS_TOKEN_*` / `REFRESH_TOKEN_*` — they are not used.
+- `docker-compose.yml` does **not** include Redis. Use **Redis Cloud** for `REDIS_URL` (same approach as local dev). The backend container reaches Redis over the public internet — ensure the VM allows outbound HTTPS/TCP to your Redis Cloud endpoint.
 
-### 3.1 SSLCommerz merchant panel (online payments)
+### 3.1 Redis Cloud (required for login)
+
+1. Create a database at [Redis Cloud](https://redis.io/cloud/) (free tier is fine).
+2. Copy the connection URL (often `rediss://default:password@....redis.cloud:PORT`).
+3. Put it in root `.env` as `REDIS_URL=...`.
+
+Use a **production** database for the VM and a **separate** database (or logical DB index) for local dev if you want isolated sessions.
+
+Verify from the backend container after the stack is up:
+
+```bash
+docker compose exec backend node -e "const { createClient } = require('redis'); const c = createClient({ url: process.env.REDIS_URL }); c.connect().then(() => { console.log('Redis OK'); return c.quit(); }).catch(e => { console.error(e); process.exit(1); })"
+```
+
+### 3.2 SSLCommerz merchant panel (online payments)
 
 Register at [developer.sslcommerz.com](https://developer.sslcommerz.com/registration/) (sandbox) or sslcommerz.com (live).
 
@@ -267,6 +293,8 @@ Expected pass:
 ## 4. Ensure HTTP Nginx Config First
 
 Before SSL, activate the HTTP bootstrap config (listen 80 only). This allows first-time browser access over HTTP and certbot challenge validation.
+
+On a **brand-new VM** (no Let's Encrypt files yet), do this even if committed `nginx.conf` contains SSL blocks — nginx will not start with SSL until certs exist under `/etc/letsencrypt/live/...`.
 
 ```bash
 cd ~/ruet-hall-mgmt
@@ -562,7 +590,7 @@ If you disconnect SSH, stop the VM from Azure Portal, and later start it again:
 
 - Docker daemon starts automatically at boot (`sudo systemctl enable docker` was set in step 1).
 - All services use `restart: unless-stopped`, so Docker will auto-restart every container that was running before shutdown.
-- The `nginx.conf` in the repo is the SSL version. No manual patching is needed — `git reset --hard` preserves HTTPS.
+- If Let's Encrypt certs exist on the VM, use `nginx.ssl.conf` (or the committed SSL `nginx.conf`). If certs are missing, nginx needs `nginx.http.conf` until §8 completes.
 - `depends_on: service_healthy` ensures correct startup order: postgres → backend → admin/web → nginx.
 
 ### Quick Verification After VM Boot
@@ -755,6 +783,7 @@ If you destroy the VM and create a new one:
   - `api`   → new VM IP
 - [ ] DNS propagation verified (`nslookup app.aniruddha81.tech`)
 - [ ] SSH into new VM working
+- [ ] `REDIS_URL` in root `.env` points to Redis Cloud (§3.1)
 - [ ] Steps 1–9 of this runbook completed
 - [ ] DB restored from backup repo (Step 13)
 - [ ] HTTPS working on all 3 subdomains ✅

@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./loadEnv.ts";
 
 export const PORT = process.env.PORT || 8000;
 

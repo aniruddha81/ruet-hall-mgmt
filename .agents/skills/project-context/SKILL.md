@@ -57,6 +57,7 @@ Active modules: `auth`, `halls`, `dining`, `admission`, `inventory`, `finance`, 
 - Containerized via Docker Compose (`docker-compose.local.yml` for local dev).
 - Nginx reverse proxy for production (`docker-compose.yml`).
 - Internal network `hallnet`: frontends → `backend:8000`; SSLCommerz IPN/callbacks → public `API_PUBLIC_URL`.
+- **Env:** single root `.env` for all services (see `ENV_AND_RUN.md`).
 - Local DB: `postgres:18.4-alpine` — host `5433` (local compose), `5432` inside the Docker network.
 
 ## Key Reference Files

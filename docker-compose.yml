@@ -69,7 +69,7 @@ services:
     build:
       context: ./admin
       args:
-        BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+        BACKEND_API_URL: http://backend:8000
         NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
     container_name: hallmgmt-admin-web
     restart: unless-stopped
@@ -79,7 +79,7 @@ services:
     environment:
       TZ: Asia/Dhaka
       NODE_ENV: production
-      BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+      BACKEND_API_URL: http://backend:8000
       PORT: 4001
       NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
     expose:
@@ -97,7 +97,7 @@ services:
     build:
       context: ./web
       args:
-        BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+        BACKEND_API_URL: http://backend:8000
         NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
     container_name: hallmgmt-student-web
     restart: unless-stopped
@@ -107,7 +107,7 @@ services:
     environment:
       TZ: Asia/Dhaka
       NODE_ENV: production
-      BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+      BACKEND_API_URL: http://backend:8000
       PORT: 3001
       NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
     expose:

@@ -6,7 +6,7 @@ For **monorepo-wide** env files, Docker Compose, SSLCommerz, and production vs d
 
 - Node.js (LTS recommended)
 - PostgreSQL 18+ (or Docker: official `postgres:18.4-alpine` image)
-- Redis (required for login and sessions in production)
+- Redis Cloud (`REDIS_URL` in root `.env`)
 - Optional: Docker via repo root `docker-compose.yml` / `docker-compose.local.yml`
 
 ## Install
@@ -18,12 +18,12 @@ npm install
 
 ## Environment variables
 
-Create `backend/.env` from `backend/.env.example` (not committed). Minimum for local dev:
+Use the **repo root** `.env` only (see [`.env.example`](../../.env.example)). `backend/src/loadEnv.ts` loads it automatically.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string, e.g. `postgresql://user:pass@localhost:5433/hall_db` (host port `5433` when using `docker-compose.local.yml`) |
-| `REDIS_URL` | Yes for auth | Redis URL, e.g. `redis://localhost:6379` |
+| `DATABASE_URL` | Yes (local) | PostgreSQL on host, e.g. `postgresql://user:pass@localhost:5432/hall_db` (port `5433` if using `docker-compose.local.yml` for Postgres only) |
+| `REDIS_URL` | Yes for auth | Redis Cloud URL, e.g. `rediss://default:password@host:port` |
 | `PORT` | No | Default `8000` |
 | `NODE_ENV` | No | `development` or `production` |
 | `SESSION_TTL` | No | Redis session TTL (default `10d`) |
@@ -39,7 +39,7 @@ Create `backend/.env` from `backend/.env.example` (not committed). Minimum for l
 | `SSLCOMMERZ_IS_SANDBOX` | No | Default `true` (sandbox gateway) |
 | `API_PUBLIC_URL` | For online payments | Public URL of this API (callbacks/IPN), e.g. `http://localhost:8000` |
 
-Docker Compose at the repo root uses root `.env` (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) and sets `DATABASE_URL` for the backend container. Copy from root `.env.example`.
+Docker Compose uses the same root `.env` and sets `DATABASE_URL` inside the backend container from `POSTGRES_*`.
 
 | Compose file | DB image | Host port → container |
 |--------------|----------|------------------------|

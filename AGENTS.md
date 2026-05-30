@@ -22,5 +22,5 @@ Cursor rule: `.cursor/rules/backend-docs-sync.mdc` (applies to `backend/**`).
 ## Project-wide context
 
 - `LLM_CONTEXT.md` — architecture overview
-- `ENV_AND_RUN.md` — env variables and dev/production run guide
+- `ENV_AND_RUN.md` — single root `.env` and dev/production run guide
 - `.agents/skills/project-context/SKILL.md` — quick reference skill

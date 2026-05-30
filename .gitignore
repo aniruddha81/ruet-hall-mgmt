@@ -3,13 +3,12 @@ node_modules/
 .pnp
 .pnp.*
 
-# Environment Variables
+# Environment Variables (single root .env — see ENV_AND_RUN.md)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-*.env
 
 # Build Artifacts
 dist/

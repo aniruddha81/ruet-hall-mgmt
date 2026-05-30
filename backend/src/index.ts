@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./loadEnv.ts";
 import type { Server } from "http";
 import { app } from "./app.ts";
 import { PORT } from "./Constants.ts";

@@ -21,7 +21,7 @@ Agent / LLM rules: [`AGENTS.md`](./AGENTS.md) · Doc sync: [`docs/DOC_SYNC.md`](
 
 ```bash
 npm install
-# Configure .env (DATABASE_URL, REDIS_URL, …)
+# Configure repo root .env (DATABASE_URL, REDIS_URL, …)
 npm run dev
 ```
 
