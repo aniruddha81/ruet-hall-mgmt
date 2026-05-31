@@ -10,6 +10,10 @@ node_modules/
 .env.test.local
 .env.production.local
 
+# Drizzle Kit generated migrations (local only — VM uses `npm run db` / manual SQL)
+backend/drizzle/**/*.sql
+backend/drizzle/meta/
+
 # Build Artifacts
 dist/
 build/

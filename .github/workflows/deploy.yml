@@ -69,7 +69,6 @@ jobs:
           echo "web=$(has_changed '^web/')" >> "$GITHUB_OUTPUT"
           echo "admin=$(has_changed '^admin/')" >> "$GITHUB_OUTPUT"
           echo "backend=$(has_changed '^backend/')" >> "$GITHUB_OUTPUT"
-          echo "migrate=$(has_changed '^backend/(drizzle/|src/db/|drizzle\.config\.ts$)')" >> "$GITHUB_OUTPUT"
           echo "nginx=$(has_changed '^nginx\.(conf|http\.conf|ssl\.conf)$')" >> "$GITHUB_OUTPUT"
           echo "compose=$(has_changed '^docker-compose\.yml$')" >> "$GITHUB_OUTPUT"
 
@@ -79,7 +78,6 @@ jobs:
           CHANGED_WEB: ${{ steps.changes.outputs.web }}
           CHANGED_ADMIN: ${{ steps.changes.outputs.admin }}
           CHANGED_BACKEND: ${{ steps.changes.outputs.backend }}
-          CHANGED_MIGRATE: ${{ steps.changes.outputs.migrate }}
           CHANGED_NGINX: ${{ steps.changes.outputs.nginx }}
           CHANGED_COMPOSE: ${{ steps.changes.outputs.compose }}
         with:
@@ -87,7 +85,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           command_timeout: 30m
-          envs: CHANGED_WEB,CHANGED_ADMIN,CHANGED_BACKEND,CHANGED_MIGRATE,CHANGED_NGINX,CHANGED_COMPOSE
+          envs: CHANGED_WEB,CHANGED_ADMIN,CHANGED_BACKEND,CHANGED_NGINX,CHANGED_COMPOSE
           script: |
             set -euo pipefail
 
@@ -141,17 +139,15 @@ jobs:
             echo "Recreating nginx with active config..."
             docker compose up -d --force-recreate nginx
 
-            # 5) Run backend migrations only when schema-related files changed
-            if [ "$CHANGED_MIGRATE" = "true" ]; then
-              echo "Running backend migrations..."
-              docker compose exec -T backend npm run db:migrate
-            fi
+            # Schema is not applied during deploy. After model changes, run manually on the VM:
+            #   docker compose exec backend npm run db        # sync schema (no seed)
+            #   docker compose exec backend npm run db-all    # dev reset only — wipes data
 
-            # 6) Cleanup build cache and dangling images
+            # 5) Cleanup build cache and dangling images
             docker image prune -f
             docker builder prune -f --keep-storage=2g
 
-            # 7) Post-deploy health verification
+            # 6) Post-deploy health verification
             declare -A SVC_MAP
             SVC_MAP[backend]="hallmgmt-backend"
             SVC_MAP[admin]="hallmgmt-admin-web"

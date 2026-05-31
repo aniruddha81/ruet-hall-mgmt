@@ -31,14 +31,13 @@ All schema lives in `backend/src/db/models/*.ts`. Never write or run raw SQL mig
 
 3. **Export from index** — Ensure `src/db/models/index.ts` exports the modified table.
 
-4. **Generate and commit migrations (production uses `db:migrate`, not push):**
+4. **Apply schema** (this project does not deploy SQL migrations to the VM):
    ```bash
    cd backend
-   npm run db:generate
-   # Review SQL in drizzle/*.sql — must be incremental on existing DBs, not full CREATE TABLE baselines
-   git add drizzle/
+   npm run db          # local
    ```
-   Local quick sync only: `npm run db` (`drizzle-kit push`). Do **not** rely on push for VM deploys.
+   On Azure VM after deploy: `docker compose exec backend npm run db`  
+   First-time / dev reset only: `npm run db-all` (wipes DB + seed).
 
 5. **Update ER_DIAGRAM.txt** — Reflect the change in `backend/ER_DIAGRAM.txt`. Follow the existing crow's-foot notation format already used in the file.
 

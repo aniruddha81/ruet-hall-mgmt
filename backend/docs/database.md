@@ -4,7 +4,7 @@
 
 - **PostgreSQL 18** — primary persistence (Docker: `postgres:18.4-alpine` in root compose files)
 - **Drizzle ORM** — schema-as-code in `src/db/models/`
-- **drizzle-kit** — migrations under `backend/drizzle/`
+- **drizzle-kit** — schema push via `npm run db` (generated `backend/drizzle/` is gitignored; not used on VM deploy)
 
 ### Docker (compose)
 
@@ -32,10 +32,9 @@ Config: `drizzle.config.ts` uses `defineConfig` from `drizzle-kit` (dialect `pos
 
 | Command | When to use |
 |---------|-------------|
-| `npm run db:generate` | After changing models; produces SQL in `drizzle/migrations/` — **commit these** |
-| `npm run db:migrate` | Apply committed migrations (CI / production) |
-| `npm run db` | Push schema without migration files (local dev only) |
-| `npm run db-all` | **Local only**: force push + run `seed.ts` |
+| `npm run db` | Sync models → Postgres (local or **VM** after schema changes) |
+| `npm run db-all` | **Dev reset only**: force push + `seed.ts` (wipes data) |
+| `npm run db:generate` / `db:migrate` | Optional locally; **not** run by GitHub deploy |
 
 Agent skill for schema changes: `backend/.agents/skills/db-schema-workflow/SKILL.md`.
 

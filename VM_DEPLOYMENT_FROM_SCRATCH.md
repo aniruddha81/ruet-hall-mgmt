@@ -354,11 +354,13 @@ There is no separate payment container — SSLCommerz runs inside the backend (`
 
 ### 5.1 Initialize DB Schema and Seed Data (First time only)
 
-Wait until Postgres is healthy (`postgres:18.4-alpine`, `pg_isready` healthcheck), then migrate and seed:
+Wait until Postgres is healthy (`postgres:18.4-alpine`, `pg_isready` healthcheck), then push schema and seed (first-time only):
 
 ```bash
 docker compose exec backend npm run db-all
 ```
+
+GitHub deploy does **not** run migrations or copy `backend/drizzle/` into the image. Schema changes are applied manually on the VM when you need them.
 
 Verify tables:
 
@@ -375,7 +377,13 @@ Notes:
 docker compose exec backend npm run db
 ```
 
-- After pulling schema changes (e.g. `payment_intents`), use `npm run db:migrate` or `npm run db` instead of `db-all` on an existing database.
+- After pulling schema changes (e.g. new columns), sync without wiping data:
+
+```bash
+docker compose exec backend npm run db
+```
+
+Do **not** use `db-all` on a database you want to keep.
 
 **Postgres 18 volume error** (`data in /var/lib/postgresql/data (unused mount/volume)`): the compose file mounts at `/var/lib/postgresql`. If an old volume used the pre-18 path, reset once (destroys DB data):
 
