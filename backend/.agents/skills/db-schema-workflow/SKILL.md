@@ -31,12 +31,14 @@ All schema lives in `backend/src/db/models/*.ts`. Never write or run raw SQL mig
 
 3. **Export from index** — Ensure `src/db/models/index.ts` exports the modified table.
 
-4. **Generate and push migration:**
+4. **Generate and commit migrations (production uses `db:migrate`, not push):**
    ```bash
    cd backend
-   npx drizzle-kit generate
-   npx drizzle-kit push
+   npm run db:generate
+   # Review SQL in drizzle/*.sql — must be incremental on existing DBs, not full CREATE TABLE baselines
+   git add drizzle/
    ```
+   Local quick sync only: `npm run db` (`drizzle-kit push`). Do **not** rely on push for VM deploys.
 
 5. **Update ER_DIAGRAM.txt** — Reflect the change in `backend/ER_DIAGRAM.txt`. Follow the existing crow's-foot notation format already used in the file.
 
