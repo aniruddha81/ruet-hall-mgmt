@@ -22,6 +22,8 @@ api.interceptors.response.use(
     const isAuthEndpoint =
       url.includes("/auth/login") ||
       url.includes("/auth/register") ||
+      url.includes("/auth/verify-email") ||
+      url.includes("/auth/resend-otp") ||
       url.includes("/auth/renew-access-token");
     if (isAuthEndpoint) {
       return Promise.reject(error);

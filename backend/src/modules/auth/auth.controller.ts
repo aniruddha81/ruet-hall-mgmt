@@ -15,6 +15,7 @@ import {
   cacheKeys,
   cacheSet,
   cacheTtlSec,
+  invalidateAuthAccountCache,
 } from "../../lib/cache.ts";
 import {
   enforceSessionLimitOrThrow,
@@ -27,8 +28,16 @@ import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 import type { SessionUserPayload } from "./auth.d.ts";
 import {
+  generateOtpCode,
+  storeStudentVerifyOtp,
+  STUDENT_VERIFY_OTP_TTL_SEC,
+  verifyAndConsumeStudentOtp,
+} from "../../lib/otpStore.ts";
+import {
   clearSessionCookie,
   createSessionAndSetCookie,
+  sendStudentVerificationOtpEmail,
+  toStudentLoginData,
 } from "./auth.service.ts";
 
 /**
@@ -52,8 +61,18 @@ export const studentRegister = async (req: Request, res: Response) => {
     .where(eq(uniStudents.email, email))
     .limit(1);
 
-  if (existingUser) {
+  if (existingUser?.isVerified) {
     throw new ApiError(409, "User with this email already exists");
+  }
+
+  const [rollTaken] = await db
+    .select({ id: uniStudents.id })
+    .from(uniStudents)
+    .where(eq(uniStudents.rollNumber, String(rollNumber)))
+    .limit(1);
+
+  if (rollTaken && rollTaken.id !== existingUser?.id) {
+    throw new ApiError(409, "Roll number already registered");
   }
 
   const [validSession] = await db
@@ -72,51 +91,163 @@ export const studentRegister = async (req: Request, res: Response) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const userId = randomUUID();
+  const rollNumberStr = String(rollNumber);
 
-  await db.insert(uniStudents).values({
-    id: userId,
-    email,
-    passwordHash,
-    name,
-    phone,
-    rollNumber: String(rollNumber),
-    academicDepartment,
-    session,
-    isAllocated: false,
-  });
+  let userId: string;
 
-  const [newUser] = await db
-    .select()
-    .from(uniStudents)
-    .where(eq(uniStudents.email, email))
-    .limit(1);
-
-  if (!newUser) {
-    throw new ApiError(500, "Failed to create user");
+  if (existingUser) {
+    userId = existingUser.id;
+    await db
+      .update(uniStudents)
+      .set({
+        passwordHash,
+        name,
+        phone,
+        rollNumber: rollNumberStr,
+        academicDepartment,
+        session,
+        isVerified: false,
+      })
+      .where(eq(uniStudents.id, userId));
+    await invalidateAuthAccountCache(userId, "STUDENT");
+  } else {
+    userId = randomUUID();
+    await db.insert(uniStudents).values({
+      id: userId,
+      email,
+      passwordHash,
+      name,
+      phone,
+      rollNumber: rollNumberStr,
+      academicDepartment,
+      session,
+      isAllocated: false,
+      isVerified: false,
+    });
   }
 
-  const sessionPayload: SessionUserPayload = {
-    userId: newUser.id,
-    email: newUser.email,
-    name: newUser.name,
-    role: "STUDENT",
-  };
-
-  await enforceSessionLimitOrThrow(newUser.id);
-  await createSessionAndSetCookie({ req, res, payload: sessionPayload });
+  const otp = generateOtpCode();
+  await storeStudentVerifyOtp(userId, otp);
+  await sendStudentVerificationOtpEmail(
+    email,
+    name,
+    otp,
+    Math.floor(STUDENT_VERIFY_OTP_TTL_SEC / 60)
+  );
 
   return res.status(201).json(
     new ApiResponse(
       201,
       {
         user: {
-          id: newUser.id,
-          email: newUser.email,
-          name: newUser.name,
+          id: userId,
+          email,
+          name,
         },
+        requiresVerification: true,
+        otpExpiresInSec: STUDENT_VERIFY_OTP_TTL_SEC,
       },
-      "User registered successfully"
+      "Verification code sent to your email"
+    )
+  );
+};
+
+/**
+ * POST /api/auth/verify-email
+ * Confirm student email with OTP stored in Redis
+ */
+export const studentVerifyEmail = async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  const [user] = await db
+    .select()
+    .from(uniStudents)
+    .where(eq(uniStudents.email, email))
+    .limit(1);
+
+  if (!user) {
+    throw new ApiError(404, "No account found with this email");
+  }
+
+  if (user.isVerified) {
+    throw new ApiError(400, "Email is already verified. You can sign in.");
+  }
+
+  const otpValid = await verifyAndConsumeStudentOtp(user.id, otp);
+  if (!otpValid) {
+    throw new ApiError(400, "Invalid or expired verification code");
+  }
+
+  await db
+    .update(uniStudents)
+    .set({ isVerified: true })
+    .where(eq(uniStudents.id, user.id));
+  await invalidateAuthAccountCache(user.id, "STUDENT");
+
+  const [verifiedUser] = await db
+    .select()
+    .from(uniStudents)
+    .where(eq(uniStudents.id, user.id))
+    .limit(1);
+
+  if (!verifiedUser?.isVerified) {
+    throw new ApiError(500, "Failed to verify account");
+  }
+
+  const sessionPayload: SessionUserPayload = {
+    userId: verifiedUser.id,
+    email: verifiedUser.email,
+    name: verifiedUser.name,
+    role: "STUDENT",
+  };
+
+  await enforceSessionLimitOrThrow(verifiedUser.id);
+  await createSessionAndSetCookie({ req, res, payload: sessionPayload });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { student_data: toStudentLoginData(verifiedUser) },
+      "Email verified successfully"
+    )
+  );
+};
+
+/**
+ * POST /api/auth/resend-otp
+ * Resend verification OTP for an unverified student account
+ */
+export const studentResendOtp = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  const [user] = await db
+    .select()
+    .from(uniStudents)
+    .where(eq(uniStudents.email, email))
+    .limit(1);
+
+  if (!user) {
+    throw new ApiError(404, "No account found with this email");
+  }
+
+  if (user.isVerified) {
+    throw new ApiError(400, "Email is already verified. You can sign in.");
+  }
+
+  const otp = generateOtpCode();
+  await storeStudentVerifyOtp(user.id, otp);
+  await sendStudentVerificationOtpEmail(
+    email,
+    user.name,
+    otp,
+    Math.floor(STUDENT_VERIFY_OTP_TTL_SEC / 60)
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { otpExpiresInSec: STUDENT_VERIFY_OTP_TTL_SEC },
+      "Verification code resent"
     )
   );
 };
@@ -311,6 +442,13 @@ export const studentLogin = async (req: Request, res: Response) => {
     throw new ApiError(401, "Invalid password");
   }
 
+  if (!user.isVerified) {
+    throw new ApiError(
+      403,
+      "Please verify your email before signing in. Check your inbox for the verification code."
+    );
+  }
+
   if (!user.isActive || user.status !== "ACTIVE") {
     throw new ApiError(
       403,
@@ -331,22 +469,7 @@ export const studentLogin = async (req: Request, res: Response) => {
   return res.status(200).json(
     new ApiResponse(
       200,
-      {
-        student_data: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          phone: user.phone,
-          avatarUrl: user.avatarUrl,
-          academicDepartment: user.academicDepartment,
-          rollNumber: user.rollNumber,
-          session: user.session,
-          hall: user.hall,
-          roomId: user.roomId,
-          status: user.status,
-          isAllocated: user.isAllocated,
-        },
-      },
+      { student_data: toStudentLoginData(user) },
       "User logged in successfully"
     )
   );

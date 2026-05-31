@@ -76,6 +76,8 @@ export const uniStudents = pgTable(
 
     isActive: boolean("is_active").notNull().default(true),
 
+    isVerified: boolean("is_verified").notNull().default(false),
+
     avatarUrl: varchar("avatar_url", { length: 512 }),
 
     isAllocated: boolean("is_allocated").notNull().default(false),

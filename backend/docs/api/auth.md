@@ -8,8 +8,10 @@ Validators: `src/modules/auth/auth.validators.ts`
 
 | Method | Path | Middleware | Description |
 |--------|------|------------|-------------|
-| `POST` | `/register` | Rate limit, `validateRequest(studentRegisterSchema)` | Create student account |
-| `POST` | `/login` | `validateRequest(studentLoginSchema)` | Login; sets `sessionId` cookie |
+| `POST` | `/register` | Rate limit, `validateRequest(studentRegisterSchema)` | Create student (`is_verified=false`); send 6-digit OTP via email; OTP in Redis (7 min TTL) |
+| `POST` | `/verify-email` | Rate limit, `validateRequest(studentVerifyEmailSchema)` | Verify OTP; set `is_verified=true`; delete OTP from Redis; login (session cookie) |
+| `POST` | `/resend-otp` | Rate limit, `validateRequest(studentResendOtpSchema)` | Resend verification OTP for unverified account |
+| `POST` | `/login` | `validateRequest(studentLoginSchema)` | Login (requires verified email); sets `sessionId` cookie |
 | `GET` | `/sessions` | — | Active academic sessions (signup dropdown; Redis-cached) |
 
 ## Public — admin

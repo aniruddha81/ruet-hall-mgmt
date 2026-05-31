@@ -25,8 +25,16 @@ Constants: `SESSION_COOKIE_NAME`, `SESSION_TTL` in `src/Constants.ts`.
 |-----|------|---------|
 | `hallmgmt:session:{sessionId}` | String (JSON) | User payload, IP, user agent, timestamps; TTL = session lifetime |
 | `hallmgmt:sessions:user:{userId}` | Set | Active session ids for that account |
+| `hallmgmt:auth:otp:student-verify:{userId}` | String | 6-digit email verification OTP; TTL 7 minutes |
 
-Implementation: `src/lib/sessionStore.ts`.
+Implementation: `src/lib/sessionStore.ts`, `src/lib/otpStore.ts`.
+
+### Student email verification
+
+1. `POST /api/auth/register` — insert/update `uni_students` with `is_verified=false`, store OTP in Redis, email code via Brevo SMTP.
+2. `POST /api/auth/verify-email` — validate OTP, set `is_verified=true`, **delete** OTP key, create session.
+3. `POST /api/auth/resend-otp` — replace OTP in Redis and resend email.
+4. Login and `authenticateToken` reject students with `is_verified=false`.
 
 ### Device limit
 
@@ -93,13 +101,14 @@ Passwords are hashed with bcrypt in controllers/services.
 
 ## Registration rate limit
 
-`POST /api/auth/register` and `POST /api/auth/admin/register` use an in-memory limiter: **5 requests per IP per 15 minutes**.
+`POST /api/auth/register`, `POST /api/auth/verify-email`, `POST /api/auth/resend-otp`, and `POST /api/auth/admin/register` use an in-memory limiter: **5 requests per IP per 15 minutes**.
 
 ## Failure modes
 
 | Condition | Behavior |
 |-----------|----------|
-| `REDIS_URL` unset / Redis down | `getRedis()` returns `null`; session create/required paths → **503**; cache reads miss |
+| `REDIS_URL` unset / Redis down | Session create → **503**; student register/verify/resend OTP → **503**; optional cache reads miss |
+| Unverified student login | **403** with message to verify email |
 | Invalid / expired session | **401**, cookie cleared |
 | Wrong role | **403** |
 

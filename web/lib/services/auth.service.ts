@@ -26,6 +26,22 @@ export async function studentRegister(data: {
   return res.data;
 }
 
+export async function verifyStudentEmail(data: { email: string; otp: string }) {
+  const res = await api.post<ApiResponse<LoginResponse>>(
+    "/auth/verify-email",
+    data,
+  );
+  return res.data;
+}
+
+export async function resendStudentOtp(data: { email: string }) {
+  const res = await api.post<ApiResponse<{ otpExpiresInSec: number }>>(
+    "/auth/resend-otp",
+    data,
+  );
+  return res.data;
+}
+
 export async function studentLogin(data: {
   email: string;
   password: string;

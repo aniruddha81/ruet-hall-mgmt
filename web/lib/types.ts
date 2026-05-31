@@ -123,6 +123,8 @@ export interface RegisterResponse {
     email: string;
     name: string;
   };
+  requiresVerification: boolean;
+  otpExpiresInSec: number;
 }
 
 export interface AcademicSession {

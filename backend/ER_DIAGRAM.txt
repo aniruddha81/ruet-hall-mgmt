@@ -35,6 +35,7 @@ uni_students [icon: users, color: green] {
   roll_number varchar
   academic_department enum
   is_active boolean
+  is_verified boolean
   avatar_url varchar
   is_allocated boolean
   session varchar

@@ -97,6 +97,12 @@ export const authenticateToken = async (
       throw new ApiError(401, "Account no longer exists.");
     }
 
+    if (!student.isVerified) {
+      await revokeAllUserSessions(student.id);
+      clearSessionCookie(res);
+      throw new ApiError(403, "Please verify your email before using the app.");
+    }
+
     if (!student.isActive || student.status !== "ACTIVE") {
       await revokeAllUserSessions(student.id);
       clearSessionCookie(res);

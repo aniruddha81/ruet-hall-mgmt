@@ -68,6 +68,7 @@ All models are re-exported from `src/db/models/index.ts`.
 |------|--------|
 | Accounts, applications, menus, dues, … | PostgreSQL |
 | Live login sessions | Redis only |
+| Student email verification OTP (`hallmgmt:auth:otp:student-verify:{userId}`) | Redis (required for signup; 7 min TTL) |
 | 30s account cache, 5min active academic sessions list | Redis (optional if down) |
 
 ## Core relationships (summary)

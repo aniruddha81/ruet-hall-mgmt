@@ -19,6 +19,8 @@ import {
   revokeDeviceSession,
   studentLogin,
   studentRegister,
+  studentResendOtp,
+  studentVerifyEmail,
   updateAcademicSession,
 } from "./auth.controller.ts";
 import {
@@ -29,6 +31,8 @@ import {
   revokeDeviceSessionSchema,
   studentLoginSchema,
   studentRegisterSchema,
+  studentResendOtpSchema,
+  studentVerifyEmailSchema,
   updateAcademicSessionSchema,
 } from "./auth.validators.ts";
 
@@ -81,6 +85,18 @@ authRouter.post(
   registerRateLimiter,
   validateRequest(studentRegisterSchema),
   studentRegister
+);
+authRouter.post(
+  "/verify-email",
+  registerRateLimiter,
+  validateRequest(studentVerifyEmailSchema),
+  studentVerifyEmail
+);
+authRouter.post(
+  "/resend-otp",
+  registerRateLimiter,
+  validateRequest(studentResendOtpSchema),
+  studentResendOtp
 );
 authRouter.post("/login", validateRequest(studentLoginSchema), studentLogin);
 authRouter.get("/sessions", getActiveAcademicSessions);

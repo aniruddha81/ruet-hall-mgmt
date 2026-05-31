@@ -287,6 +287,7 @@ async function seed() {
       rollNumber: `24${String(index + 1).padStart(4, "0")}`,
       academicDepartment: pickDepartment(index),
       isActive: true,
+      isVerified: true,
       avatarUrl: null,
       isAllocated: false,
       session: DEFAULT_SESSION,

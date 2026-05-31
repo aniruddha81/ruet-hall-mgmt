@@ -16,7 +16,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   getAcademicSessions,
+  resendStudentOtp,
   studentRegister,
+  verifyStudentEmail,
 } from "@/lib/services/auth.service";
 import type { AcademicDepartment, AcademicSession } from "@/lib/types";
 import { ACADEMIC_DEPARTMENTS } from "@/lib/types";
@@ -37,8 +39,12 @@ export default function SignupPage() {
     phone: "",
   });
 
+  const [step, setStep] = useState<"register" | "verify">("register");
+  const [verifyEmail, setVerifyEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
@@ -84,7 +90,7 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      const res = await studentRegister({
+      await studentRegister({
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -95,22 +101,46 @@ export default function SignupPage() {
         phone: formData.phone,
       });
 
-      setUser({
-        id: res.data.user.id,
-        email: res.data.user.email,
-        name: res.data.user.name,
-        phone: formData.phone,
-        avatarUrl: null,
-        academicDepartment: formData.academicDepartment as AcademicDepartment,
-        rollNumber: formData.rollNumber,
-        session: formData.session,
-        hall: null,
-        roomId: null,
-        status: null,
-        isAllocated: false,
-      });
+      setVerifyEmail(formData.email);
+      setOtp("");
+      setInfo("We sent a 6-digit code to your email. Enter it below to finish signup.");
+      setStep("verify");
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setInfo(null);
+
+    if (otp.length !== 6) {
+      setError("Enter the 6-digit verification code");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await verifyStudentEmail({ email: verifyEmail, otp });
+      setUser(res.data.student_data);
       window.location.href = "/dashboard";
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError(null);
+    setInfo(null);
+    setIsLoading(true);
+    try {
+      await resendStudentOtp({ email: verifyEmail });
+      setInfo("A new verification code was sent to your email.");
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -156,18 +186,78 @@ export default function SignupPage() {
             <section className="p-8 lg:p-10">
               <CardHeader className="px-0 pt-0">
                 <CardTitle className="text-2xl font-bold">
-                  Create Account
+                  {step === "verify" ? "Verify Email" : "Create Account"}
                 </CardTitle>
                 <CardDescription>
-                  Join RUET Hall Management System
+                  {step === "verify"
+                    ? `Enter the code sent to ${verifyEmail}`
+                    : "Join RUET Hall Management System"}
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="px-0">
+                {step === "verify" ? (
+                  <form onSubmit={handleVerify} className="space-y-4">
+                    {error && (
+                      <div className="rounded-lg border border-red-400 bg-red-100 p-3 text-sm text-red-600">
+                        {error}
+                      </div>
+                    )}
+                    {info && (
+                      <div className="rounded-lg border border-blue-300 bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                        {info}
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label>Verification code</Label>
+                      <Input
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        required
+                        value={otp}
+                        onChange={(e) =>
+                          setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        placeholder="000000"
+                        className="text-center text-lg tracking-[0.4em]"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? "Verifying..." : "Verify & continue"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isLoading}
+                      onClick={handleResendOtp}
+                    >
+                      Resend code
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => {
+                        setStep("register");
+                        setError(null);
+                        setInfo(null);
+                      }}
+                    >
+                      Back to registration
+                    </Button>
+                  </form>
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {error && (
                     <div className="rounded-lg border border-red-400 bg-red-100 p-3 text-sm text-red-600">
                       {error}
+                    </div>
+                  )}
+                  {info && (
+                    <div className="rounded-lg border border-blue-300 bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                      {info}
                     </div>
                   )}
 
@@ -319,6 +409,7 @@ export default function SignupPage() {
                     {isLoading ? "Creating..." : "Sign Up"}
                   </Button>
                 </form>
+                )}
 
                 <div className="relative my-6">
                   <Separator />

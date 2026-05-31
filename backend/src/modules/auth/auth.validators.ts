@@ -56,6 +56,22 @@ const studentLoginSchema = {
   }),
 };
 
+const studentVerifyEmailSchema = {
+  body: z.object({
+    email: z.email("Invalid email address"),
+    otp: z
+      .string()
+      .length(6, "Verification code must be 6 digits")
+      .regex(/^\d{6}$/, "Verification code must be 6 digits"),
+  }),
+};
+
+const studentResendOtpSchema = {
+  body: z.object({
+    email: z.email("Invalid email address"),
+  }),
+};
+
 const STAFF_ROLES_WITHOUT_PROVOST = STAFF_ROLES.filter(
   (role) => role !== "PROVOST"
 ) as [string, ...string[]];
@@ -133,5 +149,7 @@ export {
   revokeDeviceSessionSchema,
   studentLoginSchema,
   studentRegisterSchema,
+  studentResendOtpSchema,
+  studentVerifyEmailSchema,
   updateAcademicSessionSchema,
 };
