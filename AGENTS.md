@@ -17,6 +17,7 @@ Cursor rule: `.cursor/rules/backend-docs-sync.mdc` (applies to `backend/**`).
 |------|--------|
 | `web/` | Student Next.js app — HeroUI |
 | `hall-app/` | Student Expo SDK 56 mobile app — see `hall-app/AGENTS.md` |
+| `hall-admin-app/` | Admin Expo SDK 56 mobile app — see `hall-admin-app/AGENTS.md` |
 | `admin/` | Admin Next.js app — Radix UI |
 | `pay/` | Removed — SSLCommerz runs in `backend/` |
 
