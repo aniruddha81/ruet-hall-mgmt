@@ -7,7 +7,10 @@ import { invalidateAuthAccountCache } from "../../lib/cache.ts";
 import { revokeAllUserSessions } from "../../lib/sessionStore.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
-import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
+import {
+  cloudinaryDeliveryUrl,
+  uploadOnCloudinary,
+} from "../../utils/cloudinary.ts";
 
 /**
  * POST /api/profile/upload-image
@@ -26,24 +29,25 @@ export const uploadImage = async (req: Request, res: Response) => {
   }
 
   const avatarCloudinaryUrl = await uploadOnCloudinary(avatarLocalPath);
-  if (!avatarCloudinaryUrl?.url) {
+  const avatarUrl = cloudinaryDeliveryUrl(avatarCloudinaryUrl);
+  if (!avatarUrl) {
     throw new ApiError(500, "Failed to upload avatar");
   }
 
   if (authAccount.type === "STUDENT") {
     await db
       .update(uniStudents)
-      .set({ avatarUrl: avatarCloudinaryUrl.url })
+      .set({ avatarUrl })
       .where(eq(uniStudents.id, authAccount.student.id));
 
-    authAccount.student.avatarUrl = avatarCloudinaryUrl.url;
+    authAccount.student.avatarUrl = avatarUrl;
   } else {
     await db
       .update(hallAdmins)
-      .set({ avatarUrl: avatarCloudinaryUrl.url })
+      .set({ avatarUrl })
       .where(eq(hallAdmins.id, authAccount.admin.id));
 
-    authAccount.admin.avatarUrl = avatarCloudinaryUrl.url;
+    authAccount.admin.avatarUrl = avatarUrl;
   }
 
   await invalidateAuthAccountCache(
@@ -58,7 +62,7 @@ export const uploadImage = async (req: Request, res: Response) => {
     .json(
       new ApiResponse(
         200,
-        { avatarUrl: avatarCloudinaryUrl.url },
+        { avatarUrl },
         "Avatar uploaded successfully"
       )
     );

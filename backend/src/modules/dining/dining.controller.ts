@@ -23,7 +23,10 @@ import {
 } from "../../db/models/index.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
-import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
+import {
+  cloudinaryDeliveryUrl,
+  uploadOnCloudinary,
+} from "../../utils/cloudinary.ts";
 import { toDateString } from "../../utils/helpers.ts";
 import {
   initiateMealSslPayment,
@@ -111,10 +114,11 @@ export const bookMealTokens = async (req: Request, res: Response) => {
     }
 
     const uploadedReceipt = await uploadOnCloudinary(receiptFile.path);
-    if (!uploadedReceipt?.url) {
+    const receiptUrl = cloudinaryDeliveryUrl(uploadedReceipt);
+    if (!receiptUrl) {
       throw new ApiError(500, "Failed to upload bank receipt file.");
     }
-    bankReceiptUrl = uploadedReceipt.url;
+    bankReceiptUrl = receiptUrl;
   }
 
   if (quantity <= 0 || quantity > 20) {

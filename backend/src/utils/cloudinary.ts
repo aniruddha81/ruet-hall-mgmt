@@ -12,6 +12,14 @@ cloudinary.config({
   api_secret: CLOUDINARY_API_SECRET,
 });
 
+/** Prefer HTTPS delivery URLs — required for React Native / mobile clients. */
+export function cloudinaryDeliveryUrl(
+  response: UploadApiResponse | null | undefined
+): string | null {
+  if (!response) return null;
+  return response.secure_url ?? response.url ?? null;
+}
+
 const uploadOnCloudinary = async (
   localFilePath: string
 ): Promise<UploadApiResponse | null> => {

@@ -32,7 +32,7 @@ Used for:
 - Due payment receipts
 - Damage report images
 
-Upload flow: Multer memory/disk → Cloudinary upload in controller.
+Upload flow: Multer memory/disk → Cloudinary upload in controller. Persisted URLs use Cloudinary `secure_url` (HTTPS) so mobile clients can load images.
 
 ## Email (Brevo SMTP)
 

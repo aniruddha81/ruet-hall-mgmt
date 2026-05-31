@@ -12,7 +12,10 @@ import { uniStudents } from "../../db/models/index.ts";
 import type { DueType, FinancePaymentMethod, Hall } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
-import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
+import {
+  cloudinaryDeliveryUrl,
+  uploadOnCloudinary,
+} from "../../utils/cloudinary.ts";
 import {
   initiateDueSslPayment,
   usesSslCommerzForFinance,
@@ -91,10 +94,11 @@ export const payDue = async (req: Request, res: Response) => {
     }
 
     const uploadedReceipt = await uploadOnCloudinary(receiptFile.path);
-    if (!uploadedReceipt?.url) {
+    const receiptUrl = cloudinaryDeliveryUrl(uploadedReceipt);
+    if (!receiptUrl) {
       throw new ApiError(500, "Failed to upload bank receipt file");
     }
-    bankReceiptUrl = uploadedReceipt.url;
+    bankReceiptUrl = receiptUrl;
   }
 
   const [due] = await db
@@ -170,10 +174,11 @@ export const payMyDue = async (req: Request, res: Response) => {
     }
 
     const uploadedReceipt = await uploadOnCloudinary(receiptFile.path);
-    if (!uploadedReceipt?.url) {
+    const receiptUrl = cloudinaryDeliveryUrl(uploadedReceipt);
+    if (!receiptUrl) {
       throw new ApiError(500, "Failed to upload bank receipt file");
     }
-    bankReceiptUrl = uploadedReceipt.url;
+    bankReceiptUrl = receiptUrl;
   }
 
   const [due] = await db

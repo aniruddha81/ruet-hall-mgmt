@@ -13,7 +13,10 @@ import type {
 } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
-import { uploadOnCloudinary } from "../../utils/cloudinary.ts";
+import {
+  cloudinaryDeliveryUrl,
+  uploadOnCloudinary,
+} from "../../utils/cloudinary.ts";
 
 type VerifyDamagePayload = {
   isStudentResponsible: boolean;
@@ -82,7 +85,8 @@ export const reportDamage = async (req: Request, res: Response) => {
   }
 
   const uploadedImage = await uploadOnCloudinary(imageLocalPath);
-  if (!uploadedImage?.url) {
+  const imageUrl = cloudinaryDeliveryUrl(uploadedImage);
+  if (!imageUrl) {
     throw new ApiError(500, "Failed to upload damage proof image");
   }
 
@@ -95,7 +99,7 @@ export const reportDamage = async (req: Request, res: Response) => {
     hall: user.hall,
     locationDescription,
     assetDetails,
-    imageUrl: uploadedImage.url,
+    imageUrl,
     description,
   });
 
@@ -107,7 +111,7 @@ export const reportDamage = async (req: Request, res: Response) => {
         hall: user.hall,
         locationDescription,
         assetDetails,
-        imageUrl: uploadedImage.url,
+        imageUrl,
         status: "REPORTED",
       },
       "Damage complaint submitted successfully"
