@@ -141,11 +141,18 @@ const revokeDeviceSessionSchema = {
   }),
 };
 
+const deleteStudentAccountSchema = {
+  body: z.object({
+    password: z.string().min(1, "Password is required"),
+  }),
+};
+
 export {
   adminApprovalSchema,
   adminLoginSchema,
   adminRegisterSchema,
   createAcademicSessionSchema,
+  deleteStudentAccountSchema,
   revokeDeviceSessionSchema,
   studentLoginSchema,
   studentRegisterSchema,

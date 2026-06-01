@@ -4,6 +4,7 @@ import type {
   AcademicSession,
   ApiResponse,
   LoginResponse,
+  OtpResendResponse,
   RegisterResponse,
 } from "@/lib/types";
 
@@ -35,7 +36,7 @@ export async function verifyStudentEmail(data: { email: string; otp: string }) {
 }
 
 export async function resendStudentOtp(data: { email: string }) {
-  const res = await api.post<ApiResponse<{ otpExpiresInSec: number }>>(
+  const res = await api.post<ApiResponse<OtpResendResponse>>(
     "/auth/resend-otp",
     data,
   );
@@ -57,6 +58,11 @@ export async function logout() {
 
 export async function logoutAll() {
   const res = await api.post<ApiResponse<null>>("/auth/logout-all");
+  return res.data;
+}
+
+export async function deleteStudentAccount(data: { password: string }) {
+  const res = await api.post<ApiResponse<null>>("/auth/delete-account", data);
   return res.data;
 }
 

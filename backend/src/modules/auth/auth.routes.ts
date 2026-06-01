@@ -11,6 +11,7 @@ import {
   adminLogin,
   adminRegister,
   createAcademicSession,
+  deleteStudentAccount,
   getActiveAcademicSessions,
   getActiveDeviceSessions,
   getAllAcademicSessions,
@@ -28,6 +29,7 @@ import {
   adminLoginSchema,
   adminRegisterSchema,
   createAcademicSessionSchema,
+  deleteStudentAccountSchema,
   revokeDeviceSessionSchema,
   studentLoginSchema,
   studentRegisterSchema,
@@ -170,6 +172,13 @@ authRouter.post("/admin/login", validateRequest(adminLoginSchema), adminLogin);
 // Protected routes
 authRouter.post("/logout", authenticateToken, logout);
 authRouter.post("/logout-all", authenticateToken, logoutAll);
+authRouter.post(
+  "/delete-account",
+  authenticateToken,
+  authorizeRoles("STUDENT"),
+  validateRequest(deleteStudentAccountSchema),
+  deleteStudentAccount
+);
 authRouter.get("/devices", authenticateToken, getActiveDeviceSessions);
 
 authRouter.delete(

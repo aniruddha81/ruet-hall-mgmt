@@ -28,11 +28,15 @@ import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 import type { SessionUserPayload } from "./auth.d.ts";
 import {
+  assertCanResendStudentOtp,
   generateOtpCode,
+  markStudentOtpResendCooldown,
   storeStudentVerifyOtp,
+  STUDENT_OTP_RESEND_COOLDOWN_SEC,
   STUDENT_VERIFY_OTP_TTL_SEC,
   verifyAndConsumeStudentOtp,
 } from "../../lib/otpStore.ts";
+import { purgeStudentAccount } from "../../lib/studentAccountDeletion.ts";
 import {
   clearSessionCookie,
   createSessionAndSetCookie,
@@ -126,8 +130,10 @@ export const studentRegister = async (req: Request, res: Response) => {
     });
   }
 
+  await assertCanResendStudentOtp(userId);
   const otp = generateOtpCode();
   await storeStudentVerifyOtp(userId, otp);
+  await markStudentOtpResendCooldown(userId);
   await sendStudentVerificationOtpEmail(
     email,
     name,
@@ -146,6 +152,7 @@ export const studentRegister = async (req: Request, res: Response) => {
         },
         requiresVerification: true,
         otpExpiresInSec: STUDENT_VERIFY_OTP_TTL_SEC,
+        resendCooldownSec: STUDENT_OTP_RESEND_COOLDOWN_SEC,
       },
       "Verification code sent to your email"
     )
@@ -234,8 +241,10 @@ export const studentResendOtp = async (req: Request, res: Response) => {
     throw new ApiError(400, "Email is already verified. You can sign in.");
   }
 
+  await assertCanResendStudentOtp(user.id);
   const otp = generateOtpCode();
   await storeStudentVerifyOtp(user.id, otp);
+  await markStudentOtpResendCooldown(user.id);
   await sendStudentVerificationOtpEmail(
     email,
     user.name,
@@ -246,7 +255,10 @@ export const studentResendOtp = async (req: Request, res: Response) => {
   return res.status(200).json(
     new ApiResponse(
       200,
-      { otpExpiresInSec: STUDENT_VERIFY_OTP_TTL_SEC },
+      {
+        otpExpiresInSec: STUDENT_VERIFY_OTP_TTL_SEC,
+        resendCooldownSec: STUDENT_OTP_RESEND_COOLDOWN_SEC,
+      },
       "Verification code resent"
     )
   );
@@ -743,6 +755,35 @@ export const logout = async (req: Request, res: Response) => {
   return clearSessionCookie(res)
     .status(200)
     .json(new ApiResponse(200, {}, "User logged out successfully"));
+};
+
+/**
+ * POST /api/auth/delete-account
+ * Permanently delete the signed-in student account and all related data.
+ */
+export const deleteStudentAccount = async (req: Request, res: Response) => {
+  const authAccount = req.authAccount;
+
+  if (!authAccount || authAccount.type !== "STUDENT") {
+    throw new ApiError(
+      403,
+      "Only student accounts can be deleted through this endpoint"
+    );
+  }
+
+  const { password } = req.body as { password: string };
+  const student = authAccount.student;
+
+  const isPasswordValid = await bcrypt.compare(password, student.passwordHash);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Password is incorrect");
+  }
+
+  await purgeStudentAccount(student.id);
+
+  return clearSessionCookie(res)
+    .status(200)
+    .json(new ApiResponse(200, null, "Account deleted permanently"));
 };
 
 /**

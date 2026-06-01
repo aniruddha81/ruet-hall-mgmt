@@ -49,6 +49,19 @@ api.interceptors.response.use(
   },
 );
 export default api;
+/** Seconds until OTP resend is allowed (429 from /auth/resend-otp or /auth/register). */
+export function getApiOtpRetryAfterSec(error: unknown): number | null {
+  if (!axios.isAxiosError(error) || error.response?.status !== 429) {
+    return null;
+  }
+  const data = error.response?.data?.data;
+  if (data && typeof data === "object" && "retryAfterSec" in data) {
+    const sec = Number((data as { retryAfterSec: number }).retryAfterSec);
+    return Number.isFinite(sec) && sec > 0 ? sec : null;
+  }
+  return null;
+}
+
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     return (

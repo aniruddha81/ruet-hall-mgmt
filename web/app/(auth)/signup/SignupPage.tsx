@@ -9,11 +9,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
-import { getApiErrorMessage } from "@/lib/api";
+import { useOtpResendCooldown } from "@/hooks/use-otp-resend-cooldown";
+import { getApiErrorMessage, getApiOtpRetryAfterSec } from "@/lib/api";
+import { getResendCooldownSec } from "@/lib/otp";
 import {
   getAcademicSessions,
   resendStudentOtp,
@@ -22,7 +31,7 @@ import {
 } from "@/lib/services/auth.service";
 import type { AcademicDepartment, AcademicSession } from "@/lib/types";
 import { ACADEMIC_DEPARTMENTS } from "@/lib/types";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -50,6 +59,11 @@ export default function SignupPage() {
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
 
   const { setUser } = useAuth();
+  const {
+    canResend,
+    startCooldown,
+    resendLabel,
+  } = useOtpResendCooldown();
 
   useEffect(() => {
     getAcademicSessions()
@@ -90,7 +104,7 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      await studentRegister({
+      const res = await studentRegister({
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -103,6 +117,7 @@ export default function SignupPage() {
 
       setVerifyEmail(formData.email);
       setOtp("");
+      startCooldown(getResendCooldownSec(res.data));
       setInfo("We sent a 6-digit code to your email. Enter it below to finish signup.");
       setStep("verify");
     } catch (err) {
@@ -135,13 +150,17 @@ export default function SignupPage() {
   };
 
   const handleResendOtp = async () => {
+    if (!canResend) return;
     setError(null);
     setInfo(null);
     setIsLoading(true);
     try {
-      await resendStudentOtp({ email: verifyEmail });
+      const res = await resendStudentOtp({ email: verifyEmail });
+      startCooldown(getResendCooldownSec(res.data));
       setInfo("A new verification code was sent to your email.");
     } catch (err) {
+      const retryAfter = getApiOtpRetryAfterSec(err);
+      if (retryAfter) startCooldown(retryAfter);
       setError(getApiErrorMessage(err));
     } finally {
       setIsLoading(false);
@@ -189,15 +208,23 @@ export default function SignupPage() {
                   {step === "verify" ? "Verify Email" : "Create Account"}
                 </CardTitle>
                 <CardDescription>
-                  {step === "verify"
-                    ? `Enter the code sent to ${verifyEmail}`
-                    : "Join RUET Hall Management System"}
+                  {step === "verify" ? (
+                    <>
+                      Enter the verification code we sent to your email address:{" "}
+                      <span className="font-medium text-foreground">
+                        {verifyEmail}
+                      </span>
+                      .
+                    </>
+                  ) : (
+                    "Join RUET Hall Management System"
+                  )}
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="px-0">
                 {step === "verify" ? (
-                  <form onSubmit={handleVerify} className="space-y-4">
+                  <form onSubmit={handleVerify} className="space-y-6">
                     {error && (
                       <div className="rounded-lg border border-red-400 bg-red-100 p-3 text-sm text-red-600">
                         {error}
@@ -208,45 +235,74 @@ export default function SignupPage() {
                         {info}
                       </div>
                     )}
-                    <div className="space-y-2">
-                      <Label>Verification code</Label>
-                      <Input
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
+                    <Field>
+                      <div className="flex items-center justify-between gap-2">
+                        <FieldLabel htmlFor="otp-verification">
+                          Verification code
+                        </FieldLabel>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 shrink-0 gap-1.5 px-2.5 text-xs"
+                          disabled={isLoading || !canResend}
+                          onClick={handleResendOtp}
+                        >
+                          <RefreshCw
+                            className={
+                              isLoading ? "animate-spin" : undefined
+                            }
+                          />
+                          {canResend ? "Resend Code" : resendLabel}
+                        </Button>
+                      </div>
+                      <InputOTP
+                        id="otp-verification"
                         maxLength={6}
-                        required
                         value={otp}
-                        onChange={(e) =>
-                          setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        onChange={(value) =>
+                          setOtp(value.replace(/\D/g, "").slice(0, 6))
                         }
-                        placeholder="000000"
-                        className="text-center text-lg tracking-[0.4em]"
-                      />
+                        disabled={isLoading}
+                        required
+                        autoComplete="one-time-code"
+                        containerClassName="justify-center sm:justify-start"
+                      >
+                        <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:text-xl">
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                        </InputOTPGroup>
+                        <InputOTPSeparator className="mx-2" />
+                        <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:text-xl">
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </Field>
+                    <div className="space-y-3">
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isLoading || otp.length !== 6}
+                      >
+                        {isLoading ? "Verifying..." : "Verify"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full"
+                        disabled={isLoading}
+                        onClick={() => {
+                          setStep("register");
+                          setError(null);
+                          setInfo(null);
+                        }}
+                      >
+                        Back to registration
+                      </Button>
                     </div>
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? "Verifying..." : "Verify & continue"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      disabled={isLoading}
-                      onClick={handleResendOtp}
-                    >
-                      Resend code
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full"
-                      onClick={() => {
-                        setStep("register");
-                        setError(null);
-                        setInfo(null);
-                      }}
-                    >
-                      Back to registration
-                    </Button>
                   </form>
                 ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">

@@ -125,6 +125,12 @@ export interface RegisterResponse {
   };
   requiresVerification: boolean;
   otpExpiresInSec: number;
+  resendCooldownSec: number;
+}
+
+export interface OtpResendResponse {
+  otpExpiresInSec: number;
+  resendCooldownSec: number;
 }
 
 export interface AcademicSession {

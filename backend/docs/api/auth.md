@@ -10,7 +10,7 @@ Validators: `src/modules/auth/auth.validators.ts`
 |--------|------|------------|-------------|
 | `POST` | `/register` | Rate limit, `validateRequest(studentRegisterSchema)` | Create student (`is_verified=false`); send 6-digit OTP via email; OTP in Redis (7 min TTL) |
 | `POST` | `/verify-email` | Rate limit, `validateRequest(studentVerifyEmailSchema)` | Verify OTP; set `is_verified=true`; delete OTP from Redis; login (session cookie) |
-| `POST` | `/resend-otp` | Rate limit, `validateRequest(studentResendOtpSchema)` | Resend verification OTP for unverified account |
+| `POST` | `/resend-otp` | Rate limit, `validateRequest(studentResendOtpSchema)` | Resend OTP; **60s Redis cooldown** per account → `429` with `data.retryAfterSec` |
 | `POST` | `/login` | `validateRequest(studentLoginSchema)` | Login (requires verified email); sets `sessionId` cookie |
 | `GET` | `/sessions` | — | Active academic sessions (signup dropdown; Redis-cached) |
 
@@ -46,6 +46,7 @@ Roles: `PROVOST`, `ASST_FINANCE`, `FINANCE_SECTION_OFFICER`, `ASST_INVENTORY`, `
 |--------|------|-------------|
 | `POST` | `/logout` | Revoke current device session |
 | `POST` | `/logout-all` | Revoke all sessions for user |
+| `POST` | `/delete-account` | `authorizeRoles("STUDENT")`, body `{ password }` — permanently delete student row and cascaded data; clears sessions |
 | `GET` | `/devices` | List active live sessions |
 | `DELETE` | `/devices/:sessionId` | Revoke a specific session |
 

@@ -33,7 +33,7 @@ Implementation: `src/lib/sessionStore.ts`, `src/lib/otpStore.ts`.
 
 1. `POST /api/auth/register` — insert/update `uni_students` with `is_verified=false`, store OTP in Redis, email code via Brevo SMTP.
 2. `POST /api/auth/verify-email` — validate OTP, set `is_verified=true`, **delete** OTP key, create session.
-3. `POST /api/auth/resend-otp` — replace OTP in Redis and resend email.
+3. `POST /api/auth/resend-otp` — replace OTP in Redis and resend email (min **60s** between sends per account; `429` + `retryAfterSec` if too soon).
 4. Login and `authenticateToken` reject students with `is_verified=false`.
 
 ### Device limit
@@ -96,6 +96,7 @@ Passwords are hashed with bcrypt in controllers/services.
 |--------|------|--------|
 | `POST` | `/api/auth/logout` | Revoke current session |
 | `POST` | `/api/auth/logout-all` | Revoke all sessions for user |
+| `POST` | `/api/auth/delete-account` | Student-only: verify password, purge `uni_students` (cascades related tables), notification reads, room occupancy fix, Redis sessions/OTP |
 | `GET` | `/api/auth/devices` | List live sessions |
 | `DELETE` | `/api/auth/devices/:sessionId` | Revoke one device |
 
