@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   createMealItem,
@@ -49,6 +50,7 @@ const formatDateInput = (date: Date) => {
 };
 
 export default function DiningManagement() {
+  const { user } = useAuth();
   const [todayMenus, setTodayMenus] = useState<MealMenu[]>([]);
   const [tomorrowMenus, setTomorrowMenus] = useState<MealMenu[]>([]);
   const [bookings, setBookings] = useState<MealToken[]>([]);
@@ -261,14 +263,17 @@ export default function DiningManagement() {
         report.summary?.totalCancellations ?? 0,
       );
 
+      const hallLabel = user?.hall?.replace(/_/g, " ") ?? "—";
+
       const doc = new jsPDF({ orientation: "landscape" });
       doc.setFontSize(14);
       doc.text("Dining Date Range Report", 14, 14);
       doc.setFontSize(10);
-      doc.text(`Range: ${startDate} to ${endDate}`, 14, 20);
+      doc.text(`Hall: ${hallLabel}`, 14, 20);
+      doc.text(`Range: ${startDate} to ${endDate}`, 14, 26);
 
       autoTable(doc, {
-        startY: 26,
+        startY: 32,
         head: [
           [
             "Date",
@@ -292,7 +297,7 @@ export default function DiningManagement() {
 
       const summaryY =
         ((doc as unknown as { lastAutoTable?: { finalY: number } })
-          .lastAutoTable?.finalY ?? 26) + 10;
+          .lastAutoTable?.finalY ?? 32) + 10;
 
       doc.setFontSize(10);
       doc.text(
