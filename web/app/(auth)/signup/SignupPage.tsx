@@ -266,7 +266,7 @@ export default function SignupPage() {
                         disabled={isLoading}
                         required
                         autoComplete="one-time-code"
-                        containerClassName="justify-center sm:justify-start"
+                        containerClassName="w-full justify-center"
                       >
                         <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:text-xl">
                           <InputOTPSlot index={0} />
