@@ -12,25 +12,32 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   allocateSeat,
   createSeatCharge,
   getApplications,
+  getAvailableRooms,
   reviewApplication,
 } from "@/lib/services/admission.service";
-import { getRooms } from "@/lib/services/inventory.service";
-import type { Room, SeatApplication, SeatApplicationStatus } from "@/lib/types";
+import type { Hall, SeatApplication, SeatApplicationStatus } from "@/lib/types";
 import { ClipboardList, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type ReviewableStatus = Extract<SeatApplicationStatus, "APPROVED" | "REJECTED">;
 
+type AvailableRoom = {
+  id: string;
+  roomNumber: number;
+  hall: Hall;
+  capacity: number;
+  currentOccupancy: number;
+};
+
 export default function AdmissionsManagement() {
-  const { user } = useAuth();
   const [applications, setApplications] = useState<SeatApplication[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [availableRooms, setAvailableRooms] = useState<AvailableRoom[]>([]);
+  const [availableHalls, setAvailableHalls] = useState<Hall[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -43,6 +50,7 @@ export default function AdmissionsManagement() {
   const [chargeAmounts, setChargeAmounts] = useState<Record<string, string>>(
     {},
   );
+  const [chargeHalls, setChargeHalls] = useState<Record<string, string>>({});
   const [selectedRooms, setSelectedRooms] = useState<Record<string, string>>(
     {},
   );
@@ -57,53 +65,24 @@ export default function AdmissionsManagement() {
     setApplications(res.data?.applications ?? []);
   };
 
-  const loadInventory = async () => {
-    if (!user?.hall) {
-      setRooms([]);
-      return;
-    }
-
-    const [roomsRes] = await Promise.allSettled([
-      getRooms({ hall: user.hall }),
-    ]);
-    if (roomsRes.status === "fulfilled") {
-      setRooms(roomsRes.value.data?.rooms ?? []);
-    }
+  const loadAvailableRooms = async () => {
+    const res = await getAvailableRooms();
+    const rooms = (res.data?.rooms ?? []) as AvailableRoom[];
+    setAvailableRooms(rooms);
+    setAvailableHalls((res.data?.halls ?? []) as Hall[]);
   };
 
   const refreshPage = async () => {
-    try {
-      await Promise.all([loadApplications(), loadInventory()]);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
+    await Promise.all([loadApplications(), loadAvailableRooms()]);
   };
 
   useEffect(() => {
     const run = async () => {
       setLoading(true);
+      setError(null);
 
       try {
-        const params: { status?: SeatApplicationStatus } = {};
-        if (statusFilter) {
-          params.status = statusFilter;
-        }
-
-        const [applicationsRes, roomsRes] = await Promise.allSettled([
-          getApplications(params),
-          user?.hall
-            ? getRooms({ hall: user.hall })
-            : Promise.resolve({ data: { rooms: [] } }),
-        ]);
-
-        if (applicationsRes.status === "fulfilled") {
-          setApplications(applicationsRes.value.data?.applications ?? []);
-        }
-        if (roomsRes.status === "fulfilled") {
-          setRooms(roomsRes.value.data?.rooms ?? []);
-        }
+        await refreshPage();
       } catch (err) {
         setError(getApiErrorMessage(err));
       } finally {
@@ -112,7 +91,7 @@ export default function AdmissionsManagement() {
     };
 
     void run();
-  }, [statusFilter, user?.hall]);
+  }, [statusFilter]);
 
   const handleReview = async (
     applicationId: string,
@@ -135,9 +114,15 @@ export default function AdmissionsManagement() {
 
   const handleCreateCharge = async (application: SeatApplication) => {
     const amount = Number(chargeAmounts[application.id]);
+    const hall = chargeHalls[application.id] as Hall | undefined;
 
     if (!amount || amount <= 0) {
       setError("Enter a valid seat charge amount.");
+      return;
+    }
+
+    if (!hall) {
+      setError("Select a hall with available seats for the charge.");
       return;
     }
 
@@ -146,9 +131,10 @@ export default function AdmissionsManagement() {
     setSuccess(null);
 
     try {
-      await createSeatCharge(application.id, { amount });
+      await createSeatCharge(application.id, { amount, hall });
       setSuccess("Seat allocation charge created successfully.");
       setChargeAmounts((prev) => ({ ...prev, [application.id]: "" }));
+      setChargeHalls((prev) => ({ ...prev, [application.id]: "" }));
       await refreshPage();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -184,12 +170,13 @@ export default function AdmissionsManagement() {
     }
   };
 
-  const availableRoomOptions = rooms
-    .filter((room) => room.currentOccupancy < room.capacity)
-    .map((room) => ({
-      id: room.id,
-      label: `Room ${room.roomNumber} (${room.currentOccupancy}/${room.capacity})`,
-    }));
+  const roomOptionsForAllocate = availableRooms.map((room) => ({
+    id: room.id,
+    label: `${room.hall.replace(/_/g, " ")} — Room ${room.roomNumber} (${room.currentOccupancy}/${room.capacity})`,
+  }));
+
+  const formatHall = (hall: Hall | null) =>
+    hall ? hall.replace(/_/g, " ") : "Not assigned";
 
   if (loading) {
     return (
@@ -204,11 +191,11 @@ export default function AdmissionsManagement() {
       <div>
         <h2 className="flex items-center gap-3 text-3xl font-bold text-foreground">
           <ClipboardList className="h-8 w-8" />
-          Admissions Management
+          DSW Seat Allocation
         </h2>
         <p className="mt-1 text-muted-foreground">
-          Approve applications, issue seat charges, confirm payment, and
-          allocate available rooms.
+          Review student applications, issue seat charges, and allocate rooms in
+          halls that currently have available seats.
         </p>
       </div>
 
@@ -254,6 +241,7 @@ export default function AdmissionsManagement() {
                   <TableHead>Roll</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Session</TableHead>
+                  <TableHead>Hall</TableHead>
                   <TableHead>Application</TableHead>
                   <TableHead>Seat Charge</TableHead>
                   <TableHead>Room Allocation</TableHead>
@@ -284,6 +272,9 @@ export default function AdmissionsManagement() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {application.session}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatHall(application.hall)}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -382,30 +373,54 @@ export default function AdmissionsManagement() {
 
                       {application.status === "APPROVED" &&
                       !application.seatCharge ? (
-                        <div className="flex min-w-65 items-center gap-2">
-                          <Input
-                            type="number"
-                            min={1}
-                            placeholder="Seat charge"
-                            value={chargeAmounts[application.id] ?? ""}
+                        <div className="flex min-w-80 flex-col gap-2">
+                          <select
+                            value={chargeHalls[application.id] ?? ""}
                             onChange={(event) =>
-                              setChargeAmounts((prev) => ({
+                              setChargeHalls((prev) => ({
                                 ...prev,
                                 [application.id]: event.target.value,
                               }))
                             }
-                            className="h-9"
-                          />
-                          <Button
-                            size="sm"
-                            onClick={() => handleCreateCharge(application)}
-                            disabled={creatingChargeId === application.id}
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                           >
-                            {creatingChargeId === application.id ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : null}
-                            Create Charge
-                          </Button>
+                            <option value="">
+                              Hall (with available seats)
+                            </option>
+                            {availableHalls.map((hall) => (
+                              <option key={hall} value={hall}>
+                                {hall.replace(/_/g, " ")}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="Seat charge"
+                              value={chargeAmounts[application.id] ?? ""}
+                              onChange={(event) =>
+                                setChargeAmounts((prev) => ({
+                                  ...prev,
+                                  [application.id]: event.target.value,
+                                }))
+                              }
+                              className="h-9"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleCreateCharge(application)}
+                              disabled={
+                                creatingChargeId === application.id ||
+                                availableHalls.length === 0
+                              }
+                            >
+                              {creatingChargeId === application.id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : null}
+                              Create Charge
+                            </Button>
+                          </div>
                         </div>
                       ) : null}
 
@@ -418,7 +433,7 @@ export default function AdmissionsManagement() {
 
                       {application.status === "APPROVED" &&
                       application.canAllocate ? (
-                        <div className="flex min-w-70 items-center gap-2">
+                        <div className="flex min-w-80 items-center gap-2">
                           <select
                             value={selectedRooms[application.id] ?? ""}
                             onChange={(event) =>
@@ -430,7 +445,7 @@ export default function AdmissionsManagement() {
                             className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
                           >
                             <option value="">Select available room</option>
-                            {availableRoomOptions.map((room) => (
+                            {roomOptionsForAllocate.map((room) => (
                               <option key={room.id} value={room.id}>
                                 {room.label}
                               </option>
@@ -441,7 +456,7 @@ export default function AdmissionsManagement() {
                             onClick={() => handleAllocate(application)}
                             disabled={
                               allocatingId === application.id ||
-                              availableRoomOptions.length === 0
+                              roomOptionsForAllocate.length === 0
                             }
                           >
                             {allocatingId === application.id ? (

@@ -40,9 +40,7 @@ export const paymentIntents = pgTable(
     id: varchar("id", { length: 36 }).primaryKey(),
     tranId: varchar("tran_id", { length: 30 }).notNull().unique(),
     type: paymentIntentTypeSQL_Enum("type").notNull(),
-    status: paymentIntentStatusSQL_Enum("status")
-      .notNull()
-      .default("PENDING"),
+    status: paymentIntentStatusSQL_Enum("status").notNull().default("PENDING"),
     studentId: varchar("student_id", { length: 36 })
       .notNull()
       .references(() => uniStudents.id, { onDelete: "cascade" }),

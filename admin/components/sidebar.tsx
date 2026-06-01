@@ -55,10 +55,10 @@ const allNavLinks: NavLink[] = [
     roles: ["DINING_MANAGER", "ASST_DINING"],
   },
   {
-    label: "Admissions",
+    label: "Seat Allocation",
     href: "/dashboard/admissions",
     icon: ClipboardList,
-    roles: ["ASST_INVENTORY", "INVENTORY_SECTION_OFFICER"],
+    roles: ["DSW"],
   },
   {
     label: "Inventory",
@@ -113,7 +113,13 @@ export default function Sidebar() {
   const navLinks = () => {
     const role = user?.designation;
     if (!role) return allNavLinks.filter((link) => link.roles === "all");
-    if (role === "PROVOST") return allNavLinks;
+    if (role === "PROVOST") {
+      return allNavLinks.filter(
+        (link) =>
+          link.roles === "all" ||
+          (Array.isArray(link.roles) && !link.roles.every((r) => r === "DSW")),
+      );
+    }
 
     return allNavLinks.filter(
       (link) => link.roles === "all" || link.roles.includes(role),

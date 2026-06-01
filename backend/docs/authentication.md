@@ -74,7 +74,8 @@ Staff roles are stored on `hall_admins.designation` and exposed as `req.user.rol
 
 | Role | Typical access |
 |------|----------------|
-| `PROVOST` | Super admin; all `authorizeRoles` gates |
+| `PROVOST` | Super admin; all `authorizeRoles` gates (not DSW-only routes) |
+| `DSW` | University-wide seat allocation only (`authorizeExactRoles`) |
 | `ASST_FINANCE`, `FINANCE_SECTION_OFFICER` | Dues, expenses, ledgers, receipt verification |
 | `ASST_DINING`, `DINING_MANAGER` | Menus, tokens, dining reports |
 | `ASST_INVENTORY`, `INVENTORY_SECTION_OFFICER` | Rooms, damage reports |

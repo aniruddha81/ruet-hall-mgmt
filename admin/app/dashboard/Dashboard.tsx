@@ -33,10 +33,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const DINING_ROLES: StaffRole[] = ["DINING_MANAGER", "ASST_DINING"];
-const ADMISSION_ROLES: StaffRole[] = [
-  "ASST_INVENTORY",
-  "INVENTORY_SECTION_OFFICER",
-];
+const ADMISSION_ROLES: StaffRole[] = ["DSW"];
 const INVENTORY_ROLES: StaffRole[] = [
   "ASST_INVENTORY",
   "INVENTORY_SECTION_OFFICER",
@@ -45,7 +42,9 @@ const FINANCE_ROLES: StaffRole[] = ["ASST_FINANCE", "FINANCE_SECTION_OFFICER"];
 
 function hasAccess(designation: string | undefined, roles: StaffRole[]) {
   if (!designation) return false;
-  if (designation === "PROVOST") return true;
+  if (designation === "PROVOST") {
+    return !roles.every((role) => role === "DSW");
+  }
   return roles.includes(designation as StaffRole);
 }
 

@@ -530,8 +530,12 @@ export const adminRegister = async (req: Request, res: Response) => {
       designation === "ASST_FINANCE"
     ) {
       operationalUnit = "FINANCE";
+    } else if (designation === "DSW") {
+      operationalUnit = "ADMISSION";
+    } else if (designation === "PROVOST") {
+      operationalUnit = "ALL";
     } else {
-      operationalUnit = "ALL"; // For PROVOST or any other unhandled roles
+      throw new ApiError(400, "Unsupported admin designation");
     }
 
     if (existingUser) {

@@ -73,7 +73,7 @@ const studentResendOtpSchema = {
 };
 
 const STAFF_ROLES_WITHOUT_PROVOST = STAFF_ROLES.filter(
-  (role) => role !== "PROVOST"
+  (role) => role !== "PROVOST" && role !== "DSW"
 ) as [string, ...string[]];
 
 const adminRegisterSchema = {

@@ -39,7 +39,7 @@ import { toast } from "sonner";
 const DEFAULT_METHOD: FinancePaymentMethod = "ONLINE";
 
 function isGatewayPending(
-  data: unknown
+  data: unknown,
 ): data is { gatewayUrl: string; status: "PENDING" } {
   return (
     typeof data === "object" &&

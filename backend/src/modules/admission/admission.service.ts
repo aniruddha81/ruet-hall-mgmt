@@ -14,8 +14,14 @@ export const getSeatChargeForApplication = async (application: {
   createdAt: Date;
   reviewedAt: Date | null;
 }) => {
-  if (!application.hall) {
-    return null;
+  const chargeFilters = [
+    eq(studentDues.studentId, application.studentId),
+    eq(studentDues.type, "RENT"),
+    gte(studentDues.createdAt, getSeatChargeStartDate(application)),
+  ];
+
+  if (application.hall) {
+    chargeFilters.push(eq(studentDues.hall, application.hall));
   }
 
   const [seatCharge] = await db
@@ -30,14 +36,7 @@ export const getSeatChargeForApplication = async (application: {
       createdAt: studentDues.createdAt,
     })
     .from(studentDues)
-    .where(
-      and(
-        eq(studentDues.studentId, application.studentId),
-        eq(studentDues.hall, application.hall),
-        eq(studentDues.type, "RENT"),
-        gte(studentDues.createdAt, getSeatChargeStartDate(application))
-      )
-    )
+    .where(and(...chargeFilters))
     .orderBy(desc(studentDues.createdAt))
     .limit(1);
 

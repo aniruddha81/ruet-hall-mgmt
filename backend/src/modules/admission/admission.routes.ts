@@ -1,6 +1,7 @@
 ﻿import { Router } from "express";
 import {
   authenticateToken,
+  authorizeExactRoles,
   authorizeRoles,
 } from "../../middlewares/auth.middleware.ts";
 import { validateRequest } from "../../middlewares/validateRequest.middleware.ts";
@@ -9,6 +10,7 @@ import {
   applyForSeat,
   createSeatCharge,
   getApplications,
+  getAvailableRooms,
   getMyStatus,
   reviewApplication,
 } from "./admission.controller.ts";
@@ -17,6 +19,7 @@ import {
   applyForSeatSchema,
   createSeatChargeSchema,
   listApplicationsSchema,
+  listAvailableRoomsSchema,
   reviewApplicationSchema,
 } from "./admission.validators.ts";
 
@@ -26,7 +29,6 @@ const admissionRouter = Router();
 // STUDENT ROUTES
 // ==============================================================
 
-// Apply for a hall seat
 admissionRouter.post(
   "/apply",
   authenticateToken,
@@ -35,7 +37,6 @@ admissionRouter.post(
   applyForSeat
 );
 
-// View own application status
 admissionRouter.get(
   "/my-status",
   authenticateToken,
@@ -44,41 +45,45 @@ admissionRouter.get(
 );
 
 // ==============================================================
-// ADMIN ROUTES
+// DSW ROUTES (no PROVOST bypass)
 // ==============================================================
 
-// List all applications (with filters)
 admissionRouter.get(
   "/applications",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY"),
+  authorizeExactRoles("DSW"),
   validateRequest(listApplicationsSchema),
   getApplications
 );
 
-// Review (approve / reject)
+admissionRouter.get(
+  "/available-rooms",
+  authenticateToken,
+  authorizeExactRoles("DSW"),
+  validateRequest(listAvailableRoomsSchema),
+  getAvailableRooms
+);
+
 admissionRouter.patch(
   "/review/:id/",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY"),
+  authorizeExactRoles("DSW"),
   validateRequest(reviewApplicationSchema),
   reviewApplication
 );
 
-// Create seat allocation charge for an approved student
 admissionRouter.post(
   "/applications/:id/seat-charge",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY"),
+  authorizeExactRoles("DSW"),
   validateRequest(createSeatChargeSchema),
   createSeatCharge
 );
 
-// Allocate seat to approved student after payment
 admissionRouter.post(
   "/allocate",
   authenticateToken,
-  authorizeRoles("ASST_INVENTORY"),
+  authorizeExactRoles("DSW"),
   validateRequest(allocateSeatSchema),
   allocateSeat
 );

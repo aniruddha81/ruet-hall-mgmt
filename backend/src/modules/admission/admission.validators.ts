@@ -5,10 +5,9 @@ import {
   SEAT_APPLICATION_STATUSES,
 } from "../../types/enums.ts";
 
-// Student: apply for a seat
+// Student: apply for a seat (hall assigned later by DSW)
 export const applyForSeatSchema = {
   body: z.object({
-    hall: z.enum(HALLS).describe("Hall to apply for"),
     academicDepartment: z
       .enum(ACADEMIC_DEPARTMENTS)
       .describe("Academic department"),
@@ -20,7 +19,14 @@ export const applyForSeatSchema = {
   }),
 };
 
-// Admin: list applications
+// DSW: list halls/rooms with free capacity
+export const listAvailableRoomsSchema = {
+  query: z.object({
+    hall: z.enum(HALLS).optional().describe("Filter by hall"),
+  }),
+};
+
+// DSW: list applications
 export const listApplicationsSchema = {
   query: z.object({
     hall: z.enum(HALLS).optional().describe("Filter by hall"),
@@ -58,6 +64,7 @@ export const createSeatChargeSchema = {
   }),
   body: z.object({
     amount: z.int().positive("Amount must be a positive integer"),
+    hall: z.enum(HALLS).describe("Hall for the seat charge"),
   }),
 };
 

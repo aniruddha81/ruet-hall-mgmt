@@ -1,6 +1,7 @@
 ﻿// =================== BACKEND ENUM MIRRORS ===================
 export const ROLES = [
   "PROVOST",
+  "DSW",
   "ASST_FINANCE",
   "FINANCE_SECTION_OFFICER",
   "ASST_DINING",
@@ -12,6 +13,7 @@ export const ROLES = [
 
 export const STAFF_ROLES = [
   "PROVOST",
+  "DSW",
   "ASST_FINANCE",
   "FINANCE_SECTION_OFFICER",
   "ASST_DINING",
@@ -20,7 +22,13 @@ export const STAFF_ROLES = [
   "INVENTORY_SECTION_OFFICER",
 ] as const;
 
-export const OPERATIONAL_UNITS = ["FINANCE", "DINING", "INVENTORY"] as const;
+export const OPERATIONAL_UNITS = [
+  "FINANCE",
+  "DINING",
+  "INVENTORY",
+  "ADMISSION",
+  "ALL",
+] as const;
 
 export const ACADEMIC_DEPARTMENTS = [
   "CSE",
@@ -231,7 +239,7 @@ export interface SeatApplication {
   id: string;
   studentId: string;
   rollNumber: string;
-  hall: Hall;
+  hall: Hall | null;
   academicDepartment: AcademicDepartment;
   session: string;
   status: SeatApplicationStatus;

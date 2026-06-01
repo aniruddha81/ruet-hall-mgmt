@@ -1,5 +1,5 @@
 ﻿import { randomUUID } from "crypto";
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, lt, notInArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { db } from "../../db/index.ts";
 import {
@@ -10,10 +10,12 @@ import {
   studentDues,
   uniStudents,
 } from "../../db/models/index.ts";
-import type { SeatApplicationStatus } from "../../types/enums.ts";
+import type { Hall, SeatApplicationStatus } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 import { getSeatChargeForApplication } from "./admission.service.ts";
+
+const isDsw = (designation: string | undefined) => designation === "DSW";
 
 // ========================
 // STUDENT
@@ -21,7 +23,7 @@ import { getSeatChargeForApplication } from "./admission.service.ts";
 
 /**
  * POST /api/admission/apply
- * Student submits a seat application for a hall
+ * Student submits a seat application (no hall preference)
  */
 export const applyForSeat = async (req: Request, res: Response) => {
   const { userId: studentId, rollNumber } = req.user!;
@@ -30,9 +32,8 @@ export const applyForSeat = async (req: Request, res: Response) => {
     throw new ApiError(400, "Roll number is required to apply for a seat");
   }
 
-  const { hall, academicDepartment, session } = req.body;
+  const { academicDepartment, session } = req.body;
 
-  // Check if user already has a pending/approved application
   const [existing] = await db
     .select()
     .from(seatApplications)
@@ -51,7 +52,6 @@ export const applyForSeat = async (req: Request, res: Response) => {
     );
   }
 
-  // Check if already allocated in uniStudents
   const [alreadyAllocated] = await db
     .select()
     .from(uniStudents)
@@ -67,7 +67,6 @@ export const applyForSeat = async (req: Request, res: Response) => {
     id,
     studentId,
     rollNumber,
-    hall,
     academicDepartment,
     session,
   });
@@ -77,7 +76,7 @@ export const applyForSeat = async (req: Request, res: Response) => {
       201,
       {
         id,
-        hall,
+        hall: null,
         academicDepartment,
         session,
         status: "PENDING",
@@ -111,6 +110,7 @@ export const getMyStatus = async (req: Request, res: Response) => {
       .select({
         roomId: seatAllocations.roomId,
         roomNo: rooms.roomNumber,
+        hall: seatAllocations.hall,
         allocatedAt: seatAllocations.allocatedAt,
       })
       .from(seatAllocations)
@@ -133,19 +133,19 @@ export const getMyStatus = async (req: Request, res: Response) => {
 };
 
 // ========================
-// ADMIN
+// DSW (seat allocation)
 // ========================
 
 /**
  * GET /api/admission/applications
- * Admin lists seat applications with optional hall/status filters + pagination
+ * DSW lists all seat applications (all halls)
  */
 export const getApplications = async (req: Request, res: Response) => {
   const admin =
     req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
-  if (!admin) {
-    throw new ApiError(403, "Hall admin record not found");
+  if (!admin || !isDsw(admin.designation)) {
+    throw new ApiError(403, "Only DSW can access seat applications");
   }
 
   const status = req.query.status as SeatApplicationStatus | undefined;
@@ -153,10 +153,7 @@ export const getApplications = async (req: Request, res: Response) => {
   const limit = Number(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
-  const whereClause = and(
-    eq(seatApplications.hall, admin.hall),
-    status ? eq(seatApplications.status, status) : undefined
-  );
+  const whereClause = status ? eq(seatApplications.status, status) : undefined;
 
   const apps = await db
     .select({
@@ -183,13 +180,13 @@ export const getApplications = async (req: Request, res: Response) => {
     apps.map(async (application) => {
       const seatCharge = await getSeatChargeForApplication(application);
 
-      // Get room allocation if exists
       let roomAllocation = null;
       if (seatCharge?.status === "PAID") {
         const [allocation] = await db
           .select({
             roomId: seatAllocations.roomId,
             roomNo: rooms.roomNumber,
+            hall: seatAllocations.hall,
             allocatedAt: seatAllocations.allocatedAt,
             allocatedByName: hallAdmins.name,
           })
@@ -237,8 +234,54 @@ export const getApplications = async (req: Request, res: Response) => {
 };
 
 /**
+ * GET /api/admission/available-rooms
+ * DSW: rooms with free capacity, grouped by hall (only halls with availability)
+ */
+export const getAvailableRooms = async (req: Request, res: Response) => {
+  const admin =
+    req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
+
+  if (!admin || !isDsw(admin.designation)) {
+    throw new ApiError(403, "Only DSW can list available rooms");
+  }
+
+  const hallFilter = req.query.hall as Hall | undefined;
+
+  const availableRooms = await db
+    .select({
+      id: rooms.id,
+      roomNumber: rooms.roomNumber,
+      hall: rooms.hall,
+      capacity: rooms.capacity,
+      currentOccupancy: rooms.currentOccupancy,
+      status: rooms.status,
+    })
+    .from(rooms)
+    .where(
+      and(
+        hallFilter ? eq(rooms.hall, hallFilter) : undefined,
+        lt(rooms.currentOccupancy, rooms.capacity),
+        notInArray(rooms.status, ["MAINTENANCE", "RESERVED"])
+      )
+    )
+    .orderBy(rooms.hall, rooms.roomNumber);
+
+  const hallsWithRooms = [...new Set(availableRooms.map((r) => r.hall))];
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { halls: hallsWithRooms, rooms: availableRooms },
+        "Available rooms retrieved successfully"
+      )
+    );
+};
+
+/**
  * PATCH /api/admission/review/:id
- * Provost reviews and updates application status (approve/reject)
+ * DSW reviews and updates application status (approve/reject)
  */
 export const reviewApplication = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
@@ -246,7 +289,9 @@ export const reviewApplication = async (req: Request, res: Response) => {
   const admin =
     req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
-  if (!admin) throw new ApiError(403, "Hall admin record not found");
+  if (!admin || !isDsw(admin.designation)) {
+    throw new ApiError(403, "Only DSW can review applications");
+  }
 
   const [app] = await db
     .select()
@@ -255,9 +300,6 @@ export const reviewApplication = async (req: Request, res: Response) => {
     .limit(1);
 
   if (!app) throw new ApiError(404, "Application not found");
-  if (app.hall !== admin.hall) {
-    throw new ApiError(403, "Application does not belong to your hall");
-  }
 
   if (app.status !== "PENDING") {
     throw new ApiError(400, "Application has already been reviewed");
@@ -281,15 +323,17 @@ export const reviewApplication = async (req: Request, res: Response) => {
 
 /**
  * POST /api/admission/applications/:id/seat-charge
- * Create the seat allocation charge for an approved application
+ * DSW creates seat allocation charge for an approved application
  */
 export const createSeatCharge = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
-  const { amount } = req.body;
+  const { amount, hall } = req.body as { amount: number; hall: Hall };
   const admin =
     req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
-  if (!admin) throw new ApiError(403, "Hall admin record not found");
+  if (!admin || !isDsw(admin.designation)) {
+    throw new ApiError(403, "Only DSW can create seat charges");
+  }
 
   const [app] = await db
     .select()
@@ -298,12 +342,6 @@ export const createSeatCharge = async (req: Request, res: Response) => {
     .limit(1);
 
   if (!app) throw new ApiError(404, "Application not found");
-  if (app.hall !== admin.hall) {
-    throw new ApiError(403, "Application does not belong to your hall");
-  }
-  if (!app.hall) {
-    throw new ApiError(400, "Application hall is missing");
-  }
   if (app.status !== "APPROVED") {
     throw new ApiError(400, "Application must be approved before charging");
   }
@@ -327,12 +365,19 @@ export const createSeatCharge = async (req: Request, res: Response) => {
   }
 
   const chargeId = randomUUID();
-  await db.insert(studentDues).values({
-    id: chargeId,
-    studentId: app.studentId,
-    hall: app.hall,
-    type: "RENT",
-    amount,
+  await db.transaction(async (trx) => {
+    await trx.insert(studentDues).values({
+      id: chargeId,
+      studentId: app.studentId,
+      hall,
+      type: "RENT",
+      amount,
+    });
+
+    await trx
+      .update(seatApplications)
+      .set({ hall })
+      .where(eq(seatApplications.id, app.id));
   });
 
   res.status(201).json(
@@ -342,7 +387,7 @@ export const createSeatCharge = async (req: Request, res: Response) => {
         id: chargeId,
         applicationId: app.id,
         studentId: app.studentId,
-        hall: app.hall,
+        hall,
         type: "RENT",
         amount,
         status: "UNPAID",
@@ -354,14 +399,16 @@ export const createSeatCharge = async (req: Request, res: Response) => {
 
 /**
  * POST /api/admission/allocate
- * Provost allocates a room to an approved applicant
+ * DSW allocates a room from any hall with available seats
  */
 export const allocateSeat = async (req: Request, res: Response) => {
   const { applicationId, roomId } = req.body;
   const admin =
     req.authAccount?.type === "ADMIN" ? req.authAccount.admin : null;
 
-  if (!admin) throw new ApiError(403, "Hall admin record not found");
+  if (!admin || !isDsw(admin.designation)) {
+    throw new ApiError(403, "Only DSW can allocate seats");
+  }
 
   const [app] = await db
     .select()
@@ -370,13 +417,6 @@ export const allocateSeat = async (req: Request, res: Response) => {
     .limit(1);
 
   if (!app) throw new ApiError(404, "Application not found");
-  if (app.hall !== admin.hall) {
-    throw new ApiError(403, "Application does not belong to your hall");
-  }
-  if (!app.hall) {
-    throw new ApiError(400, "Application hall is missing");
-  }
-  const applicationHall = app.hall;
   if (app.status !== "APPROVED") {
     throw new ApiError(400, "Application must be approved before allocation");
   }
@@ -409,9 +449,6 @@ export const allocateSeat = async (req: Request, res: Response) => {
     .limit(1);
 
   if (!room) throw new ApiError(404, "Room not found");
-  if (room.hall !== applicationHall) {
-    throw new ApiError(400, "Room does not belong to the applied hall");
-  }
   if (room.status === "MAINTENANCE" || room.status === "RESERVED") {
     throw new ApiError(400, "Room is not available for seat allocation");
   }
@@ -419,13 +456,14 @@ export const allocateSeat = async (req: Request, res: Response) => {
     throw new ApiError(400, "Room is already full");
   }
 
+  const allocationHall = room.hall;
   const allocationId = randomUUID();
 
   await db.transaction(async (trx) => {
     await trx.insert(seatAllocations).values({
       id: allocationId,
       studentId: app.studentId,
-      hall: applicationHall,
+      hall: allocationHall,
       roomId,
       allocatedBy: admin.id,
       rollNumber: app.rollNumber,
@@ -442,9 +480,14 @@ export const allocateSeat = async (req: Request, res: Response) => {
     }
 
     await trx
+      .update(seatApplications)
+      .set({ hall: allocationHall })
+      .where(eq(seatApplications.id, app.id));
+
+    await trx
       .update(uniStudents)
       .set({
-        hall: applicationHall,
+        hall: allocationHall,
         roomId,
         isAllocated: true,
         status: "ACTIVE",
@@ -467,7 +510,7 @@ export const allocateSeat = async (req: Request, res: Response) => {
       {
         allocationId,
         studentId: app.studentId,
-        hall: applicationHall,
+        hall: allocationHall,
         roomId,
       },
       "Seat allocated successfully"

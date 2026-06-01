@@ -1,6 +1,7 @@
 // =================== ENUM GROUP ===================
 export const ROLES = [
   "PROVOST",
+  "DSW",
   "ASST_FINANCE",
   "FINANCE_SECTION_OFFICER",
   "ASST_DINING",
@@ -12,6 +13,7 @@ export const ROLES = [
 
 export const STAFF_ROLES = [
   "PROVOST",
+  "DSW",
   "ASST_FINANCE",
   "FINANCE_SECTION_OFFICER",
   "ASST_DINING",
@@ -24,6 +26,7 @@ export const OPERATIONAL_UNITS = [
   "FINANCE",
   "DINING",
   "INVENTORY",
+  "ADMISSION",
   "ALL",
 ] as const;
 

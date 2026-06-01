@@ -13,9 +13,7 @@ import {
 import { payMyDue } from "@/lib/services/finance.service";
 import {
   FINANCE_PAYMENT_METHODS,
-  HALLS,
   type FinancePaymentMethod,
-  type Hall,
   type PaymentSuccessData,
   type SeatApplication,
 } from "@/lib/types";
@@ -32,7 +30,6 @@ export default function AdmissionPage() {
   const [payingSeatCharge, setPayingSeatCharge] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [hall, setHall] = useState<Hall | null>(null);
   const [paymentMethod, setPaymentMethod] =
     useState<FinancePaymentMethod>(DEFAULT_METHOD);
   const [bankReceiptImage, setBankReceiptImage] = useState<File | null>(null);
@@ -61,18 +58,12 @@ export default function AdmissionPage() {
       setError("User data not found");
       return;
     }
-    if (!hall) {
-      setError("Please select a hall");
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
     setSuccess(null);
 
     try {
       await applyForSeat({
-        hall,
         academicDepartment: user.academicDepartment,
         session: user.session,
       });
@@ -124,7 +115,7 @@ export default function AdmissionPage() {
         paymentMethod,
         details: {
           "Due Type": application.seatCharge.dueType,
-          Hall: application.hall.replace(/_/g, " "),
+          Hall: application.hall?.replace(/_/g, " ") ?? "Pending",
           "Due Reference": `#${application.seatCharge.id.slice(0, 8)}`,
           Status: "PAID",
         },
@@ -155,8 +146,8 @@ export default function AdmissionPage() {
           Seat Application
         </h2>
         <p className="mt-1 text-muted-foreground">
-          Apply for a hall seat, track approval, and pay the allocation charge
-          once it is issued.
+          Submit a seat application to the administration. DSW will review your
+          request and assign a hall seat when one is available.
         </p>
       </div>
 
@@ -199,12 +190,14 @@ export default function AdmissionPage() {
                   {new Date(application.createdAt).toLocaleDateString("en-GB")}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Hall</p>
-                <p className="mt-2 font-medium">
-                  {application.hall.replace(/_/g, " ")}
-                </p>
-              </div>
+              {application.hall ? (
+                <div>
+                  <p className="text-sm text-muted-foreground">Assigned Hall</p>
+                  <p className="mt-2 font-medium">
+                    {application.hall.replace(/_/g, " ")}
+                  </p>
+                </div>
+              ) : null}
               <div>
                 <p className="text-sm text-muted-foreground">Department</p>
                 <p className="mt-2 font-medium">
@@ -271,8 +264,8 @@ export default function AdmissionPage() {
                     {application.seatCharge.dueStatus === "PAID" ? (
                       <div className="space-y-4">
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400">
-                          Your seat charge is paid. The hall office can now
-                          allocate your room.
+                          Your seat charge is paid. DSW will allocate your room
+                          in an available hall.
                         </div>
                         {application.roomAllocation ? (
                           <Card className="border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950">
@@ -367,8 +360,8 @@ export default function AdmissionPage() {
                   </>
                 ) : (
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
-                    Your application is approved. The hall office still needs to
-                    publish the seat allocation charge before you can pay it.
+                    Your application is approved. DSW will publish the seat
+                    allocation charge before you can pay it.
                   </div>
                 )}
               </CardContent>
@@ -383,28 +376,11 @@ export default function AdmissionPage() {
           <CardContent>
             <form onSubmit={handleApply} className="max-w-lg space-y-4">
               <p className="text-sm text-muted-foreground">
-                Your profile details will be used automatically for this
-                application.
+                Your profile details will be sent to DSW. You do not choose a
+                hall — seat assignment is made after review based on
+                availability.
               </p>
               <div className="grid gap-4 rounded-lg bg-muted/50 p-4 md:grid-cols-2">
-                <label className="space-y-2 text-sm md:col-span-2">
-                  <span className="text-xs text-muted-foreground">Hall</span>
-                  <select
-                    id="hall"
-                    name="hall"
-                    required
-                    value={hall ?? ""}
-                    onChange={(event) => setHall(event.target.value as Hall)}
-                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">Select a hall</option>
-                    {HALLS.map((item) => (
-                      <option key={item} value={item}>
-                        {item.replace(/_/g, " ")}
-                      </option>
-                    ))}
-                  </select>
-                </label>
                 <div>
                   <p className="text-xs text-muted-foreground">Department</p>
                   <p className="font-medium">

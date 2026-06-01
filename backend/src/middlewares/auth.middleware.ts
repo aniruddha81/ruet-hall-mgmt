@@ -175,3 +175,21 @@ export const authorizeRoles = (...allowedRoles: Role[]) => {
     );
   };
 };
+
+/** Role check without PROVOST bypass (e.g. DSW-only admission routes). */
+export const authorizeExactRoles = (...allowedRoles: Role[]) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.user) {
+      throw new ApiError(401, "Authentication required");
+    }
+
+    if (allowedRoles.includes(req.user.role)) {
+      return next();
+    }
+
+    throw new ApiError(
+      403,
+      "Forbidden: You do not have access to this resource"
+    );
+  };
+};

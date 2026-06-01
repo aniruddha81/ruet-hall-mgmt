@@ -77,9 +77,26 @@ export async function reviewApplication(
   return res.data;
 }
 
+export async function getAvailableRooms(params?: { hall?: string }) {
+  const res = await api.get<
+    ApiResponse<{
+      halls: string[];
+      rooms: Array<{
+        id: string;
+        roomNumber: number;
+        hall: string;
+        capacity: number;
+        currentOccupancy: number;
+        status: string;
+      }>;
+    }>
+  >("/admission/available-rooms", { params });
+  return res.data;
+}
+
 export async function createSeatCharge(
   applicationId: string,
-  data: { amount: number },
+  data: { amount: number; hall: string },
 ) {
   const res = await api.post<ApiResponse<StudentDue>>(
     `/admission/applications/${applicationId}/seat-charge`,

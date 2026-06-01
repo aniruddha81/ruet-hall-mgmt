@@ -16,7 +16,7 @@ Two frontends consume this API (student dashboard and admin panel). They use **c
 | Auth | `/api/auth` | Public + all authenticated users |
 | Profile | `/api/profile` | All roles |
 | Dining | `/api/dining` | `STUDENT`, `DINING_MANAGER`, `ASST_DINING` |
-| Admission | `/api/admission` | `STUDENT`, `ASST_INVENTORY` |
+| Admission | `/api/admission` | `STUDENT`, `DSW` (admin routes use `authorizeExactRoles`) |
 | Inventory | `/api/inventory` | `STUDENT`, `ASST_INVENTORY`, `INVENTORY_SECTION_OFFICER` |
 | Finance | `/api/finance` | `STUDENT`, `ASST_FINANCE`, `FINANCE_SECTION_OFFICER` |
 | Payments | `/api/payments` | Public SSLCommerz callbacks (IPN, success/fail/cancel) |

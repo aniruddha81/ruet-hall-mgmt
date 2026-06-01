@@ -73,11 +73,16 @@ const hallDetails: Record<
   },
 };
 
+const HALL_STAFF_ROLES = STAFF_ROLES.filter((role) => role !== "DSW");
+
 const roleConfig: Record<
   StaffRole,
-  { operationalUnit: "ALL" | "FINANCE" | "DINING" | "INVENTORY" }
+  {
+    operationalUnit: "ALL" | "FINANCE" | "DINING" | "INVENTORY" | "ADMISSION";
+  }
 > = {
   PROVOST: { operationalUnit: "ALL" },
+  DSW: { operationalUnit: "ADMISSION" },
   ASST_FINANCE: { operationalUnit: "FINANCE" },
   FINANCE_SECTION_OFFICER: { operationalUnit: "FINANCE" },
   ASST_DINING: { operationalUnit: "DINING" },
@@ -184,9 +189,11 @@ async function seed() {
   );
   await db.insert(rooms).values(roomsData);
 
+  const dswId = randomUUID();
+
   const adminsData = HALLS.flatMap((hall, hallIndex) => {
     const provostId = randomUUID();
-    return STAFF_ROLES.map((designation, roleIndex) => ({
+    return HALL_STAFF_ROLES.map((designation, roleIndex) => ({
       id: designation === "PROVOST" ? provostId : randomUUID(),
       email: `${hall.toLowerCase()}_${designation.toLowerCase()}@ruet.ac.bd`,
       passwordHash: adminPasswordHash,
@@ -218,6 +225,22 @@ async function seed() {
 
   await db.insert(hallAdmins).values([
     ...adminsData,
+    {
+      id: dswId,
+      email: "dsw@ruet.ac.bd",
+      passwordHash: adminPasswordHash,
+      name: "DSW",
+      phone: "+8801700000000",
+      academicDepartment: "CSE",
+      // Hall column is a DB placeholder; DSW manages seats across all halls.
+      hall: "ZIA_HALL",
+      designation: "DSW",
+      operationalUnit: "ADMISSION",
+      reportingToId: null,
+      hallAdminStatus: "APPROVED" as const,
+      isActive: true,
+      avatarUrl: null,
+    },
     {
       id: randomUUID(),
       email: "pending.finance@ruet.ac.bd",
@@ -316,12 +339,7 @@ async function seed() {
       academicDepartment: student.academicDepartment,
       session: DEFAULT_SESSION,
       status: "APPROVED" as const,
-      reviewedBy: must(
-        adminsData.find(
-          (admin) => admin.hall === hall && admin.designation === "PROVOST"
-        )?.id,
-        `Missing provost for ${hall}`
-      ),
+      reviewedBy: dswId,
       reviewedAt: yesterday,
       createdAt: twoDaysAgo,
     };
@@ -342,7 +360,7 @@ async function seed() {
       id: randomUUID(),
       studentId: pendingApplicationStudent.id,
       rollNumber: pendingApplicationStudent.rollNumber,
-      hall: "ZIA_HALL",
+      hall: null,
       academicDepartment: pendingApplicationStudent.academicDepartment,
       session: DEFAULT_SESSION,
       status: "PENDING",
@@ -354,11 +372,11 @@ async function seed() {
       id: randomUUID(),
       studentId: rejectedApplicationStudent.id,
       rollNumber: rejectedApplicationStudent.rollNumber,
-      hall: "SELIM_HALL",
+      hall: null,
       academicDepartment: rejectedApplicationStudent.academicDepartment,
       session: DEFAULT_SESSION,
       status: "REJECTED",
-      reviewedBy: selimProvostId,
+      reviewedBy: dswId,
       reviewedAt: today,
       createdAt: yesterday,
     },
@@ -381,13 +399,7 @@ async function seed() {
       hall: application.hall,
       roomId: targetRoom.id,
       allocatedAt: today,
-      allocatedBy: must(
-        adminsData.find(
-          (admin) =>
-            admin.hall === application.hall && admin.designation === "PROVOST"
-        )?.id,
-        `Missing allocator for ${application.hall}`
-      ),
+      allocatedBy: dswId,
     };
   });
   await db.insert(seatAllocations).values(seatAllocationsData);
@@ -845,6 +857,7 @@ async function seed() {
     [
       "Seed completed successfully.",
       `Admin password: ${ADMIN_PASSWORD}`,
+      `DSW login: dsw@ruet.ac.bd / ${ADMIN_PASSWORD}`,
       `Student password: ${STUDENT_PASSWORD}`,
       `Meal dates (Asia/Dhaka): today=${todayMealDateStr}, tomorrow=${tomorrowMealDateStr}`,
       `Halls with no meal tokens (today or tomorrow): ${HALLS_WITH_NO_MEAL_TOKENS.join(", ")}`,

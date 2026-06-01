@@ -38,7 +38,7 @@ Active modules: `auth`, `halls`, `dining`, `admission`, `inventory`, `finance`, 
 
 ## Auth Roles (from enums.ts)
 
-`PROVOST`, `STUDENT`, `ASST_FINANCE`, `FINANCE_SECTION_OFFICER`, `ASST_DINING`, `DINING_MANAGER`, `ASST_INVENTORY`, `INVENTORY_SECTION_OFFICER`
+`PROVOST`, `DSW`, `STUDENT`, `ASST_FINANCE`, `FINANCE_SECTION_OFFICER`, `ASST_DINING`, `DINING_MANAGER`, `ASST_INVENTORY`, `INVENTORY_SECTION_OFFICER` — DSW alone handles seat allocation (`authorizeExactRoles`)
 
 ## Backend Key Rules
 

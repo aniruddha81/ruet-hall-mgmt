@@ -47,7 +47,6 @@ function mapApplication(raw: RawSeatApplication): SeatApplication {
 // =================== STUDENT ADMISSION ===================
 
 export async function applyForSeat(data: {
-  hall: Hall;
   academicDepartment: AcademicDepartment;
   session: string;
 }) {
