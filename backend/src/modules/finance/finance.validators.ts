@@ -32,6 +32,7 @@ export const payMyDueSchema = {
   }),
   body: z.object({
     method: z.enum(FINANCE_PAYMENT_METHODS),
+    returnUrl: z.string().max(512).optional(),
   }),
 };
 

@@ -12,6 +12,7 @@ import { PAYMENT_METHODS } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import {
   initiateSslCommerzSession,
+  isAllowedMobilePaymentReturnUrl,
   isSuccessfulSslCommerzStatus,
   validateSslCommerzPayment,
 } from "../../utils/sslcommerz.ts";
@@ -49,11 +50,44 @@ function buildTranId(prefix: string): string {
   return `${prefix}${suffix}`.slice(0, 30);
 }
 
+function withReturnUrl(
+  payload: Record<string, unknown>,
+  returnUrl?: string
+): Record<string, unknown> {
+  return returnUrl ? { ...payload, returnUrl } : payload;
+}
+
+function assertValidReturnUrl(returnUrl: string | undefined) {
+  if (!returnUrl) {
+    return;
+  }
+  if (!isAllowedMobilePaymentReturnUrl(returnUrl)) {
+    throw new ApiError(
+      400,
+      "returnUrl must use the mobile app scheme (hallapp:// or exp://)"
+    );
+  }
+  if (returnUrl.length > 512) {
+    throw new ApiError(400, "returnUrl is too long");
+  }
+}
+
+export function getReturnUrlFromIntentPayload(
+  payload: unknown
+): string | undefined {
+  if (!payload || typeof payload !== "object" || !("returnUrl" in payload)) {
+    return undefined;
+  }
+  const value = (payload as { returnUrl?: unknown }).returnUrl;
+  return typeof value === "string" ? value : undefined;
+}
+
 async function createIntent(
   type: "DUE_PAYMENT" | "MEAL_BOOKING",
   studentId: string,
   amount: number,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  returnUrl?: string
 ) {
   const id = randomUUID();
   const tranId = buildTranId(type === "DUE_PAYMENT" ? "DUE" : "MEAL");
@@ -65,7 +99,7 @@ async function createIntent(
     status: "PENDING",
     studentId,
     amount,
-    payload,
+    payload: withReturnUrl(payload, returnUrl),
   });
 
   return { id, tranId };
@@ -78,7 +112,9 @@ export async function initiateDueSslPayment(params: {
   amount: number;
   paymentMethod: FinancePaymentMethod;
   dueType: DueType;
+  returnUrl?: string;
 }) {
+  assertValidReturnUrl(params.returnUrl);
   const student = await getStudentInfo(params.studentId);
   if (!student) {
     throw new ApiError(404, "Student not found");
@@ -95,7 +131,8 @@ export async function initiateDueSslPayment(params: {
     "DUE_PAYMENT",
     params.studentId,
     params.amount,
-    payload
+    payload,
+    params.returnUrl
   );
 
   const session = await initiateSslCommerzSession({
@@ -127,7 +164,9 @@ export async function initiateMealSslPayment(params: {
   amount: number;
   paymentMethod: PaymentMethod;
   bankReceiptUrl?: string | null;
+  returnUrl?: string;
 }) {
+  assertValidReturnUrl(params.returnUrl);
   const student = await getStudentInfo(params.studentId);
   if (!student) {
     throw new ApiError(404, "Student not found");
@@ -144,7 +183,8 @@ export async function initiateMealSslPayment(params: {
     "MEAL_BOOKING",
     params.studentId,
     params.amount,
-    payload
+    payload,
+    params.returnUrl
   );
 
   const session = await initiateSslCommerzSession({
@@ -169,7 +209,7 @@ export async function initiateMealSslPayment(params: {
   };
 }
 
-async function getIntentByTranId(tranId: string) {
+export async function getIntentByTranId(tranId: string) {
   const [intent] = await db
     .select()
     .from(paymentIntents)

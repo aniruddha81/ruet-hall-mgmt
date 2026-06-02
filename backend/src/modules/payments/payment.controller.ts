@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
+import { buildStudentPaymentRedirect } from "../../utils/sslcommerz.ts";
 import {
-  buildStudentPaymentRedirect,
-} from "../../utils/sslcommerz.ts";
-import {
+  getIntentByTranId,
+  getReturnUrlFromIntentPayload,
   processSslCommerzBrowserReturn,
   processSslCommerzNotification,
 } from "./payment.service.ts";
@@ -41,20 +41,31 @@ export const sslCommerzIpn = async (req: Request, res: Response) => {
   res.status(200).send("OK");
 };
 
-export const sslCommerzSuccess = async (req: Request, res: Response) => {
+async function redirectAfterBrowserReturn(
+  req: Request,
+  res: Response,
+  outcome: "success" | "failed" | "cancelled"
+) {
   const payload = extractSslPayload(req);
-  const result = await processSslCommerzBrowserReturn(payload, "success");
-  res.redirect(302, buildStudentPaymentRedirect("success", result.tranId));
+  const result = await processSslCommerzBrowserReturn(payload, outcome);
+  const intent = await getIntentByTranId(result.tranId);
+  const returnUrl = intent
+    ? getReturnUrlFromIntentPayload(intent.payload)
+    : undefined;
+  res.redirect(
+    302,
+    buildStudentPaymentRedirect(outcome, result.tranId, returnUrl)
+  );
+}
+
+export const sslCommerzSuccess = async (req: Request, res: Response) => {
+  await redirectAfterBrowserReturn(req, res, "success");
 };
 
 export const sslCommerzFail = async (req: Request, res: Response) => {
-  const payload = extractSslPayload(req);
-  const result = await processSslCommerzBrowserReturn(payload, "failed");
-  res.redirect(302, buildStudentPaymentRedirect("failed", result.tranId));
+  await redirectAfterBrowserReturn(req, res, "failed");
 };
 
 export const sslCommerzCancel = async (req: Request, res: Response) => {
-  const payload = extractSslPayload(req);
-  const result = await processSslCommerzBrowserReturn(payload, "cancelled");
-  res.redirect(302, buildStudentPaymentRedirect("cancelled", result.tranId));
+  await redirectAfterBrowserReturn(req, res, "cancelled");
 };

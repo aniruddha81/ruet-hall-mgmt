@@ -25,6 +25,7 @@ export const bookMealTokensSchema = {
     paymentMethod: z
       .enum(PAYMENT_METHODS)
       .describe("Payment method used for booking"),
+    returnUrl: z.string().max(512).optional(),
   }),
 };
 

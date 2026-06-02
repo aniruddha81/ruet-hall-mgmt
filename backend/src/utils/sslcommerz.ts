@@ -197,10 +197,31 @@ export function isSuccessfulSslCommerzStatus(status: string): boolean {
   return status === "VALID" || status === "VALIDATED";
 }
 
+const MOBILE_RETURN_PREFIXES = ["hallapp://", "exp://"] as const;
+
+export function isAllowedMobilePaymentReturnUrl(url: string): boolean {
+  return MOBILE_RETURN_PREFIXES.some((prefix) => url.startsWith(prefix));
+}
+
 export function buildStudentPaymentRedirect(
   outcome: "success" | "failed" | "cancelled",
-  tranId?: string
+  tranId?: string,
+  returnUrl?: string
 ): string {
+  const params = new URLSearchParams({ payment: outcome });
+  if (tranId) {
+    params.set("tran_id", tranId);
+  }
+  const query = params.toString();
+
+  if (returnUrl) {
+    if (!isAllowedMobilePaymentReturnUrl(returnUrl)) {
+      throw new ApiError(500, "Invalid mobile payment return URL stored on intent");
+    }
+    const joiner = returnUrl.includes("?") ? "&" : "?";
+    return `${returnUrl}${joiner}${query}`;
+  }
+
   if (!STUDENT_URL && process.env.NODE_ENV === "production") {
     throw new ApiError(
       500,
@@ -209,9 +230,5 @@ export function buildStudentPaymentRedirect(
   }
 
   const base = (STUDENT_URL || "http://localhost:3001").replace(/\/$/, "");
-  const params = new URLSearchParams({ payment: outcome });
-  if (tranId) {
-    params.set("tran_id", tranId);
-  }
-  return `${base}/dashboard/payments?${params.toString()}`;
+  return `${base}/dashboard/payments?${query}`;
 }

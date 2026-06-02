@@ -15,7 +15,10 @@ Hosted checkout integration with [SSLCommerz](https://sslcommerz.com/integration
 
 `POST` is the primary callback method as documented by SSLCommerz. `GET` is supported as a fallback for browser-driven redirects.
 
-Success/fail/cancel handlers redirect to `STUDENT_URL/dashboard/payments?payment=success|failed|cancelled`.
+Success/fail/cancel handlers redirect to:
+
+- **Web:** `STUDENT_URL/dashboard/payments?payment=success|failed|cancelled`
+- **Mobile (`hall-app`):** optional `returnUrl` on pay/book requests (`hallapp://` or `exp://` from Expo Linking), stored on the payment intent — same query params appended so `openAuthSessionAsync` can close the in-app browser
 
 ## Initiation (via other modules)
 

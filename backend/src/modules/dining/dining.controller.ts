@@ -21,6 +21,7 @@ import {
   mealTokens,
   uniStudents,
 } from "../../db/models/index.ts";
+import type { PaymentMethod } from "../../types/enums.ts";
 import ApiError from "../../utils/ApiError.ts";
 import ApiResponse from "../../utils/ApiResponse.ts";
 import {
@@ -94,7 +95,12 @@ export const getTomorrowMenus = async (req: Request, res: Response) => {
  */
 export const bookMealTokens = async (req: Request, res: Response) => {
   const student = requireStudentAccount(req);
-  const { menuId, quantity, paymentMethod } = req.body;
+  const { menuId, quantity, paymentMethod, returnUrl } = req.body as {
+    menuId: string;
+    quantity: number;
+    paymentMethod: PaymentMethod;
+    returnUrl?: string;
+  };
 
   let bankReceiptUrl: string | null = null;
   if (paymentMethod === "BANK") {
@@ -155,6 +161,7 @@ export const bookMealTokens = async (req: Request, res: Response) => {
       amount: totalAmount,
       paymentMethod,
       bankReceiptUrl,
+      returnUrl,
     });
 
     res.status(200).json(

@@ -9,7 +9,7 @@ Validators: `src/modules/finance/finance.validators.ts`
 | Method | Path | Notes |
 |--------|------|-------|
 | `GET` | `/my-dues` | List own unpaid/paid dues |
-| `POST` | `/my-dues/pay/:id` | Pay a due; `multipart` `receiptImage` for `BANK`. `ONLINE` returns `{ gatewayUrl, status: PENDING }` for SSLCommerz redirect |
+| `POST` | `/my-dues/pay/:id` | Pay a due; `multipart` `receiptImage` for `BANK`. `ONLINE` returns `{ gatewayUrl, status: PENDING }` for SSLCommerz redirect. Optional JSON `returnUrl` (`hallapp://` / `exp://`) for mobile deep-link return |
 | `GET` | `/my-ledger` | Own payment / due history |
 
 ## Dues (staff)

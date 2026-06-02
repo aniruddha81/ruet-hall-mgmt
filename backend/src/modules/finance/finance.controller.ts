@@ -154,7 +154,10 @@ export const payDue = async (req: Request, res: Response) => {
 export const payMyDue = async (req: Request, res: Response) => {
   const studentId = req.user!.userId;
   const { id } = req.params as { id: string };
-  const { method } = req.body;
+  const { method, returnUrl } = req.body as {
+    method: FinancePaymentMethod;
+    returnUrl?: string;
+  };
 
   let bankReceiptUrl: string | undefined;
   if (method === "BANK") {
@@ -200,6 +203,7 @@ export const payMyDue = async (req: Request, res: Response) => {
       amount: due.amount,
       paymentMethod,
       dueType: due.type,
+      returnUrl,
     });
 
     res.status(200).json(
