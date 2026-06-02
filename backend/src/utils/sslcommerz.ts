@@ -197,7 +197,11 @@ export function isSuccessfulSslCommerzStatus(status: string): boolean {
   return status === "VALID" || status === "VALIDATED";
 }
 
-const MOBILE_RETURN_PREFIXES = ["hallapp://", "exp://"] as const;
+const MOBILE_RETURN_PREFIXES = [
+  "hallapp://",
+  "exp://",
+  "edu.ruet.hall://",
+] as const;
 
 export function isAllowedMobilePaymentReturnUrl(url: string): boolean {
   return MOBILE_RETURN_PREFIXES.some((prefix) => url.startsWith(prefix));

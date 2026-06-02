@@ -18,7 +18,7 @@ Hosted checkout integration with [SSLCommerz](https://sslcommerz.com/integration
 Success/fail/cancel handlers redirect to:
 
 - **Web:** `STUDENT_URL/dashboard/payments?payment=success|failed|cancelled`
-- **Mobile (`hall-app`):** optional `returnUrl` on pay/book requests (`hallapp://` or `exp://` from Expo Linking), stored on the payment intent — same query params appended so `openAuthSessionAsync` can close the in-app browser
+- **Mobile (`hall-app`):** optional `returnUrl` on pay/book requests (`hallapp://`, `exp://`, or `edu.ruet.hall://` from Expo Linking), stored on the payment intent — same query params appended so `openAuthSessionAsync` can close the in-app browser. Success callbacks are idempotent when IPN completes first; mobile callbacks still redirect to the app instead of returning JSON errors when possible.
 
 ## Initiation (via other modules)
 

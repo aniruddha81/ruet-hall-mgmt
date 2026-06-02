@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
-import { buildStudentPaymentRedirect } from "../../utils/sslcommerz.ts";
+import {
+  buildStudentPaymentRedirect,
+  isAllowedMobilePaymentReturnUrl,
+} from "../../utils/sslcommerz.ts";
 import {
   getIntentByTranId,
   getReturnUrlFromIntentPayload,
@@ -47,15 +50,45 @@ async function redirectAfterBrowserReturn(
   outcome: "success" | "failed" | "cancelled"
 ) {
   const payload = extractSslPayload(req);
-  const result = await processSslCommerzBrowserReturn(payload, outcome);
-  const intent = await getIntentByTranId(result.tranId);
-  const returnUrl = intent
-    ? getReturnUrlFromIntentPayload(intent.payload)
-    : undefined;
-  res.redirect(
-    302,
-    buildStudentPaymentRedirect(outcome, result.tranId, returnUrl)
-  );
+  const tranId = payload.tran_id;
+
+  try {
+    const result = await processSslCommerzBrowserReturn(payload, outcome);
+    const intent = await getIntentByTranId(result.tranId);
+    const returnUrl = intent
+      ? getReturnUrlFromIntentPayload(intent.payload)
+      : undefined;
+    res.redirect(
+      302,
+      buildStudentPaymentRedirect(outcome, result.tranId, returnUrl)
+    );
+    return;
+  } catch (err) {
+    if (!tranId) {
+      throw err;
+    }
+
+    const intent = await getIntentByTranId(tranId);
+    const returnUrl = intent
+      ? getReturnUrlFromIntentPayload(intent.payload)
+      : undefined;
+
+    if (!returnUrl || !isAllowedMobilePaymentReturnUrl(returnUrl)) {
+      throw err;
+    }
+
+    const redirectOutcome =
+      intent?.status === "COMPLETED" && outcome === "success"
+        ? "success"
+        : outcome === "success"
+          ? "failed"
+          : outcome;
+
+    res.redirect(
+      302,
+      buildStudentPaymentRedirect(redirectOutcome, tranId, returnUrl)
+    );
+  }
 }
 
 export const sslCommerzSuccess = async (req: Request, res: Response) => {

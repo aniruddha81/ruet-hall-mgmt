@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../../db/index.ts";
+import { mealPayments } from "../../db/models/dining.models.ts";
 import { paymentIntents } from "../../db/models/finance.models.ts";
 import type {
   DueType,
@@ -64,7 +65,7 @@ function assertValidReturnUrl(returnUrl: string | undefined) {
   if (!isAllowedMobilePaymentReturnUrl(returnUrl)) {
     throw new ApiError(
       400,
-      "returnUrl must use the mobile app scheme (hallapp:// or exp://)"
+      "returnUrl must use a mobile app deep link (hallapp://, exp://, or edu.ruet.hall://)"
     );
   }
   if (returnUrl.length > 512) {
@@ -245,22 +246,45 @@ async function completeIntent(intent: typeof paymentIntents.$inferSelect) {
 
   if (intent.type === "DUE_PAYMENT") {
     const payload = intent.payload as DuePaymentIntentPayload;
-    const result = await createDuePayment({
-      dueId: payload.dueId,
-      studentId: intent.studentId,
-      hall: payload.hall,
-      amount: intent.amount,
-      paymentMethod: payload.paymentMethod,
-      dueType: payload.dueType,
-      bankReceiptUrl: payload.bankReceiptUrl,
-      transactionId: intent.tranId,
-    });
+    try {
+      const result = await createDuePayment({
+        dueId: payload.dueId,
+        studentId: intent.studentId,
+        hall: payload.hall,
+        amount: intent.amount,
+        paymentMethod: payload.paymentMethod,
+        dueType: payload.dueType,
+        bankReceiptUrl: payload.bankReceiptUrl,
+        transactionId: intent.tranId,
+      });
 
-    await markIntentStatus(intent.id, "COMPLETED", intent.valId ?? undefined);
-    return { alreadyCompleted: false as const, type: "DUE" as const, result };
+      await markIntentStatus(intent.id, "COMPLETED", intent.valId ?? undefined);
+      return { alreadyCompleted: false as const, type: "DUE" as const, result };
+    } catch (err) {
+      if (
+        err instanceof ApiError &&
+        err.statusCode === 400 &&
+        err.message.includes("already paid")
+      ) {
+        await markIntentStatus(intent.id, "COMPLETED", intent.valId ?? undefined);
+        return { alreadyCompleted: true as const };
+      }
+      throw err;
+    }
   }
 
   const payload = intent.payload as MealBookingPayload;
+  const [existingMealPayment] = await db
+    .select({ id: mealPayments.id })
+    .from(mealPayments)
+    .where(eq(mealPayments.transactionId, intent.tranId))
+    .limit(1);
+
+  if (existingMealPayment) {
+    await markIntentStatus(intent.id, "COMPLETED", intent.valId ?? undefined);
+    return { alreadyCompleted: true as const };
+  }
+
   const result = await completeMealBooking(
     intent.studentId,
     payload,
@@ -364,18 +388,21 @@ export async function processSslCommerzBrowserReturn(
     return { tranId, status: "FAILED" as const };
   }
 
+  // IPN often completes the intent before the browser lands on success_url.
+  if (intent.status === "COMPLETED") {
+    return { tranId, status: "COMPLETED" as const };
+  }
+
   const valId = query.val_id;
   if (!valId) {
     throw new ApiError(400, "Missing validation reference");
   }
 
-  if (intent.status !== "COMPLETED") {
-    await processSslCommerzNotification({
-      val_id: valId,
-      tran_id: tranId,
-      status: query.status || "VALID",
-    });
-  }
+  await processSslCommerzNotification({
+    val_id: valId,
+    tran_id: tranId,
+    status: query.status || "VALID",
+  });
 
   return { tranId, status: "COMPLETED" as const };
 }
