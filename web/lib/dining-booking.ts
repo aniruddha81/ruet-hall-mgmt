@@ -6,7 +6,7 @@ export type TomorrowMenus = {
   dinner: MealMenu[];
 };
 
-export type MealBookingStep = "hall" | "meal" | "pay";
+export type MealBookingStep = "hall" | "meal";
 
 export function formatHallLabel(hall: string) {
   return hall.replace(/_/g, " ");

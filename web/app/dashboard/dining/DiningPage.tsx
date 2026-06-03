@@ -76,20 +76,12 @@ export default function DiningPage() {
     useState<PaymentSuccessData | null>(null);
   const [bookingStep, setBookingStep] = useState<MealBookingStep>("hall");
   const [selectedHall, setSelectedHall] = useState<Hall | null>(null);
-  const [selectedMealType, setSelectedMealType] = useState<MealType | null>(
-    null,
-  );
 
   const hallsWithMenus = getHallsWithTomorrowMenus(menus);
-  const selectedMenu =
-    selectedHall && selectedMealType
-      ? getMenuForHallAndMeal(menus, selectedHall, selectedMealType)
-      : undefined;
 
   const resetBookingWizard = () => {
     setBookingStep("hall");
     setSelectedHall(null);
-    setSelectedMealType(null);
   };
 
   const getBookingOptions = (menuId: string) =>
@@ -231,11 +223,7 @@ export default function DiningPage() {
         </span>
         <span aria-hidden>→</span>
         <span className={bookingStep === "meal" ? "font-semibold text-foreground" : ""}>
-          2. Lunch or dinner
-        </span>
-        <span aria-hidden>→</span>
-        <span className={bookingStep === "pay" ? "font-semibold text-foreground" : ""}>
-          3. Pay & book
+          2. Choose meal & pay
         </span>
       </div>
 
@@ -249,13 +237,7 @@ export default function DiningPage() {
                 className="cursor-pointer border-border/60 transition-colors hover:border-primary/40 hover:bg-muted/30"
                 onClick={() => {
                   setSelectedHall(hall);
-                  setSelectedMealType(null);
-                  setBookingStep(
-                    mealTypes.length === 1 ? "pay" : "meal",
-                  );
-                  if (mealTypes.length === 1) {
-                    setSelectedMealType(mealTypes[0]);
-                  }
+                  setBookingStep("meal");
                 }}
               >
                 <CardHeader>
@@ -292,68 +274,21 @@ export default function DiningPage() {
               {formatHallLabel(selectedHall)}
             </span>
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2">
             {getMealTypesForHall(menus, selectedHall).map((mealType) => {
               const menu = getMenuForHallAndMeal(menus, selectedHall, mealType);
               if (!menu) return null;
               return (
-                <Card
-                  key={mealType}
-                  className="cursor-pointer border-border/60 transition-colors hover:border-primary/40 hover:bg-muted/30"
-                  onClick={() => {
-                    setSelectedMealType(mealType);
-                    setBookingStep("pay");
-                  }}
-                >
-                  <CardHeader>
-                    <CardTitle className="text-lg">
-                      {MEAL_TYPE_LABELS[mealType]}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {menu.menuDescription}
-                    </p>
-                    <p className="text-sm font-semibold text-foreground">
-                      BDT {menu.price} per token · {menu.availableTokens} left
-                    </p>
-                  </CardHeader>
-                </Card>
+                <div key={mealType}>{renderMealBookingCard(menu)}</div>
               );
             })}
           </div>
         </div>
       ) : null}
-
-      {bookingStep === "pay" && selectedMenu ? (
-        <div className="space-y-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 w-fit"
-            onClick={() => {
-              if (!selectedHall) {
-                resetBookingWizard();
-                return;
-              }
-              const mealTypes = getMealTypesForHall(menus, selectedHall);
-              setBookingStep(mealTypes.length > 1 ? "meal" : "hall");
-              if (mealTypes.length > 1) {
-                setSelectedMealType(null);
-              } else {
-                setSelectedHall(null);
-                setSelectedMealType(null);
-              }
-            }}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-          {renderPaymentCard(selectedMenu)}
-        </div>
-      ) : null}
     </div>
   );
 
-  const renderPaymentCard = (menu: MealMenu) => {
+  const renderMealBookingCard = (menu: MealMenu) => {
     const options = getBookingOptions(menu.id);
     const total = menu.price * options.quantity;
 
@@ -362,7 +297,6 @@ export default function DiningPage() {
         <CardHeader className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <CardTitle className="text-lg">
-              {formatHallLabel(menu.hall)} ·{" "}
               {MEAL_TYPE_LABELS[menu.mealType]}
             </CardTitle>
             <Badge variant="outline">
@@ -483,8 +417,8 @@ export default function DiningPage() {
           Dining
         </h2>
         <p className="mt-1 text-muted-foreground">
-          Choose a hall, pick lunch or dinner, then pay for tomorrow&apos;s meal
-          tokens. Manage active and past tokens in the other tabs.
+          Choose a hall, then book lunch or dinner with payment on the same
+          screen. Manage active and past tokens in the other tabs.
         </p>
       </div>
 
