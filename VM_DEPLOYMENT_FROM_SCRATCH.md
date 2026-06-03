@@ -573,7 +573,7 @@ git pull
 docker compose build
 docker compose up -d
 docker image prune -f
-docker builder prune -f --keep-storage=2g
+docker builder prune -f --reserved-space=2g
 ```
 
 Monitor disk usage (important on 30 GB disk):

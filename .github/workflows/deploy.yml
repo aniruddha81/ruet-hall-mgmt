@@ -145,7 +145,7 @@ jobs:
 
             # 5) Cleanup build cache and dangling images
             docker image prune -f
-            docker builder prune -f --keep-storage=2g
+            docker builder prune -f --reserved-space=2g
 
             # 6) Post-deploy health verification
             declare -A SVC_MAP
