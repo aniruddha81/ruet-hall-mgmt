@@ -15,6 +15,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getApiErrorMessage } from "@/lib/api";
 import {
+  formatHallLabel,
+  getHallsWithTomorrowMenus,
+  getMealTypesForHall,
+  getMenuForHallAndMeal,
+  type MealBookingStep,
+} from "@/lib/dining-booking";
+import {
   bookMealTokens,
   cancelMealToken,
   getMyActiveTokens,
@@ -22,14 +29,16 @@ import {
   getTomorrowMenus,
 } from "@/lib/services/dining.service";
 import type {
+  Hall,
   MealBookingReceipt,
   MealMenu,
   MealToken,
+  MealType,
   PaymentMethod,
   PaymentSuccessData,
 } from "@/lib/types";
 import { PAYMENT_METHODS } from "@/lib/types";
-import { Loader2, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Loader2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Menus = {
@@ -48,9 +57,10 @@ type BookingState = Record<
 
 const DEFAULT_PAYMENT_METHOD: PaymentMethod = "BKASH";
 
-function formatHallLabel(hall?: string | null) {
-  return hall ? hall.replace(/_/g, " ") : "—";
-}
+const MEAL_TYPE_LABELS: Record<MealType, string> = {
+  LUNCH: "Lunch",
+  DINNER: "Dinner",
+};
 
 export default function DiningPage() {
   const [menus, setMenus] = useState<Menus>({ lunch: [], dinner: [] });
@@ -64,6 +74,23 @@ export default function DiningPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] =
     useState<PaymentSuccessData | null>(null);
+  const [bookingStep, setBookingStep] = useState<MealBookingStep>("hall");
+  const [selectedHall, setSelectedHall] = useState<Hall | null>(null);
+  const [selectedMealType, setSelectedMealType] = useState<MealType | null>(
+    null,
+  );
+
+  const hallsWithMenus = getHallsWithTomorrowMenus(menus);
+  const selectedMenu =
+    selectedHall && selectedMealType
+      ? getMenuForHallAndMeal(menus, selectedHall, selectedMealType)
+      : undefined;
+
+  const resetBookingWizard = () => {
+    setBookingStep("hall");
+    setSelectedHall(null);
+    setSelectedMealType(null);
+  };
 
   const getBookingOptions = (menuId: string) =>
     bookingState[menuId] ?? {
@@ -171,6 +198,7 @@ export default function DiningPage() {
         },
       });
 
+      resetBookingWizard();
       await fetchData();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -195,144 +223,247 @@ export default function DiningPage() {
     }
   };
 
-  const renderMenuSection = (title: string, items: MealMenu[]) => {
-    if (items.length === 0) {
-      return null;
-    }
+  const renderBookingSteps = () => (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+        <span className={bookingStep === "hall" ? "font-semibold text-foreground" : ""}>
+          1. Choose hall
+        </span>
+        <span aria-hidden>→</span>
+        <span className={bookingStep === "meal" ? "font-semibold text-foreground" : ""}>
+          2. Lunch or dinner
+        </span>
+        <span aria-hidden>→</span>
+        <span className={bookingStep === "pay" ? "font-semibold text-foreground" : ""}>
+          3. Pay & book
+        </span>
+      </div>
 
-    return (
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold text-foreground">{title}</h3>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {items.map((menu) => {
-            const options = getBookingOptions(menu.id);
-            const total = menu.price * options.quantity;
-
+      {bookingStep === "hall" ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {hallsWithMenus.map((hall) => {
+            const mealTypes = getMealTypesForHall(menus, hall);
             return (
-              <Card key={menu.id} className="border-border/60">
-                <CardHeader className="space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-lg">
-                      {menu.mealType.replace(/_/g, " ")}
-                    </CardTitle>
-                    <Badge variant="outline">
-                      {menu.availableTokens}/{menu.totalTokens} left
-                    </Badge>
-                  </div>
+              <Card
+                key={hall}
+                className="cursor-pointer border-border/60 transition-colors hover:border-primary/40 hover:bg-muted/30"
+                onClick={() => {
+                  setSelectedHall(hall);
+                  setSelectedMealType(null);
+                  setBookingStep(
+                    mealTypes.length === 1 ? "pay" : "meal",
+                  );
+                  if (mealTypes.length === 1) {
+                    setSelectedMealType(mealTypes[0]);
+                  }
+                }}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    {formatHallLabel(hall)}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    {menu.menuDescription}
-                  </p>
-                  <p className="text-xs font-bold text-muted-foreground">
-                    Hall: {menu.hall.replace(/_/g, " ")}
+                    {mealTypes
+                      .map((type) => MEAL_TYPE_LABELS[type])
+                      .join(" & ")}{" "}
+                    available for tomorrow
                   </p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="space-y-2 text-sm">
-                      <span className="font-medium">Quantity</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={Math.min(
-                          menu.availableTokens,
-                          Math.max(0, 20 - getAlreadyBookedTokens(menu.id)),
-                        )}
-                        value={options.quantity}
-                        disabled={
-                          Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) ===
-                          0
-                        }
-                        onChange={(event) =>
-                          updateBookingOptions(menu.id, {
-                            quantity: Math.max(
-                              1,
-                              Math.min(
-                                Number(event.target.value) || 1,
-                                Math.min(
-                                  menu.availableTokens,
-                                  Math.max(
-                                    0,
-                                    20 - getAlreadyBookedTokens(menu.id),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          })
-                        }
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm">
-                      <span className="font-medium">Payment Method</span>
-                      <select
-                        value={options.paymentMethod}
-                        onChange={(event) =>
-                          updateBookingOptions(menu.id, {
-                            paymentMethod: event.target.value as PaymentMethod,
-                            receiptImage: null,
-                          })
-                        }
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      >
-                        {PAYMENT_METHODS.map((method) => (
-                          <option key={method} value={method}>
-                            {method}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  {options.paymentMethod === "BANK" ? (
-                    <label className="space-y-2 text-sm">
-                      <span className="font-medium">
-                        Bank Receipt (PDF/Image)
-                      </span>
-                      <input
-                        type="file"
-                        accept=".pdf,image/*"
-                        onChange={(event) =>
-                          updateBookingOptions(menu.id, {
-                            receiptImage: event.target.files?.[0] ?? null,
-                          })
-                        }
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      />
-                    </label>
-                  ) : null}
-                  <div className="flex items-center justify-between border-t pt-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Payable now
-                      </p>
-                      <p className="text-2xl font-bold text-foreground">
-                        BDT {total}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => handleBook(menu)}
-                      disabled={
-                        bookingMenuId === menu.id ||
-                        menu.availableTokens <= 0 ||
-                        Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) ===
-                          0 ||
-                        (options.paymentMethod === "BANK" &&
-                          !options.receiptImage)
-                      }
-                    >
-                      {bookingMenuId === menu.id ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : null}
-                      {Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0
-                        ? "Max Limit Reached"
-                        : "Pay & Book"}
-                    </Button>
-                  </div>
-                </CardContent>
               </Card>
             );
           })}
         </div>
-      </div>
+      ) : null}
+
+      {bookingStep === "meal" && selectedHall ? (
+        <div className="space-y-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-2 w-fit"
+            onClick={resetBookingWizard}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Change hall
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Hall:{" "}
+            <span className="font-medium text-foreground">
+              {formatHallLabel(selectedHall)}
+            </span>
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {getMealTypesForHall(menus, selectedHall).map((mealType) => {
+              const menu = getMenuForHallAndMeal(menus, selectedHall, mealType);
+              if (!menu) return null;
+              return (
+                <Card
+                  key={mealType}
+                  className="cursor-pointer border-border/60 transition-colors hover:border-primary/40 hover:bg-muted/30"
+                  onClick={() => {
+                    setSelectedMealType(mealType);
+                    setBookingStep("pay");
+                  }}
+                >
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {MEAL_TYPE_LABELS[mealType]}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {menu.menuDescription}
+                    </p>
+                    <p className="text-sm font-semibold text-foreground">
+                      BDT {menu.price} per token · {menu.availableTokens} left
+                    </p>
+                  </CardHeader>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {bookingStep === "pay" && selectedMenu ? (
+        <div className="space-y-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-2 w-fit"
+            onClick={() => {
+              if (!selectedHall) {
+                resetBookingWizard();
+                return;
+              }
+              const mealTypes = getMealTypesForHall(menus, selectedHall);
+              setBookingStep(mealTypes.length > 1 ? "meal" : "hall");
+              if (mealTypes.length > 1) {
+                setSelectedMealType(null);
+              } else {
+                setSelectedHall(null);
+                setSelectedMealType(null);
+              }
+            }}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          {renderPaymentCard(selectedMenu)}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const renderPaymentCard = (menu: MealMenu) => {
+    const options = getBookingOptions(menu.id);
+    const total = menu.price * options.quantity;
+
+    return (
+      <Card className="border-border/60">
+        <CardHeader className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <CardTitle className="text-lg">
+              {formatHallLabel(menu.hall)} ·{" "}
+              {MEAL_TYPE_LABELS[menu.mealType]}
+            </CardTitle>
+            <Badge variant="outline">
+              {menu.availableTokens}/{menu.totalTokens} left
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">{menu.menuDescription}</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Quantity</span>
+              <input
+                type="number"
+                min={1}
+                max={Math.min(
+                  menu.availableTokens,
+                  Math.max(0, 20 - getAlreadyBookedTokens(menu.id)),
+                )}
+                value={options.quantity}
+                disabled={
+                  Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0
+                }
+                onChange={(event) =>
+                  updateBookingOptions(menu.id, {
+                    quantity: Math.max(
+                      1,
+                      Math.min(
+                        Number(event.target.value) || 1,
+                        Math.min(
+                          menu.availableTokens,
+                          Math.max(0, 20 - getAlreadyBookedTokens(menu.id)),
+                        ),
+                      ),
+                    ),
+                  })
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Payment Method</span>
+              <select
+                value={options.paymentMethod}
+                onChange={(event) =>
+                  updateBookingOptions(menu.id, {
+                    paymentMethod: event.target.value as PaymentMethod,
+                    receiptImage: null,
+                  })
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                {PAYMENT_METHODS.map((method) => (
+                  <option key={method} value={method}>
+                    {method}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {options.paymentMethod === "BANK" ? (
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Bank Receipt (PDF/Image)</span>
+              <input
+                type="file"
+                accept=".pdf,image/*"
+                onChange={(event) =>
+                  updateBookingOptions(menu.id, {
+                    receiptImage: event.target.files?.[0] ?? null,
+                  })
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </label>
+          ) : null}
+          <div className="flex items-center justify-between border-t pt-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Payable now
+              </p>
+              <p className="text-2xl font-bold text-foreground">BDT {total}</p>
+            </div>
+            <Button
+              onClick={() => handleBook(menu)}
+              disabled={
+                bookingMenuId === menu.id ||
+                menu.availableTokens <= 0 ||
+                Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0 ||
+                (options.paymentMethod === "BANK" && !options.receiptImage)
+              }
+            >
+              {bookingMenuId === menu.id ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {Math.max(0, 20 - getAlreadyBookedTokens(menu.id)) === 0
+                ? "Max Limit Reached"
+                : "Pay & Book"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -352,8 +483,8 @@ export default function DiningPage() {
           Dining
         </h2>
         <p className="mt-1 text-muted-foreground">
-          Pay for tomorrow&apos;s meals while booking, then manage your active
-          and past tokens.
+          Choose a hall, pick lunch or dinner, then pay for tomorrow&apos;s meal
+          tokens. Manage active and past tokens in the other tabs.
         </p>
       </div>
 
@@ -370,7 +501,7 @@ export default function DiningPage() {
 
       <Tabs defaultValue="menus">
         <TabsList>
-          <TabsTrigger value="menus">Tomorrow&apos;s Menus</TabsTrigger>
+          <TabsTrigger value="menus">Book Meal Token</TabsTrigger>
           <TabsTrigger value="active">
             Active Tokens ({activeTokens.length})
           </TabsTrigger>
@@ -378,17 +509,14 @@ export default function DiningPage() {
         </TabsList>
 
         <TabsContent value="menus" className="mt-6">
-          {menus.lunch.length === 0 && menus.dinner.length === 0 ? (
+          {hallsWithMenus.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
                 No menus are available for tomorrow yet.
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-8">
-              {renderMenuSection("Lunch", menus.lunch)}
-              {renderMenuSection("Dinner", menus.dinner)}
-            </div>
+            renderBookingSteps()
           )}
         </TabsContent>
 
@@ -420,7 +548,9 @@ export default function DiningPage() {
                         <TableCell className="font-mono text-xs">
                           #{token.id.slice(0, 8)}
                         </TableCell>
-                        <TableCell>{formatHallLabel(token.hall)}</TableCell>
+                        <TableCell>
+                          {token.hall ? formatHallLabel(token.hall) : "—"}
+                        </TableCell>
                         <TableCell>
                           <div className="font-medium">
                             {token.mealType.replace(/_/g, " ")}
@@ -488,7 +618,9 @@ export default function DiningPage() {
                         <TableCell className="font-mono text-xs">
                           #{token.id.slice(0, 8)}
                         </TableCell>
-                        <TableCell>{formatHallLabel(token.hall)}</TableCell>
+                        <TableCell>
+                          {token.hall ? formatHallLabel(token.hall) : "—"}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {token.mealType.replace(/_/g, " ")}
                         </TableCell>
