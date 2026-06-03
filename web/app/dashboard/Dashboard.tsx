@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
+import { formatHallLabel } from "@/lib/dining-booking";
 import { getMyApplicationStatus } from "@/lib/services/admission.service";
 import {
   getMyActiveTokens,
@@ -204,6 +205,7 @@ export default function StudentDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Hall</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Meal</TableHead>
                   <TableHead>Price</TableHead>
@@ -220,6 +222,9 @@ export default function StudentDashboard() {
                       : "Dinner";
                     return (
                       <TableRow key={menu.id}>
+                        <TableCell className="font-medium text-sm">
+                          {formatHallLabel(menu.hall)}
+                        </TableCell>
                         <TableCell className="font-medium text-sm">
                           {mealTypeLabel}
                         </TableCell>
@@ -263,6 +268,7 @@ export default function StudentDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Hall</TableHead>
                   <TableHead>Token ID</TableHead>
                   <TableHead>Meal</TableHead>
                   <TableHead>Status</TableHead>
@@ -271,6 +277,9 @@ export default function StudentDashboard() {
               <TableBody>
                 {activeTokens.slice(0, 5).map((token) => (
                   <TableRow key={token.id}>
+                    <TableCell className="font-medium text-sm">
+                      {token.hall ? formatHallLabel(token.hall) : "—"}
+                    </TableCell>
                     <TableCell className="font-mono text-sm">
                       #{token.id}
                     </TableCell>

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
+import { formatHallLabel } from "@/lib/utils";
 import { getApplications } from "@/lib/services/admission.service";
 import {
   getTodayMenus,
@@ -267,6 +268,7 @@ export default function AdminDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Hall</TableHead>
                     <TableHead>Meal</TableHead>
                     <TableHead>Items</TableHead>
                     <TableHead>Price</TableHead>
@@ -276,6 +278,9 @@ export default function AdminDashboard() {
                 <TableBody>
                   {todayMenus.map((menu) => (
                     <TableRow key={menu.id}>
+                      <TableCell className="font-medium text-sm">
+                        {formatHallLabel(menu.hall)}
+                      </TableCell>
                       <TableCell className="font-medium">
                         {menu.mealType?.replace(/_/g, " ")}
                       </TableCell>

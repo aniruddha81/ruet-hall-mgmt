@@ -16,6 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { getApiErrorMessage } from "@/lib/api";
+import { formatHallLabel } from "@/lib/utils";
 import {
   createMealItem,
   createTomorrowMenu,
@@ -646,6 +647,7 @@ export default function DiningManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Hall</TableHead>
                       <TableHead>Meal</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Price</TableHead>
@@ -656,6 +658,9 @@ export default function DiningManagement() {
                   <TableBody>
                     {tomorrowMenus.map((menu) => (
                       <TableRow key={menu.id}>
+                        <TableCell className="font-medium text-sm">
+                          {formatHallLabel(menu.hall)}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {menu.mealType?.replace(/_/g, " ")}
                         </TableCell>
@@ -702,6 +707,7 @@ export default function DiningManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Hall</TableHead>
                       <TableHead>Meal</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Price</TableHead>
@@ -711,6 +717,9 @@ export default function DiningManagement() {
                   <TableBody>
                     {todayMenus.map((menu) => (
                       <TableRow key={menu.id}>
+                        <TableCell className="font-medium text-sm">
+                          {formatHallLabel(menu.hall)}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {menu.mealType?.replace(/_/g, " ")}
                         </TableCell>
@@ -761,6 +770,7 @@ export default function DiningManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Hall</TableHead>
                       <TableHead>Token #</TableHead>
                       <TableHead>Student</TableHead>
                       <TableHead>Meal</TableHead>
@@ -771,6 +781,9 @@ export default function DiningManagement() {
                   <TableBody>
                     {bookings.map((token) => (
                       <TableRow key={token.id}>
+                        <TableCell className="font-medium text-sm">
+                          {formatHallLabel(token.hall)}
+                        </TableCell>
                         <TableCell className="font-mono text-xs">
                           #{token.id.slice(0, 8)}
                         </TableCell>
