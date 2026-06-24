@@ -129,6 +129,129 @@ const pickDepartment = (index: number): AcademicDepartment =>
     `Missing department for index ${index}`
   );
 
+type SeedAdmin = {
+  id: string;
+  hall: Hall;
+  designation: StaffRole;
+};
+
+type SeedAllocation = {
+  studentId: string;
+  hall: Hall;
+};
+
+const MEAL_PAYMENT_METHODS = ["BKASH", "NAGAD", "CASH", "BANK"] as const;
+
+/**
+ * Previous calendar month — menus, payments, and tokens for date-range sales reports.
+ */
+function buildPreviousMonthDiningSales(params: {
+  now: Date;
+  adminsData: SeedAdmin[];
+  seatAllocationsData: SeedAllocation[];
+}) {
+  const { now, adminsData, seatAllocationsData } = params;
+
+  const [currentYear, currentMonth] = toDateString(now).split("-").map(Number);
+  const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+  const daysInMonth = new Date(prevYear, prevMonth, 0).getDate();
+  const prevMonthLabel = `${prevYear}-${String(prevMonth).padStart(2, "0")}`;
+
+  const diningManagerIdByHall = Object.fromEntries(
+    HALLS.map((hall) => [
+      hall,
+      must(
+        adminsData.find(
+          (admin) =>
+            admin.hall === hall && admin.designation === "DINING_MANAGER"
+        )?.id,
+        `Missing dining manager for ${hall}`
+      ),
+    ])
+  ) as Record<Hall, string>;
+
+  const studentIdByHall = Object.fromEntries(
+    seatAllocationsData.map((allocation) => [
+      allocation.hall,
+      allocation.studentId,
+    ])
+  ) as Record<Hall, string>;
+
+  const menus: InferInsertModel<typeof mealMenus>[] = [];
+  const payments: InferInsertModel<typeof mealPayments>[] = [];
+  const tokens: InferInsertModel<typeof mealTokens>[] = [];
+
+  let transactionCounter = 2000;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const mealDateStr = `${prevMonthLabel}-${String(day).padStart(2, "0")}`;
+    const mealDate = pgDateFromString(mealDateStr);
+    const bookingDate = pgDateFromString(
+      toDateString(addDays(mealDate, -1))
+    );
+
+    for (const hall of HALLS) {
+      const studentId = must(
+        studentIdByHall[hall],
+        `Missing allocated student for ${hall}`
+      );
+      const diningManagerId = diningManagerIdByHall[hall];
+      const hallIndex = HALLS.indexOf(hall);
+
+      for (const mealType of ["LUNCH", "DINNER"] as const) {
+        const price = mealType === "LUNCH" ? 50 : 70;
+        const quantity = 1 + ((day + hallIndex) % 3);
+        const totalAmount = price * quantity;
+        const menuId = randomUUID();
+        const paymentId = randomUUID();
+        const isCancelled = day % 10 === 0 && mealType === "DINNER";
+
+        menus.push({
+          id: menuId,
+          hall,
+          mealDate,
+          mealType,
+          menuDescription: `Historical ${mealType.toLowerCase()} menu`,
+          price,
+          totalTokens: 150,
+          bookedTokens: quantity,
+          createdBy: diningManagerId,
+        });
+
+        payments.push({
+          id: paymentId,
+          studentId,
+          amount: totalAmount,
+          totalQuantity: quantity,
+          paymentMethod:
+            MEAL_PAYMENT_METHODS[(day + hallIndex) % MEAL_PAYMENT_METHODS.length],
+          transactionId: `MEALPAY-HIST-${transactionCounter++}`,
+          paymentDate: bookingDate,
+          refundedAt: isCancelled ? bookingDate : null,
+          refundAmount: isCancelled ? totalAmount : null,
+        });
+
+        tokens.push({
+          id: randomUUID(),
+          studentId,
+          menuId,
+          hall,
+          mealDate,
+          mealType,
+          quantity,
+          totalAmount,
+          paymentId,
+          bookingTime: bookingDate,
+          cancelledAt: isCancelled ? bookingDate : null,
+        });
+      }
+    }
+  }
+
+  return { menus, payments, tokens, prevMonthLabel, daysInMonth };
+}
+
 async function clearDatabase() {
   await db.delete(notificationReads);
   await db.delete(notifications);
@@ -803,6 +926,15 @@ async function seed() {
     },
   ]);
 
+  const previousMonthDining = buildPreviousMonthDiningSales({
+    now,
+    adminsData,
+    seatAllocationsData,
+  });
+  await db.insert(mealMenus).values(previousMonthDining.menus);
+  await db.insert(mealPayments).values(previousMonthDining.payments);
+  await db.insert(mealTokens).values(previousMonthDining.tokens);
+
   const firstAdmin = must(
     adminsData[0],
     "Missing first admin for notifications"
@@ -860,6 +992,7 @@ async function seed() {
       `DSW login: dsw@ruet.ac.bd / ${ADMIN_PASSWORD}`,
       `Student password: ${STUDENT_PASSWORD}`,
       `Meal dates (Asia/Dhaka): today=${todayMealDateStr}, tomorrow=${tomorrowMealDateStr}`,
+      `Previous month dining sales seeded: ${previousMonthDining.prevMonthLabel} (${previousMonthDining.daysInMonth} days, ${previousMonthDining.tokens.length} tokens)`,
       `Halls with no meal tokens (today or tomorrow): ${HALLS_WITH_NO_MEAL_TOKENS.join(", ")}`,
       "Fresh booking test accounts: student4@ruet.ac.bd (SHAHIDUL), student5@ (TIN SHED), student6@ (FAZLUL HUQ)",
     ].join("\n")
