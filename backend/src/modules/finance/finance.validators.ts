@@ -5,10 +5,16 @@ import {
   HALLS,
 } from "../../types/enums.ts";
 
+const rollNumberSchema = z
+  .string()
+  .trim()
+  .min(1, "Roll number is required")
+  .max(20, "Roll number is too long");
+
 // Create a due for a student
 export const createDueSchema = {
   body: z.object({
-    studentId: z.uuid("Invalid student ID"),
+    rollNumber: rollNumberSchema,
     hall: z.enum(HALLS),
     type: z.enum(DUE_TYPES),
     amount: z.int().positive("Amount must be a positive integer"),
@@ -66,7 +72,7 @@ export const listExpensesSchema = {
 // Student ledger
 export const studentLedgerSchema = {
   params: z.object({
-    id: z.uuid("Invalid student ID"),
+    rollNumber: rollNumberSchema,
   }),
 };
 

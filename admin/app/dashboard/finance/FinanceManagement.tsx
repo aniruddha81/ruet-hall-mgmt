@@ -51,7 +51,7 @@ export default function FinanceManagement() {
   // Create due form
   const [showDueForm, setShowDueForm] = useState(false);
   const [dueForm, setDueForm] = useState({
-    studentId: "",
+    rollNumber: "",
     hall: user?.hall ?? ("ZIA_HALL" as Hall),
     dueType: "RENT" as DueType,
     amount: "",
@@ -77,7 +77,7 @@ export default function FinanceManagement() {
   const [creatingExpense, setCreatingExpense] = useState(false);
 
   // Student ledger lookup
-  const [ledgerStudentId, setLedgerStudentId] = useState("");
+  const [ledgerRollNumber, setLedgerRollNumber] = useState("");
   const [ledger, setLedger] = useState<StudentLedger | null>(null);
   const [loadingLedger, setLoadingLedger] = useState(false);
   const [verifyingPaymentId, setVerifyingPaymentId] = useState<string | null>(
@@ -109,7 +109,7 @@ export default function FinanceManagement() {
     setSuccess(null);
     try {
       await createDue({
-        studentId: dueForm.studentId,
+        rollNumber: dueForm.rollNumber,
         hall: dueForm.hall,
         dueType: dueForm.dueType,
         amount: Number(dueForm.amount),
@@ -117,7 +117,7 @@ export default function FinanceManagement() {
       setSuccess("Due created successfully!");
       setShowDueForm(false);
       setDueForm({
-        studentId: "",
+        rollNumber: "",
         hall: user?.hall ?? ("ZIA_HALL" as Hall),
         dueType: "RENT",
         amount: "",
@@ -173,11 +173,11 @@ export default function FinanceManagement() {
   };
 
   const handleLookupLedger = async () => {
-    if (!ledgerStudentId) return;
+    if (!ledgerRollNumber) return;
     setLoadingLedger(true);
     setError(null);
     try {
-      const res = await getStudentLedger(ledgerStudentId);
+      const res = await getStudentLedger(ledgerRollNumber);
       setLedger(res.data ?? null);
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -187,13 +187,13 @@ export default function FinanceManagement() {
   };
 
   const handleVerifyPaymentReceipt = async (paymentId: string) => {
-    if (!ledgerStudentId) return;
+    if (!ledgerRollNumber) return;
     setVerifyingPaymentId(paymentId);
     setError(null);
     setSuccess(null);
     try {
       await verifyPaymentReceipt(paymentId);
-      const res = await getStudentLedger(ledgerStudentId);
+      const res = await getStudentLedger(ledgerRollNumber);
       setLedger(res.data ?? null);
       setSuccess("Payment receipt verified successfully.");
     } catch (err) {
@@ -204,13 +204,13 @@ export default function FinanceManagement() {
   };
 
   const handleVerifyMealPaymentReceipt = async (paymentId: string) => {
-    if (!ledgerStudentId) return;
+    if (!ledgerRollNumber) return;
     setVerifyingMealPaymentId(paymentId);
     setError(null);
     setSuccess(null);
     try {
       await verifyMealPaymentReceipt(paymentId);
-      const res = await getStudentLedger(ledgerStudentId);
+      const res = await getStudentLedger(ledgerRollNumber);
       setLedger(res.data ?? null);
       setSuccess("Meal payment receipt verified successfully.");
     } catch (err) {
@@ -293,13 +293,13 @@ export default function FinanceManagement() {
                 <form onSubmit={handleCreateDue} className="space-y-4 max-w-lg">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Student ID</Label>
+                      <Label>Roll Number</Label>
                       <Input
-                        value={dueForm.studentId}
+                        value={dueForm.rollNumber}
                         onChange={(e) =>
-                          setDueForm({ ...dueForm, studentId: e.target.value })
+                          setDueForm({ ...dueForm, rollNumber: e.target.value })
                         }
-                        placeholder="e.g. abc123..."
+                        placeholder="e.g. 240001"
                         required
                       />
                     </div>
@@ -599,9 +599,9 @@ export default function FinanceManagement() {
             <CardContent>
               <div className="flex gap-2 max-w-sm">
                 <Input
-                  placeholder="Student ID"
-                  value={ledgerStudentId}
-                  onChange={(e) => setLedgerStudentId(e.target.value)}
+                  placeholder="Roll number"
+                  value={ledgerRollNumber}
+                  onChange={(e) => setLedgerRollNumber(e.target.value)}
                 />
                 <Button onClick={handleLookupLedger} disabled={loadingLedger}>
                   {loadingLedger ? (

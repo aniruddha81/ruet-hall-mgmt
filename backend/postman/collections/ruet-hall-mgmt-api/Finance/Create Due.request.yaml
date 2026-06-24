@@ -8,9 +8,9 @@ body:
   type: json
   content: |-
     {
-      "studentId": "student-uuid-here",
+      "rollNumber": "240001",
       "hall": "ZIA_HALL",
-      "type": "ROOM_RENT",
+      "type": "RENT",
       "amount": 5000
     }
 order: 1000

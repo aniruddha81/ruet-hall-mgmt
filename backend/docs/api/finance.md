@@ -18,7 +18,7 @@ Role: `ASST_FINANCE` (PROVOST allowed)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/dues` | Create due for a student |
+| `POST` | `/dues` | Create due for a student (`rollNumber` in body) |
 | `PATCH` | `/dues/pay/:id` | Record payment (admin); optional receipt upload |
 
 Receipt verification:
@@ -38,7 +38,7 @@ Receipt verification:
 
 | Method | Path | Roles |
 |--------|------|-------|
-| `GET` | `/student/ledger/:id` | `ASST_FINANCE`, `FINANCE_SECTION_OFFICER` |
+| `GET` | `/student/ledger/:rollNumber` | `ASST_FINANCE`, `FINANCE_SECTION_OFFICER` |
 
 ## Meal payments (dining revenue)
 

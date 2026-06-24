@@ -20,7 +20,10 @@ import {
   initiateDueSslPayment,
   usesSslCommerzForFinance,
 } from "../payments/payment.service.ts";
-import { createDuePayment } from "./finance.service.ts";
+import {
+  createDuePayment,
+  resolveStudentByRollNumber,
+} from "./finance.service.ts";
 
 const isSupportedReceiptFile = (mimetype?: string) =>
   Boolean(
@@ -37,21 +40,14 @@ const isSupportedReceiptFile = (mimetype?: string) =>
  * Admin creates a due for a student
  */
 export const createDue = async (req: Request, res: Response) => {
-  const { studentId, hall, type, amount } = req.body;
+  const { rollNumber, hall, type, amount } = req.body;
 
-  // Verify student exists
-  const [user] = await db
-    .select({ id: uniStudents.id })
-    .from(uniStudents)
-    .where(eq(uniStudents.id, studentId))
-    .limit(1);
-
-  if (!user) throw new ApiError(404, "Student not found");
+  const student = await resolveStudentByRollNumber(rollNumber);
 
   const id = randomUUID();
   await db.insert(studentDues).values({
     id,
-    studentId,
+    studentId: student.id,
     hall,
     type: type as DueType,
     amount,
@@ -62,7 +58,15 @@ export const createDue = async (req: Request, res: Response) => {
     .json(
       new ApiResponse(
         201,
-        { id, studentId, hall, type, amount, status: "UNPAID" },
+        {
+          id,
+          studentId: student.id,
+          rollNumber: student.rollNumber,
+          hall,
+          type,
+          amount,
+          status: "UNPAID",
+        },
         "Due created successfully"
       )
     );
@@ -323,15 +327,10 @@ export const getExpenses = async (req: Request, res: Response) => {
  * Retrieve a student's full financial ledger (dues + payments + summary)
  */
 export const getStudentLedger = async (req: Request, res: Response) => {
-  const { id } = req.params as { id: string };
+  const { rollNumber } = req.params as { rollNumber: string };
 
-  const [user] = await db
-    .select({ id: uniStudents.id, name: uniStudents.name })
-    .from(uniStudents)
-    .where(eq(uniStudents.id, id))
-    .limit(1);
-
-  if (!user) throw new ApiError(404, "Student not found");
+  const user = await resolveStudentByRollNumber(rollNumber);
+  const id = user.id;
 
   const dues = await db
     .select({

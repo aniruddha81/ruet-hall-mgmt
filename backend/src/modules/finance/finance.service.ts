@@ -18,6 +18,24 @@ import type {
   MealPaymentResult,
 } from "./finance.d.ts";
 
+export async function resolveStudentByRollNumber(rollNumber: string) {
+  const [student] = await db
+    .select({
+      id: uniStudents.id,
+      name: uniStudents.name,
+      rollNumber: uniStudents.rollNumber,
+    })
+    .from(uniStudents)
+    .where(eq(uniStudents.rollNumber, rollNumber.trim()))
+    .limit(1);
+
+  if (!student) {
+    throw new ApiError(404, "Student not found");
+  }
+
+  return student;
+}
+
 export async function getStudentInfo(studentId: string) {
   const [student] = await db
     .select({

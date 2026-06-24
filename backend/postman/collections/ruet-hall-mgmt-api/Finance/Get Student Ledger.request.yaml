@@ -1,8 +1,8 @@
 $kind: http-request
-url: "{{BASE_URL}}/api/finance/student/ledger/:id"
+url: "{{BASE_URL}}/api/finance/student/ledger/:rollNumber"
 method: GET
 headers:
   Authorization: Bearer {{ACCESS_TOKEN}}
 pathVariables:
-  id: student-uuid-here
+  rollNumber: "240001"
 order: 5000
