@@ -353,129 +353,6 @@ export default function DiningManagement() {
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Date-Range PDF Report</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 md:flex-row md:items-end">
-            <div className="space-y-2">
-              <Label htmlFor="reportStartDate">Start Date</Label>
-              <Input
-                id="reportStartDate"
-                type="date"
-                value={reportRange.startDate}
-                onChange={(e) =>
-                  setReportRange((prev) => ({
-                    ...prev,
-                    startDate: e.target.value,
-                  }))
-                }
-                max={reportRange.endDate || undefined}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reportEndDate">End Date</Label>
-              <Input
-                id="reportEndDate"
-                type="date"
-                value={reportRange.endDate}
-                onChange={(e) =>
-                  setReportRange((prev) => ({
-                    ...prev,
-                    endDate: e.target.value,
-                  }))
-                }
-                min={reportRange.startDate || undefined}
-              />
-            </div>
-            <Button
-              onClick={handleGenerateDateRangePdf}
-              disabled={generatingPdf}
-            >
-              {generatingPdf && (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              )}
-              Generate PDF
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            Select a date range to export hall-wise dining report data in PDF
-            format.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Meal Items Table</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleCreateMealItem} className="flex gap-2">
-            <Input
-              value={newMealItemName}
-              onChange={(e) => setNewMealItemName(e.target.value)}
-              placeholder="e.g. Rice, Dal, Chicken Curry"
-              required
-            />
-            <Button type="submit" disabled={creatingMealItem}>
-              {creatingMealItem && (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              )}
-              Add Item
-            </Button>
-          </form>
-
-          {mealItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No meal items yet. Add items first, then create menus from them.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mealItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={item.isActive === 1 ? "default" : "secondary"}
-                      >
-                        {item.isActive === 1 ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={updatingMealItemId === item.id}
-                        onClick={() => handleToggleMealItem(item)}
-                      >
-                        {item.isActive === 1 ? "Deactivate" : "Activate"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        disabled={updatingMealItemId === item.id}
-                        onClick={() => handleDeleteMealItem(item.id)}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Create Menu Form */}
       {showForm && (
         <Card>
@@ -622,6 +499,129 @@ export default function DiningManagement() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Date-Range PDF Report</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end">
+            <div className="space-y-2">
+              <Label htmlFor="reportStartDate">Start Date</Label>
+              <Input
+                id="reportStartDate"
+                type="date"
+                value={reportRange.startDate}
+                onChange={(e) =>
+                  setReportRange((prev) => ({
+                    ...prev,
+                    startDate: e.target.value,
+                  }))
+                }
+                max={reportRange.endDate || undefined}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reportEndDate">End Date</Label>
+              <Input
+                id="reportEndDate"
+                type="date"
+                value={reportRange.endDate}
+                onChange={(e) =>
+                  setReportRange((prev) => ({
+                    ...prev,
+                    endDate: e.target.value,
+                  }))
+                }
+                min={reportRange.startDate || undefined}
+              />
+            </div>
+            <Button
+              onClick={handleGenerateDateRangePdf}
+              disabled={generatingPdf}
+            >
+              {generatingPdf && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              )}
+              Generate PDF
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Select a date range to export hall-wise dining report data in PDF
+            format.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Meal Items Table</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form onSubmit={handleCreateMealItem} className="flex gap-2">
+            <Input
+              value={newMealItemName}
+              onChange={(e) => setNewMealItemName(e.target.value)}
+              placeholder="e.g. Rice, Dal, Chicken Curry"
+              required
+            />
+            <Button type="submit" disabled={creatingMealItem}>
+              {creatingMealItem && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              )}
+              Add Item
+            </Button>
+          </form>
+
+          {mealItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No meal items yet. Add items first, then create menus from them.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mealItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={item.isActive === 1 ? "default" : "secondary"}
+                      >
+                        {item.isActive === 1 ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={updatingMealItemId === item.id}
+                        onClick={() => handleToggleMealItem(item)}
+                      >
+                        {item.isActive === 1 ? "Deactivate" : "Activate"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={updatingMealItemId === item.id}
+                        onClick={() => handleDeleteMealItem(item.id)}
+                      >
+                        Delete
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="tomorrow">
         <TabsList>
