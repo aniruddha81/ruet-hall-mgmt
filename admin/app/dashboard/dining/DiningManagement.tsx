@@ -40,7 +40,7 @@ import type {
 import { MEAL_TYPES } from "@/lib/types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Loader2, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { Loader2, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const formatDateInput = (date: Date) => {
@@ -190,7 +190,7 @@ export default function DiningManagement() {
     setError(null);
     setSuccess(null);
     try {
-      await updateMealItem(item.id, { isActive: item.isActive !== 1 });
+      await updateMealItem(item.id, { isActive: !item.isActive });
       setSuccess("Meal item updated.");
       await fetchData();
     } catch (err) {
@@ -336,9 +336,22 @@ export default function DiningManagement() {
             Create menus, manage tokens, and view bookings
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Menu
+        <Button
+          variant={showForm ? "outline" : "default"}
+          onClick={() => setShowForm((prev) => !prev)}
+          aria-expanded={showForm}
+        >
+          {showForm ? (
+            <>
+              <X className="h-4 w-4 mr-2" />
+              Close
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              New Menu
+            </>
+          )}
         </Button>
       </div>
 
@@ -395,7 +408,7 @@ export default function DiningManagement() {
                         setMenuForm((prev) => ({
                           ...prev,
                           mealItemIds: mealItems
-                            .filter((item) => item.isActive === 1)
+                            .filter((item) => item.isActive)
                             .map((item) => item.id),
                         }))
                       }
@@ -418,14 +431,14 @@ export default function DiningManagement() {
                   </div>
 
                   <div className="max-h-40 space-y-2 overflow-y-auto">
-                    {mealItems.filter((item) => item.isActive === 1).length ===
+                    {mealItems.filter((item) => item.isActive).length ===
                     0 ? (
                       <p className="text-sm text-muted-foreground">
                         No active meal items available.
                       </p>
                     ) : (
                       mealItems
-                        .filter((item) => item.isActive === 1)
+                        .filter((item) => item.isActive)
                         .map((item) => (
                           <label
                             key={item.id}
@@ -592,9 +605,9 @@ export default function DiningManagement() {
                     <TableCell>{item.name}</TableCell>
                     <TableCell>
                       <Badge
-                        variant={item.isActive === 1 ? "default" : "secondary"}
+                        variant={item.isActive ? "default" : "secondary"}
                       >
-                        {item.isActive === 1 ? "Active" : "Inactive"}
+                        {item.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="space-x-2">
@@ -604,7 +617,7 @@ export default function DiningManagement() {
                         disabled={updatingMealItemId === item.id}
                         onClick={() => handleToggleMealItem(item)}
                       >
-                        {item.isActive === 1 ? "Deactivate" : "Activate"}
+                        {item.isActive ? "Deactivate" : "Activate"}
                       </Button>
                       <Button
                         size="sm"

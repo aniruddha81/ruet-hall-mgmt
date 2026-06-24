@@ -227,7 +227,7 @@ export interface AcademicSession {
 export interface MealItem {
   id: string;
   name: string;
-  isActive: number;
+  isActive: boolean;
   createdBy?: string;
   updatedBy?: string;
   createdAt?: string;
